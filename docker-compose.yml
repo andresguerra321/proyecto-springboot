@@ -1,0 +1,70 @@
+services:
+  # ==============================================================================
+  # PostgreSQL Database Service
+  # ==============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: renta_herramientas_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-renta_herramientas_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      # Puerto 5434 en host para evitar colisiones con puertos 5432 o 5433 existentes
+      - "${DB_PORT:-5434}:5432"
+    volumes:
+      - postgres_renta_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-renta_herramientas_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - renta_network
+
+  # ==============================================================================
+  # Spring Boot Backend API Service
+  # ==============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: renta_herramientas_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-renta_herramientas_db}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      HIBERNATE_DDL_AUTO: ${HIBERNATE_DDL_AUTO:-update}
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      # Puerto 8085 en host para evitar colisión con el puerto 8080 existente
+      - "${APP_PORT:-8085}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 35s
+    networks:
+      - renta_network
+
+# ==============================================================================
+# Persistent Volumes & Networks
+# ==============================================================================
+volumes:
+  postgres_renta_data:
+    name: renta_herramientas_pg_data
+
+networks:
+  renta_network:
+    name: renta_herramientas_network
+    driver: bridge
