@@ -15,7 +15,8 @@ services:
       - "${DB_PORT:-5434}:5432"
     volumes:
       - postgres_renta_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-renta_herramientas_db}"]
       interval: 10s
@@ -26,7 +27,7 @@ services:
       - renta_network
 
   # ==============================================================================
-  # Spring Boot Backend API Service
+  # Spring Boot Backend API Service (Bootstrap Module)
   # ==============================================================================
   app:
     build:
