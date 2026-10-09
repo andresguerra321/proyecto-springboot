@@ -29,10 +29,17 @@ public class SecurityConfig {
             "/swagger-ui.html"
     };
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    private final com.campus.rentaequipos.identity.infrastructure.adapter.out.security.JwtAuthenticationFilter jwtAuthFilter;
+    private final org.springframework.security.authentication.AuthenticationProvider authenticationProvider;
+
+    public SecurityConfig(
+            com.campus.rentaequipos.identity.infrastructure.adapter.out.security.JwtAuthenticationFilter jwtAuthFilter,
+            org.springframework.security.authentication.AuthenticationProvider authenticationProvider
+    ) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.authenticationProvider = authenticationProvider;
     }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -43,7 +50,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
