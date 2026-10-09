@@ -28,25 +28,26 @@ El sistema automatiza el alquiler de herramientas y maquinaria de construcción 
 
 ## 🏛 Arquitectura y Organización
 
-El proyecto implementa **Arquitectura Hexagonal** y **DDD modular**:
+El proyecto implementa un esquema **Maven Multi-módulo** orientado a **Diseño Guiado por el Dominio (DDD)** y **Arquitectura Hexagonal (Ports & Adapters)**:
 
 ```
-src/main/java/com/campus/rentaequipos/
-├── infrastructure/               # Adaptadores globales, configuraciones de infraestructura
-│   ├── adapter/in/rest/          # Controladores transversales (HealthController, etc.)
-│   └── config/                   # SecurityConfig, OpenApiConfig, CorsConfig
-└── modules/                      # Módulos de dominio desacoplados (Hexagonal / DDD)
-    ├── auth/                     # Autenticación, JWT y gestión de credenciales
-    ├── user/                     # Administración de usuarios (Admin, Proveedor, Cliente)
-    ├── tool/                     # Inventario de herramientas y maquinaria
-    ├── rental/                   # Gestión de solicitudes de alquiler y reservas
-    └── payment/                  # Pagos y facturación
+├── pom.xml                      # POM padre (orquestador de módulos y dependencyManagement)
+├── shared-kernel/               # Value Objects (Money, DateRange), excepciones base y utilidades
+├── identity/                    # Usuarios, roles, perfiles, Spring Security y JWT
+├── catalog/                     # Herramientas, categorías, imágenes y estado del equipo
+├── rental/                      # Reservas, validación de disponibilidad, entregas y devoluciones
+├── billing/                     # Pagos, facturación automática y comprobantes
+├── reporting/                   # Métricas de rentabilidad, estadísticas y consultas read-only
+├── bootstrap/                   # Ensamblador Spring Boot (@SpringBootApplication, Swagger, SecurityConfig)
+├── frontend/                    # Estructura modular de UI (admin, provider, client, assets)
+├── db/                          # Scripts SQL (schema.sql en 4FN, data.sql con seed y diagramas)
+└── docs/                        # Documentación: README.md, COMPILACION.md, DESPLIEGUE.md
 ```
 
-Cada módulo contiene:
-- `domain`: Modelos puros del negocio, Value Objects y Puertos (`port.in`, `port.out`).
-- `application`: Casos de uso y servicios de aplicación.
-- `infrastructure`: Adaptadores de entrada (REST API) y salida (persistencia JPA/PostgreSQL).
+Cada módulo de negocio (`identity`, `catalog`, `rental`, `billing`, `reporting`) se organiza internamente en:
+- `domain`: Modelos inmutables, Value Objects y Puertos (`port.in`, `port.out`).
+- `application`: Casos de uso y servicios de aplicación coordinadores.
+- `infrastructure`: Adaptadores de entrada (REST API) y salida (persistencia Spring Data JPA con PostgreSQL).
 
 ---
 
