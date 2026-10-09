@@ -1,0 +1,224 @@
+{
+  "billing/pom.xml": {
+    "mtime": 1791551817.0114973,
+    "seen": 1791552380.01029,
+    "ast_hash": "7371d84d99771c2e9575e0f5c2ac55ba",
+    "semantic_hash": "7371d84d99771c2e9575e0f5c2ac55ba"
+  },
+  "billing/src/main/java/com/campus/rentaequipos/billing/package-info.java": {
+    "mtime": 1791551817.0134983,
+    "seen": 1791552380.01029,
+    "ast_hash": "b07d21f5a4dcf08f872cf2f97da07d55",
+    "semantic_hash": "b07d21f5a4dcf08f872cf2f97da07d55"
+  },
+  "bootstrap/pom.xml": {
+    "mtime": 1791551817.1336763,
+    "seen": 1791552380.01029,
+    "ast_hash": "bd1084f68659a141368c61c506887aa0",
+    "semantic_hash": "bd1084f68659a141368c61c506887aa0"
+  },
+  "bootstrap/src/main/java/com/campus/rentaequipos/RentaEquiposApplication.java": {
+    "mtime": 1791551817.0155592,
+    "seen": 1791552380.01029,
+    "ast_hash": "a2b6432f24c0d5cf5e6ce4af7fb4ccf1",
+    "semantic_hash": "a2b6432f24c0d5cf5e6ce4af7fb4ccf1"
+  },
+  "bootstrap/src/main/java/com/campus/rentaequipos/infrastructure/adapter/in/rest/HealthController.java": {
+    "mtime": 1791551817.016567,
+    "seen": 1791552380.01029,
+    "ast_hash": "974faa4118cc0d734264352745170e4a",
+    "semantic_hash": "974faa4118cc0d734264352745170e4a"
+  },
+  "bootstrap/src/main/java/com/campus/rentaequipos/infrastructure/config/OpenApiConfig.java": {
+    "mtime": 1791551817.0175607,
+    "seen": 1791552380.01029,
+    "ast_hash": "07d917e894fb5b28273dcdaa61c0fb40",
+    "semantic_hash": "07d917e894fb5b28273dcdaa61c0fb40"
+  },
+  "bootstrap/src/main/java/com/campus/rentaequipos/infrastructure/config/SecurityConfig.java": {
+    "mtime": 1791551817.0175607,
+    "seen": 1791552380.01029,
+    "ast_hash": "c03dbabf0d3fade73a9ebba2d5f742d4",
+    "semantic_hash": "c03dbabf0d3fade73a9ebba2d5f742d4"
+  },
+  "bootstrap/src/main/resources/db/migration/V1__create_schema.sql": {
+    "mtime": 1791551817.1351867,
+    "seen": 1791552380.01029,
+    "ast_hash": "97f753f4b258644823f44cd08a2ef8a7",
+    "semantic_hash": "97f753f4b258644823f44cd08a2ef8a7"
+  },
+  "bootstrap/src/main/resources/db/migration/V2__seed_data.sql": {
+    "mtime": 1791551817.1361918,
+    "seen": 1791552380.01029,
+    "ast_hash": "a1aa7386708b2ab0c665817bae5df89d",
+    "semantic_hash": "a1aa7386708b2ab0c665817bae5df89d"
+  },
+  "bootstrap/src/test/java/com/campus/rentaequipos/RentaEquiposApplicationTests.java": {
+    "mtime": 1791551817.0195682,
+    "seen": 1791552380.01029,
+    "ast_hash": "1d1f8072be7d0d223bec933677d372aa",
+    "semantic_hash": "1d1f8072be7d0d223bec933677d372aa"
+  },
+  "catalog/pom.xml": {
+    "mtime": 1791551817.0208042,
+    "seen": 1791552380.01029,
+    "ast_hash": "3eb51fad73ce3050e1d653c83cace33a",
+    "semantic_hash": "3eb51fad73ce3050e1d653c83cace33a"
+  },
+  "catalog/src/main/java/com/campus/rentaequipos/catalog/package-info.java": {
+    "mtime": 1791551817.0232933,
+    "seen": 1791552380.01029,
+    "ast_hash": "5e986b2d07ca543e54cd4ae920e9e63d",
+    "semantic_hash": "5e986b2d07ca543e54cd4ae920e9e63d"
+  },
+  "db/data.sql": {
+    "mtime": 1791551817.1382048,
+    "seen": 1791552380.01029,
+    "ast_hash": "a1aa7386708b2ab0c665817bae5df89d",
+    "semantic_hash": "a1aa7386708b2ab0c665817bae5df89d"
+  },
+  "db/schema.sql": {
+    "mtime": 1791551817.139637,
+    "seen": 1791552380.01029,
+    "ast_hash": "97f753f4b258644823f44cd08a2ef8a7",
+    "semantic_hash": "97f753f4b258644823f44cd08a2ef8a7"
+  },
+  "docker/postgres/init.sql": {
+    "mtime": 1791551796.8461528,
+    "seen": 1791552380.01029,
+    "ast_hash": "065c793b33f9f67129097973676244bb",
+    "semantic_hash": "065c793b33f9f67129097973676244bb"
+  },
+  "identity/pom.xml": {
+    "mtime": 1791551817.03038,
+    "seen": 1791552380.01029,
+    "ast_hash": "b76d884b91e3266bdf42dad632b7bf01",
+    "semantic_hash": "b76d884b91e3266bdf42dad632b7bf01"
+  },
+  "identity/src/main/java/com/campus/rentaequipos/identity/domain/model/Role.java": {
+    "mtime": 1791551817.032744,
+    "seen": 1791552380.01029,
+    "ast_hash": "68a2164cbdba641e43ccfb15a0292940",
+    "semantic_hash": "68a2164cbdba641e43ccfb15a0292940"
+  },
+  "mvnw": {
+    "mtime": 1791551796.8461528,
+    "seen": 1791552380.01029,
+    "ast_hash": "ab50dd89da7da2346b28003352eeeeeb",
+    "semantic_hash": "ab50dd89da7da2346b28003352eeeeeb"
+  },
+  "pom.xml": {
+    "mtime": 1791551817.141642,
+    "seen": 1791552380.01029,
+    "ast_hash": "a29ab007270d7b677cf2876f75c5626a",
+    "semantic_hash": "a29ab007270d7b677cf2876f75c5626a"
+  },
+  "rental/pom.xml": {
+    "mtime": 1791551817.0354426,
+    "seen": 1791552380.01029,
+    "ast_hash": "3921648fa1f9f79ca82e9c8f72c56e25",
+    "semantic_hash": "3921648fa1f9f79ca82e9c8f72c56e25"
+  },
+  "rental/src/main/java/com/campus/rentaequipos/rental/package-info.java": {
+    "mtime": 1791551817.037444,
+    "seen": 1791552380.01029,
+    "ast_hash": "46db4cef326941c0ec25b2ad4294b9fc",
+    "semantic_hash": "46db4cef326941c0ec25b2ad4294b9fc"
+  },
+  "reporting/pom.xml": {
+    "mtime": 1791551817.037444,
+    "seen": 1791552380.01029,
+    "ast_hash": "0896732cd4be088510f51016b6e4ba3b",
+    "semantic_hash": "0896732cd4be088510f51016b6e4ba3b"
+  },
+  "reporting/src/main/java/com/campus/rentaequipos/reporting/package-info.java": {
+    "mtime": 1791551817.0389276,
+    "seen": 1791552380.01029,
+    "ast_hash": "6948f4480d105c056412770220c165f3",
+    "semantic_hash": "6948f4480d105c056412770220c165f3"
+  },
+  "shared-kernel/pom.xml": {
+    "mtime": 1791551817.0397885,
+    "seen": 1791552380.01029,
+    "ast_hash": "7931e4f6101d97520f2f0ee90066d105",
+    "semantic_hash": "7931e4f6101d97520f2f0ee90066d105"
+  },
+  "shared-kernel/src/main/java/com/campus/rentaequipos/shared/domain/exception/BusinessRuleViolationException.java": {
+    "mtime": 1791551817.0424378,
+    "seen": 1791552380.01029,
+    "ast_hash": "0c71742c148bd555d4ab30a0c181a917",
+    "semantic_hash": "0c71742c148bd555d4ab30a0c181a917"
+  },
+  "shared-kernel/src/main/java/com/campus/rentaequipos/shared/domain/exception/DomainException.java": {
+    "mtime": 1791551817.0434368,
+    "seen": 1791552380.01029,
+    "ast_hash": "77f9c8c94964280dc401c4853444e66d",
+    "semantic_hash": "77f9c8c94964280dc401c4853444e66d"
+  },
+  "shared-kernel/src/main/java/com/campus/rentaequipos/shared/domain/exception/EntityNotFoundException.java": {
+    "mtime": 1791551817.0434368,
+    "seen": 1791552380.01029,
+    "ast_hash": "2afdb56d1dbef7fddefe035f53ecf392",
+    "semantic_hash": "2afdb56d1dbef7fddefe035f53ecf392"
+  },
+  "shared-kernel/src/main/java/com/campus/rentaequipos/shared/domain/valueobject/DateRange.java": {
+    "mtime": 1791551817.0449448,
+    "seen": 1791552380.01029,
+    "ast_hash": "f38991b17c58166252829344feec26d2",
+    "semantic_hash": "f38991b17c58166252829344feec26d2"
+  },
+  "shared-kernel/src/main/java/com/campus/rentaequipos/shared/domain/valueobject/Money.java": {
+    "mtime": 1791551817.0449448,
+    "seen": 1791552380.01029,
+    "ast_hash": "c1254bb8c8479620b854099f525a6b31",
+    "semantic_hash": "c1254bb8c8479620b854099f525a6b31"
+  },
+  "README.md": {
+    "mtime": 1791551817.0896053,
+    "seen": 1791552380.01029,
+    "ast_hash": "1076bd7357140f41e10a14b7f23b3c35",
+    "semantic_hash": "1076bd7357140f41e10a14b7f23b3c35"
+  },
+  "bootstrap/src/main/resources/application.yml": {
+    "mtime": 1791551817.1346822,
+    "seen": 1791552380.01029,
+    "ast_hash": "b86c33ae6f97d15f8b5faeb9114a0ca3",
+    "semantic_hash": "b86c33ae6f97d15f8b5faeb9114a0ca3"
+  },
+  "db/README.md": {
+    "mtime": 1791551817.1371903,
+    "seen": 1791552380.01029,
+    "ast_hash": "fda8304dd9549debb8258a7cba9ce88d",
+    "semantic_hash": "fda8304dd9549debb8258a7cba9ce88d"
+  },
+  "docker-compose.yml": {
+    "mtime": 1791551817.140643,
+    "seen": 1791552380.01029,
+    "ast_hash": "cf55f33c097947be8e370f56b6a19fb1",
+    "semantic_hash": "cf55f33c097947be8e370f56b6a19fb1"
+  },
+  "docs/COMPILACION.md": {
+    "mtime": 1791551817.0283773,
+    "seen": 1791552380.01029,
+    "ast_hash": "f41458a73f5e9b7949bea44e25a7c7f2",
+    "semantic_hash": "f41458a73f5e9b7949bea44e25a7c7f2"
+  },
+  "docs/DESPLIEGUE.md": {
+    "mtime": 1791551817.029375,
+    "seen": 1791552380.01029,
+    "ast_hash": "ae223828959c7396f12768367d242b66",
+    "semantic_hash": "ae223828959c7396f12768367d242b66"
+  },
+  "docs/ejercicioDemo.md": {
+    "mtime": 1791551796.8461528,
+    "seen": 1791552380.01029,
+    "ast_hash": "07f06529680cb8fe3828478f1cffb32a",
+    "semantic_hash": "07f06529680cb8fe3828478f1cffb32a"
+  },
+  "frontend/README.md": {
+    "mtime": 1791551817.029375,
+    "seen": 1791552380.01029,
+    "ast_hash": "67f5e151f6c736a7470d2afcb4054773",
+    "semantic_hash": "67f5e151f6c736a7470d2afcb4054773"
+  }
+}
