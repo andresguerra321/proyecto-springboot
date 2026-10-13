@@ -64,6 +64,18 @@ docker-compose up -d --build
 ```
 Esto levantará la base de datos PostgreSQL, ejecutará las migraciones de Flyway automáticamente y desplegará la API en el puerto `8085`.
 
+3. **Ejecutar el Frontend (Vite + Tailwind CSS)**
+En una terminal separada, ingresa al directorio `frontend`:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+La aplicación web interactiva estará disponible de inmediato en:
+👉 **`http://localhost:5173/`**
+*(Incluye botones de acceso rápido para autenticarte como Admin, Proveedor o Cliente con 1 solo clic).*
+
+
 ## Ejemplo de `application.yml` (Configuración Principal)
 El archivo principal está en `backend/bootstrap/src/main/resources/application.yml`:
 
