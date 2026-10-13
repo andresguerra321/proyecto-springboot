@@ -82,13 +82,16 @@ export async function renderCatalogView() {
             class="absolute inset-0 w-full h-full object-cover object-right sm:object-center pointer-events-none" 
           />
           
-          <div class="relative z-10 p-6 sm:p-10 md:p-12 max-w-xl text-white space-y-2">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight font-display leading-tight drop-shadow-md">
-              Alquila el equipo que necesitas.<br />
+          <!-- Subtle Dark Scrim Overlay for Perfect Contrast & Legibility -->
+          <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-900/40 to-transparent pointer-events-none"></div>
+
+          <div class="relative z-10 p-6 sm:p-10 md:p-12 max-w-xl space-y-2">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-extrabold tracking-tight font-display leading-[1.15] text-white drop-shadow-md">
+              <span class="text-white">Alquila el equipo que necesitas.</span><br />
               <span class="text-white">Sin comprarlo.</span>
             </h1>
-            <p class="text-xs sm:text-sm text-slate-100 font-normal leading-relaxed pt-1 max-w-md drop-shadow">
-              Herramientas y maquinaria para construir, remodelar y hacer realidad tus proyectos en todo Colombia.
+            <p class="text-xs sm:text-sm md:text-base text-slate-100 font-normal leading-relaxed pt-1 max-w-md drop-shadow">
+              Herramientas y maquinaria para construir, remodelar y hacer realidad tus proyectos en toda Colombia.
             </p>
           </div>
         </div>
