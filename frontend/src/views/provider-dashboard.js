@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getRentalStatusBadge, getToolStatusBadge } 
 import { renderIcon } from '../utils/icons.js';
 import { openInvoiceViewer } from './rental-modal.js';
 import { openAuthModal } from '../components/auth-modal.js';
+import { notificationsStore } from '../utils/notifications-store.js';
 
 export async function renderProviderDashboard() {
   const container = document.getElementById('app-content');
@@ -490,9 +491,15 @@ export async function renderProviderDashboard() {
     container.querySelectorAll('.btn-confirm-action').forEach(b => {
       b.addEventListener('click', async () => {
         await api.patch(`/rentals/${b.dataset.id}/confirm`);
-        showToast('Solicitud confirmada exitosamente', 'success');
         const req = requestsList.find(r => r.id === b.dataset.id);
         if (req) req.status = 'CONFIRMED';
+        notificationsStore.add({
+          category: 'RENTAL',
+          type: 'success',
+          title: 'Solicitud Confirmada',
+          message: `Has confirmado el alquiler #${b.dataset.id} para ${req?.client?.name || 'el cliente'}. Equipo listo para despacho.`,
+          link: '#/provider'
+        });
         render();
       });
     });
@@ -500,9 +507,15 @@ export async function renderProviderDashboard() {
     container.querySelectorAll('.btn-reject-action').forEach(b => {
       b.addEventListener('click', async () => {
         await api.patch(`/rentals/${b.dataset.id}/cancel`);
-        showToast('Solicitud rechazada', 'info');
         const req = requestsList.find(r => r.id === b.dataset.id);
         if (req) req.status = 'CANCELLED';
+        notificationsStore.add({
+          category: 'RENTAL',
+          type: 'warning',
+          title: 'Solicitud Rechazada',
+          message: `Se ha cancelado la solicitud #${b.dataset.id}.`,
+          link: '#/provider'
+        });
         render();
       });
     });
@@ -510,9 +523,15 @@ export async function renderProviderDashboard() {
     container.querySelectorAll('.btn-dispatch-action').forEach(b => {
       b.addEventListener('click', async () => {
         await api.patch(`/rentals/${b.dataset.id}/start`);
-        showToast('Entrega registrada: Estado "En curso"', 'success');
         const req = requestsList.find(r => r.id === b.dataset.id);
         if (req) req.status = 'IN_PROGRESS';
+        notificationsStore.add({
+          category: 'ALERT',
+          type: 'info',
+          title: 'Entrega de Equipo Registrada',
+          message: `El equipo del alquiler #${b.dataset.id} fue entregado al cliente. Estado: En curso.`,
+          link: '#/provider'
+        });
         render();
       });
     });
@@ -652,7 +671,14 @@ export async function renderProviderDashboard() {
 
     content.querySelector('#btn-complete-insp').addEventListener('click', async () => {
       await api.patch(`/rentals/${req.id}/complete`);
-      showToast('Devolución completada exitosamente', 'success');
+      const isDamaged = content.querySelector('input[name="insp-status"]:checked')?.value === 'DAMAGED';
+      notificationsStore.add({
+        category: isDamaged ? 'DAMAGE' : 'INSPECTION',
+        type: isDamaged ? 'warning' : 'success',
+        title: isDamaged ? 'Devolución con Avería Registrada' : 'Devolución Conforme Registrada',
+        message: `Inspección para alquiler #${req.id} completada.${isDamaged ? ' Se registró reporte de avería.' : ' Depósito listo para liberación.'}`,
+        link: '#/provider'
+      });
       if (req) req.status = 'COMPLETED';
       modal.close();
       render();
@@ -755,7 +781,13 @@ export async function renderProviderDashboard() {
         existingTool.dailyPrice = price;
         existingTool.description = desc;
         existingTool.status = status;
-        showToast('Herramienta actualizada exitosamente', 'success');
+        notificationsStore.add({
+          category: 'RENTAL',
+          type: 'info',
+          title: 'Herramienta Actualizada',
+          message: `Se actualizaron las especificaciones de "${name}".`,
+          link: '#/provider'
+        });
       } else {
         const newTool = {
           id: toolsList.length + 1,
@@ -768,7 +800,13 @@ export async function renderProviderDashboard() {
         };
         toolsList.unshift(newTool);
         await api.post('/tools', newTool).catch(() => {});
-        showToast('Nueva herramienta agregada al catálogo', 'success');
+        notificationsStore.add({
+          category: 'RENTAL',
+          type: 'success',
+          title: 'Equipo Agregado al Inventario',
+          message: `Has publicado "${name}" en tu catálogo a ${formatCurrency(price)}/día.`,
+          link: '#/provider'
+        });
       }
 
       modal.close();

@@ -5,6 +5,7 @@ import showToast from '../components/toast.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
+import { notificationsStore } from '../utils/notifications-store.js';
 
 export async function openRentalModal(tool) {
   if (!auth.isAuthenticated()) {
@@ -306,6 +307,15 @@ async function openCheckoutModal(tool, rentalData) {
       };
 
       const paymentResult = await api.post('/billing/payments', paymentPayload);
+
+      // Trigger Notification in Notification Center and Toast
+      notificationsStore.add({
+        category: 'PAYMENT',
+        type: 'success',
+        title: '¡Alquiler y Pago Confirmados!',
+        message: `Has reservado ${tool.name} (#${createdRental.id}) por ${formatCurrency(rentalData.total)}. Factura legal generada.`,
+        link: '#/client'
+      });
 
       // 3. Show Success & Invoice Viewer
       showSuccessModal(createdRental, paymentResult, tool, rentalData);

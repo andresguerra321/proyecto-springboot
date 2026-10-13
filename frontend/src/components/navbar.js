@@ -1,6 +1,8 @@
 import auth from '../auth/state.js';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from './auth-modal.js';
+import { toggleNotificationsMenu, closeNotificationsMenu } from './notifications-menu.js';
+import { notificationsStore } from '../utils/notifications-store.js';
 
 export function renderNavbar(activeRoute = 'catalog') {
   const container = document.getElementById('navbar-container');
@@ -11,6 +13,7 @@ export function renderNavbar(activeRoute = 'catalog') {
   const isAdmin = auth.isAdmin();
   const isProvider = auth.isProvider();
   const isClient = auth.isClient();
+  const unreadCount = notificationsStore.getUnreadCount();
 
   container.innerHTML = `
     <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
@@ -76,14 +79,30 @@ export function renderNavbar(activeRoute = 'catalog') {
               />
             </div>
 
+            <!-- Notifications Bell with Dropdown Menu -->
+            <div class="relative" id="notifications-wrapper">
+              <button 
+                id="btn-navbar-notifications" 
+                class="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-all cursor-pointer flex items-center justify-center" 
+                title="Notificaciones"
+                aria-label="Abrir panel de notificaciones"
+              >
+                ${renderIcon('Bell', 'w-4 h-4')}
+                <span 
+                  id="navbar-unread-badge" 
+                  class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#FF5A1F] text-white text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}"
+                >
+                  ${unreadCount}
+                </span>
+              </button>
+
+              <!-- Notifications Popover Container -->
+              <div id="notifications-menu-container" class="hidden"></div>
+            </div>
+
             ${isAuth ? `
               <!-- Authenticated User Menu -->
               <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-                <button class="relative p-1.5 text-slate-500 hover:text-slate-800 transition-colors" title="Notificaciones">
-                  ${renderIcon('Bell', 'w-4 h-4')}
-                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#FF5A1F]"></span>
-                </button>
-
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-display shadow-xs">
                     ${user?.username ? user.username.substring(0, 2).toUpperCase() : 'US'}
@@ -145,6 +164,17 @@ export function renderNavbar(activeRoute = 'catalog') {
           Administración
         </a>
 
+        <!-- Mobile Notifications Link -->
+        <button id="mobile-btn-notifs" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
+          <span class="flex items-center gap-2">
+            ${renderIcon('Bell', 'w-4 h-4 text-slate-500')}
+            <span>Notificaciones</span>
+          </span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FF5A1F] text-white ${unreadCount > 0 ? '' : 'hidden'}">
+            ${unreadCount}
+          </span>
+        </button>
+
         <div class="pt-2 border-t border-slate-100 mt-2">
           ${isAuth ? `
             <div class="flex items-center justify-between px-3 py-2">
@@ -173,11 +203,37 @@ export function renderNavbar(activeRoute = 'catalog') {
   container.querySelector('#btn-nav-login')?.addEventListener('click', () => openAuthModal('login'));
   container.querySelector('#mobile-btn-login')?.addEventListener('click', () => openAuthModal('login'));
 
+  // Notification Menu Toggles
+  container.querySelector('#btn-navbar-notifications')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleNotificationsMenu();
+  });
+
+  container.querySelector('#mobile-btn-notifs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.querySelector('#mobile-menu')?.classList.add('hidden');
+    toggleNotificationsMenu();
+  });
+
   const mobToggle = container.querySelector('#mobile-menu-btn');
   const mobMenu = container.querySelector('#mobile-menu');
   if (mobToggle && mobMenu) {
     mobToggle.addEventListener('click', () => mobMenu.classList.toggle('hidden'));
   }
+
+  // Reactive badge updates on notifications:change
+  window.addEventListener('notifications:change', (e) => {
+    const count = e.detail?.unreadCount ?? notificationsStore.getUnreadCount();
+    const badge = container.querySelector('#navbar-unread-badge');
+    if (badge) {
+      badge.textContent = count.toString();
+      if (count > 0) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+  });
 
   // Global search enter
   const handleSearchSubmit = (inputEl) => {
