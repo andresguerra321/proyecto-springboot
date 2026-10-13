@@ -1,4 +1,5 @@
 import api from '../api/client.js';
+import bannerWebImg from '../assets/banner-web.png';
 import { formatCurrency } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openRentalModal } from './rental-modal.js';
@@ -65,22 +66,20 @@ export async function renderCatalogView() {
       <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
           
-          <!-- Panoramic Hero Banner matching img/ToolRent Equipment Marketplace Interface.png -->
-          <div class="relative rounded-2xl overflow-hidden min-h-[220px] sm:min-h-[240px] flex items-center shadow-sm">
+          <!-- Panoramic Hero Banner matching img/web/banner web.png -->
+          <div class="relative rounded-2xl overflow-hidden min-h-[220px] sm:min-h-[250px] md:min-h-[270px] flex items-center shadow-md bg-slate-900">
             <img 
-              src="/banner-web.png" 
-              onerror="this.src='https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?w=1600&auto=format&fit=crop&q=80'"
-              alt="ToolRent Construction Site Banner" 
-              class="absolute inset-0 w-full h-full object-cover object-center" 
+              src="${bannerWebImg}" 
+              alt="ToolRent Maquinaria y Equipos" 
+              class="absolute inset-0 w-full h-full object-cover object-right sm:object-center select-none" 
             />
-            <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/30"></div>
             
-            <div class="relative z-10 p-8 sm:p-12 max-w-2xl text-white space-y-2">
-              <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight font-display leading-tight">
+            <div class="relative z-10 p-6 sm:p-10 md:p-12 max-w-xl text-white space-y-2">
+              <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight font-display leading-tight drop-shadow-md">
                 Alquila el equipo que necesitas.<br />
                 <span class="text-white">Sin comprarlo.</span>
               </h1>
-              <p class="text-xs sm:text-sm text-slate-200 font-normal leading-relaxed pt-1">
+              <p class="text-xs sm:text-sm text-slate-100 font-normal leading-relaxed pt-1 max-w-md drop-shadow">
                 Herramientas y maquinaria para construir, remodelar y hacer realidad tus proyectos en todo Colombia.
               </p>
             </div>
