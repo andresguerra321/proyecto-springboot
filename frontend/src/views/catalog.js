@@ -68,7 +68,8 @@ export async function renderCatalogView() {
           <!-- Panoramic Hero Banner matching img/ToolRent Equipment Marketplace Interface.png -->
           <div class="relative rounded-2xl overflow-hidden min-h-[220px] sm:min-h-[240px] flex items-center shadow-sm">
             <img 
-              src="https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?w=1600&auto=format&fit=crop&q=80" 
+              src="/banner-web.png" 
+              onerror="this.src='https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?w=1600&auto=format&fit=crop&q=80'"
               alt="ToolRent Construction Site Banner" 
               class="absolute inset-0 w-full h-full object-cover object-center" 
             />
