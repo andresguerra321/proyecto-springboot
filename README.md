@@ -1,19 +1,22 @@
-# Campus Renta Equipos - Proyecto Spring Boot
+# ToolRent — Plataforma de Renta de Herramientas y Equipos de Construcción
 
-Sistema de alquiler de herramientas industriales utilizando Arquitectura Hexagonal y Spring Boot 3, modularizado por dominio (`identity`, `catalog`, `rental`, `billing`, `reporting`).
+![ToolRent Banner](img/banner%20github.png)
 
-## Tecnologías Principales
-- **Java 21**
+> **ToolRent** es una plataforma integral de renta de maquinaria pesada, herramientas industriales y equipos de construcción para Colombia. Implementa **Arquitectura Hexagonal**, **Domain-Driven Design (DDD)** con 8 módulos Maven desacoplados, **Spring Boot 3.3 (Java 21)**, **PostgreSQL 16**, base de datos relacional auditada y normalizada en **Cuarta Forma Normal (4FN)**, seguridad JWT con control de acceso basado en roles (RBAC), documentación interactiva OpenAPI/Swagger y un frontend SPA con **Vite + Tailwind CSS v3** moldeado según el sistema de diseño oficial de ToolRent.
+
+## 🚀 Tecnologías Principales
+- **Java 21 LTS**
 - **Spring Boot 3.3.x**
-  - Spring Web
-  - Spring Data JPA
-  - Spring Security (JWT)
+  - Spring Web MVC
+  - Spring Data JPA / Hibernate
+  - Spring Security 6 (Autenticación JWT Stateless)
   - Spring Boot Actuator
-- **PostgreSQL 16**
-- **Flyway** (Migraciones de base de datos)
-- **Docker & Docker Compose**
-- **Swagger / OpenAPI 3** para documentación interactiva de APIs
-- **Maven** (Multi-módulo)
+- **PostgreSQL 16** (Motor relacional en 4FN)
+- **Flyway** (Control de versiones y migraciones de BD)
+- **Docker & Docker Compose** (Despliegue contenerizado orquestado)
+- **Swagger / OpenAPI 3** (Documentación viva de contratos REST con Bearer Auth)
+- **Vite + Tailwind CSS v3** (Frontend SPA responsivo por roles con sistema de diseño ToolRent)
+- **Maven** (Arquitectura multi-módulo desacoplada)
 
 ## Diagrama Relacional (Modelo de Datos)
 

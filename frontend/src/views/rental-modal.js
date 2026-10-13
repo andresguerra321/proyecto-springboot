@@ -3,7 +3,7 @@ import auth from '../auth/state.js';
 import modal from '../components/modal.js';
 import showToast from '../components/toast.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
-import { renderIcon } from '../utils/icons.js';
+import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 
 export async function openRentalModal(tool) {
@@ -447,11 +447,7 @@ export function openInvoiceViewer(invoice) {
         <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div class="flex items-start gap-3">
-            <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 40 40" fill="none">
-              <path d="M12 6L28 6L34 16L18 16L12 6Z" fill="#ea580c" />
-              <path d="M18 16L34 16L22 34L12 34L18 16Z" fill="#f97316" />
-              <path d="M6 16L18 16L12 26L6 16Z" fill="#c2410c" />
-            </svg>
+            ${renderToolRentMark('w-10 h-10')}
             <div>
               <span class="text-2xl font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
               <p class="text-xs text-slate-500 mt-0.5">Herramientas y maquinaria para construir grandes proyectos</p>

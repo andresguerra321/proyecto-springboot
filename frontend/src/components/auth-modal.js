@@ -1,7 +1,7 @@
 import auth from '../auth/state.js';
 import modal from './modal.js';
 import showToast from './toast.js';
-import { renderIcon } from '../utils/icons.js';
+import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
 export function openAuthModal(initialTab = 'login') {
   let currentTab = initialTab; // 'login' or 'register'
@@ -17,13 +17,9 @@ export function openAuthModal(initialTab = 'login') {
         <!-- Left Side: Auth Form -->
         <div class="p-8 sm:p-10 flex flex-col justify-between bg-white">
           <div>
-            <!-- ToolRent Brand Header -->
-            <div class="flex items-center gap-2.5 mb-6">
-              <svg class="w-8 h-8 flex-shrink-0" viewBox="0 0 40 40" fill="none">
-                <path d="M12 6L28 6L34 16L18 16L12 6Z" fill="#ea580c" />
-                <path d="M18 16L34 16L22 34L12 34L18 16Z" fill="#f97316" />
-                <path d="M6 16L18 16L12 26L6 16Z" fill="#c2410c" />
-              </svg>
+            <!-- ToolRent Brand Header (Official Architectural Mark) -->
+            <div class="flex items-center gap-3 mb-6">
+              ${renderToolRentMark('w-9 h-9')}
               <div>
                 <span class="text-xl font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
                 <p class="text-[10px] text-slate-500 leading-tight">Herramientas y maquinaria para construir grandes proyectos</p>

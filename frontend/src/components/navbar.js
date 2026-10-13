@@ -1,5 +1,5 @@
 import auth from '../auth/state.js';
-import { renderIcon } from '../utils/icons.js';
+import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from './auth-modal.js';
 
 export function renderNavbar(activeRoute = 'catalog') {
@@ -13,18 +13,14 @@ export function renderNavbar(activeRoute = 'catalog') {
   const isClient = auth.isClient();
 
   container.innerHTML = `
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-18 py-3">
           
-          <!-- Logo & Brand -->
+          <!-- Logo & Brand (Official ToolRent Architecture Mark) -->
           <div class="flex items-center gap-6">
-            <a href="#/catalog" class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-[#ea580c] flex items-center justify-center text-white shadow-sm shadow-orange-500/20">
-                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M19.4 4.6a1 1 0 0 0-1.4 0l-4.5 4.5-2.8-2.8a1 1 0 0 0-1.4 0l-5 5a1 1 0 0 0 0 1.4l2.8 2.8-4.5 4.5a1 1 0 1 0 1.4 1.4l4.5-4.5 2.8 2.8a1 1 0 0 0 1.4 0l5-5a1 1 0 0 0 0-1.4l-2.8-2.8 4.5-4.5a1 1 0 0 0 0-1.4z"/>
-                </svg>
-              </div>
+            <a href="#/catalog" class="flex items-center gap-2.5 group select-none">
+              ${renderToolRentMark('w-8 h-8 transition-transform group-hover:scale-105')}
               <span class="text-2xl font-black font-display tracking-tight text-slate-900">
                 Tool<span class="text-[#ea580c]">Rent</span>
               </span>
