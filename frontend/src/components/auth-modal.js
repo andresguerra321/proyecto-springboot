@@ -1,6 +1,7 @@
 import auth from '../auth/state.js';
 import modal from './modal.js';
 import showToast from './toast.js';
+import loginImg from '../assets/login.png';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
 export function openAuthModal(initialTab = 'login') {
@@ -170,10 +171,10 @@ export function openAuthModal(initialTab = 'login') {
           </div>
         </div>
 
-        <!-- Right Side: Heavy Machinery Hero Showcase -->
-        <div class="relative hidden md:block overflow-hidden bg-slate-900">
-          <img src="/login.png" onerror="this.src='https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=1000&auto=format&fit=crop&q=80'" class="w-full h-full object-cover object-center" alt="Heavy Machinery Sunset" />
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent flex flex-col justify-end p-10 text-white">
+        <!-- Right Side: Heavy Machinery Hero Showcase matching img/web/login.png -->
+        <div class="relative hidden md:block overflow-hidden bg-slate-900 select-none">
+          <img src="${loginImg}" class="w-full h-full object-cover object-center" alt="ToolRent Maquinaria y Equipos" />
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent flex flex-col justify-end p-10 text-white">
             <h2 class="text-2xl lg:text-3xl font-extrabold leading-tight font-display mb-3 text-white">
               La maquinaria que tu proyecto necesita, cuando la necesitas.
             </h2>

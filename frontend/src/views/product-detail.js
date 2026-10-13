@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openRentalModal } from './rental-modal.js';
 import { openAuthModal } from '../components/auth-modal.js';
+import error404Img from '../assets/error-404.png';
 
 export async function renderProductPageView(toolId) {
   const container = document.getElementById('app-content');
@@ -30,18 +31,61 @@ export async function renderProductPageView(toolId) {
   let tool = null;
   try {
     const tools = await api.get('/tools');
-    tool = tools.find(t => t.id === toolId) || tools[0];
+    tool = (tools || []).find(t => String(t.id) === String(toolId)) || null;
   } catch (err) {
     console.error('Error fetching tool details', err);
   }
 
   if (!tool) {
     container.innerHTML = `
-      <div class="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h2 class="text-xl font-bold text-slate-800">Herramienta no encontrada</h2>
-        <a href="#/catalog" class="btn-primary mt-4 inline-flex">Volver al Catálogo</a>
-      </div>
+      <section class="min-h-[85vh] bg-[#f8fafc] flex flex-col items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200/80 relative select-none">
+          <img 
+            src="${error404Img}" 
+            alt="Error 404 - Herramienta no encontrada" 
+            class="w-full h-auto object-cover select-none block" 
+          />
+          
+          <!-- Hotspot over 'Volver al inicio' button in image -->
+          <a 
+            href="#/catalog" 
+            class="absolute cursor-pointer rounded-xl transition-all hover:bg-white/10 active:scale-95" 
+            style="left: 5.6%; top: 64.6%; width: 22.5%; height: 7.2%;" 
+            title="Volver al inicio"
+            aria-label="Volver al inicio"
+          ></a>
+
+          <!-- Hotspot over 'Ir a la página anterior' in image -->
+          <button 
+            id="btn-product-404-back" 
+            type="button"
+            class="absolute cursor-pointer rounded-lg transition-all hover:bg-white/10 active:scale-95 text-transparent" 
+            style="left: 5.6%; top: 73.8%; width: 17%; height: 4.2%;" 
+            title="Ir a la página anterior"
+            aria-label="Ir a la página anterior"
+          ></button>
+        </div>
+
+        <!-- Mobile friendly buttons bar for small screens -->
+        <div class="sm:hidden flex items-center justify-center gap-3 mt-4 w-full max-w-sm">
+          <a href="#/catalog" class="btn-primary flex-1 !py-2.5 text-xs text-center font-bold">
+            Volver al inicio &rarr;
+          </a>
+          <button onclick="window.history.back()" class="btn-secondary flex-1 !py-2.5 text-xs font-semibold">
+            &larr; Página anterior
+          </button>
+        </div>
+      </section>
     `;
+
+    container.querySelector('#btn-product-404-back')?.addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.hash = '#/catalog';
+      }
+    });
+
     return;
   }
 

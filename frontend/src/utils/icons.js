@@ -58,14 +58,14 @@ export function renderToolRentBrand({
   titleClass = 'text-2xl',
   showSubtitle = false,
   subtitleText = 'Herramientas y maquinaria para construir grandes proyectos',
-  color = '#ea580c'
+  color = '#FF5A1F'
 } = {}) {
   return `
     <div class="flex items-center gap-2.5">
       ${renderToolRentMark(markClass, color)}
       <div>
         <div class="${titleClass} font-black font-display tracking-tight text-slate-900 leading-none">
-          Tool<span class="text-[#ea580c]">Rent</span>
+          ToolRent
         </div>
         ${showSubtitle ? `<p class="text-[10px] text-slate-500 mt-1 leading-tight">${subtitleText}</p>` : ''}
       </div>

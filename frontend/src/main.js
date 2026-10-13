@@ -7,7 +7,67 @@ import { renderClientDashboard } from './views/client-dashboard.js';
 import { renderProviderDashboard } from './views/provider-dashboard.js';
 import { renderAdminDashboard } from './views/admin-dashboard.js';
 import { renderProductPageView } from './views/product-detail.js';
+import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
+
+export function render404View() {
+  renderNavbar('catalog');
+  const container = document.getElementById('app-content');
+  if (!container) return;
+
+  container.innerHTML = `
+    <section class="min-h-[85vh] bg-[#f8fafc] flex flex-col items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200/80 relative select-none">
+        <img 
+          src="${error404Img}" 
+          alt="Error 404 - Página no encontrada" 
+          class="w-full h-auto object-cover select-none block" 
+        />
+        
+        <!-- Hotspot over 'Volver al inicio' button in image -->
+        <a 
+          href="#/catalog" 
+          class="absolute cursor-pointer rounded-xl transition-all hover:bg-white/10 active:scale-95" 
+          style="left: 5.6%; top: 64.6%; width: 22.5%; height: 7.2%;" 
+          title="Volver al inicio"
+          aria-label="Volver al inicio"
+        ></a>
+
+        <!-- Hotspot over 'Ir a la página anterior' in image -->
+        <button 
+          id="btn-404-history-back" 
+          type="button"
+          class="absolute cursor-pointer rounded-lg transition-all hover:bg-white/10 active:scale-95 text-transparent" 
+          style="left: 5.6%; top: 73.8%; width: 17%; height: 4.2%;" 
+          title="Ir a la página anterior"
+          aria-label="Ir a la página anterior"
+        ></button>
+      </div>
+
+      <!-- Mobile friendly buttons bar for small screens -->
+      <div class="sm:hidden flex items-center justify-center gap-3 mt-4 w-full max-w-sm">
+        <a href="#/catalog" class="btn-primary flex-1 !py-2.5 text-xs text-center font-bold">
+          Volver al inicio &rarr;
+        </a>
+        <button id="btn-404-mobile-back" class="btn-secondary flex-1 !py-2.5 text-xs font-semibold">
+          &larr; Página anterior
+        </button>
+      </div>
+    </section>
+  `;
+
+  container.querySelectorAll('#btn-404-history-back, #btn-404-mobile-back').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.hash = '#/catalog';
+      }
+    });
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 // Router mapping
 const routes = {
@@ -15,6 +75,7 @@ const routes = {
   '#/client': renderClientDashboard,
   '#/provider': renderProviderDashboard,
   '#/admin': renderAdminDashboard,
+  '#/404': render404View,
 };
 
 function router() {
@@ -35,19 +96,7 @@ function router() {
 
   // 404 Handler for unknown routes
   if (hash && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
-    renderNavbar('catalog');
-    const container = document.getElementById('app-content');
-    if (container) {
-      container.innerHTML = `
-        <div class="max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
-          <img src="/error-404.png" alt="Página no encontrada" class="max-w-md mx-auto rounded-2xl shadow-sm" />
-          <h1 class="text-2xl font-black text-slate-900 font-display">Página no encontrada</h1>
-          <p class="text-xs text-slate-500">La ruta que intentas consultar no existe o ha sido movida.</p>
-          <a href="#/catalog" class="btn-primary inline-flex !py-2.5 !px-5 text-xs">Volver al Catálogo</a>
-        </div>
-      `;
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    render404View();
     return;
   }
 

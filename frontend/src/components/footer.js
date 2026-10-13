@@ -1,4 +1,4 @@
-import { renderIcon } from '../utils/icons.js';
+import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
 export function renderFooter() {
   const container = document.getElementById('footer-container');
@@ -10,19 +10,13 @@ export function renderFooter() {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           
           <div class="space-y-3 md:col-span-1">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-slate-950 font-bold">
-                ${renderIcon('Wrench', 'w-4 h-4')}
-              </div>
-              <span class="font-display font-extrabold text-lg text-white">Renta<span class="text-brand-500">Maq</span></span>
+            <div class="flex items-center gap-2.5">
+              ${renderToolRentMark('w-8 h-8', '#FF5A1F')}
+              <span class="font-display font-extrabold text-xl text-white">ToolRent</span>
             </div>
             <p class="text-xs text-slate-400 leading-relaxed">
-              Plataforma empresarial de alquiler de maquinaria pesada, herramientas de potencia y equipos para obras civiles.
+              Herramientas y maquinaria para construir grandes proyectos en toda Colombia.
             </p>
-            <div class="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full w-fit">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>API Backend Spring Boot 3 Activo</span>
-            </div>
           </div>
 
           <div>

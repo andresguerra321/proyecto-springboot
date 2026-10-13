@@ -7,7 +7,6 @@ import com.campus.rentaequipos.reporting.domain.repository.ReportingRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 

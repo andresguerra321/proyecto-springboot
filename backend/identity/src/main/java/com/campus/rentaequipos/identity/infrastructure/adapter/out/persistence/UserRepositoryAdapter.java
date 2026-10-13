@@ -1,6 +1,5 @@
 package com.campus.rentaequipos.identity.infrastructure.adapter.out.persistence;
 
-import com.campus.rentaequipos.identity.domain.model.Role;
 import com.campus.rentaequipos.identity.domain.model.User;
 import com.campus.rentaequipos.identity.domain.repository.UserRepository;
 import com.campus.rentaequipos.identity.infrastructure.adapter.out.persistence.entity.RoleJpaEntity;
