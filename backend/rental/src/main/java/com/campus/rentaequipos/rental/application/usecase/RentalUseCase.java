@@ -39,12 +39,24 @@ public class RentalUseCase {
         DateRange dateRange = new DateRange(request.startDate(), request.endDate());
         int totalDays = (int) dateRange.getDays();
         
+        List<Rental> allRentals = rentalRepository.findAll();
         List<Tool> tools = new ArrayList<>();
         for (UUID toolId : request.toolIds()) {
             Tool tool = toolRepository.findById(toolId)
                     .orElseThrow(() -> new EntityNotFoundException("Tool", toolId));
-            if (tool.getStatus() != ToolStatus.AVAILABLE) {
-                throw new BusinessRuleViolationException("La herramienta " + tool.getName() + " no está disponible.");
+            if (tool.getStatus() == ToolStatus.MAINTENANCE || tool.getStatus() == ToolStatus.RETIRED) {
+                throw new BusinessRuleViolationException("La herramienta " + tool.getName() + " se encuentra fuera de servicio (" + tool.getStatus() + ").");
+            }
+            
+            boolean hasOverlap = allRentals.stream()
+                    .filter(r -> r.getStatus() == RentalStatus.PENDING || 
+                                 r.getStatus() == RentalStatus.CONFIRMED || 
+                                 r.getStatus() == RentalStatus.IN_PROGRESS)
+                    .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(toolId)))
+                    .anyMatch(r -> r.getDateRange().overlaps(dateRange));
+
+            if (hasOverlap) {
+                throw new BusinessRuleViolationException("La herramienta " + tool.getName() + " ya tiene una reserva activa que se cruza con las fechas seleccionadas.");
             }
             tools.add(tool);
         }
@@ -58,7 +70,6 @@ public class RentalUseCase {
             Money itemTotal = dailyPrice.multiply(totalDays);
             
             subtotal = subtotal.add(itemTotal);
-            // Deposit could be a percentage of replacement value, e.g. 10%
             deposit = deposit.add(tool.getReplacementValue().multiply(new BigDecimal("0.1")));
 
             RentalItem item = new RentalItem(
@@ -70,7 +81,6 @@ public class RentalUseCase {
             );
             items.add(item);
             
-            // Mark tool as rented
             tool.updateStatus(ToolStatus.RENTED);
             toolRepository.save(tool);
         }
@@ -107,6 +117,71 @@ public class RentalUseCase {
         return rentalRepository.findByClientId(clientId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RentalResponse> getProviderRentals(UUID providerId) {
+        java.util.Set<UUID> providerToolIds = toolRepository.findByProviderId(providerId).stream()
+                .map(Tool::getId)
+                .collect(Collectors.toSet());
+
+        if (providerToolIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        return rentalRepository.findAll().stream()
+                .filter(rental -> rental.getItems().stream()
+                        .anyMatch(item -> providerToolIds.contains(item.getToolId())))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse checkToolAvailability(
+            UUID toolId, java.time.LocalDate from, java.time.LocalDate to) {
+        Tool tool = toolRepository.findById(toolId)
+                .orElseThrow(() -> new EntityNotFoundException("Tool", toolId));
+
+        List<Rental> activeRentals = rentalRepository.findAll().stream()
+                .filter(r -> r.getStatus() == RentalStatus.PENDING || 
+                             r.getStatus() == RentalStatus.CONFIRMED || 
+                             r.getStatus() == RentalStatus.IN_PROGRESS)
+                .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(toolId)))
+                .collect(Collectors.toList());
+
+        List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto> bookedRanges = activeRentals.stream()
+                .map(r -> new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto(
+                        r.getDateRange().getStartDate(),
+                        r.getDateRange().getEndDate()
+                ))
+                .collect(Collectors.toList());
+
+        boolean isAvailable = true;
+        String message = "Disponible para alquiler";
+
+        if (tool.getStatus() == ToolStatus.MAINTENANCE || tool.getStatus() == ToolStatus.RETIRED) {
+            isAvailable = false;
+            message = "Herramienta fuera de servicio (" + tool.getStatus() + ")";
+        } else if (from != null && to != null) {
+            DateRange queryRange = new DateRange(from, to);
+            boolean overlaps = activeRentals.stream()
+                    .anyMatch(r -> r.getDateRange().overlaps(queryRange));
+            if (overlaps) {
+                isAvailable = false;
+                message = "Fechas no disponibles: existe solapamiento con otra reserva activa";
+            }
+        }
+
+        return new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse(
+                tool.getId(),
+                tool.getName(),
+                isAvailable,
+                tool.getStatus().name(),
+                from,
+                to,
+                bookedRanges,
+                message
+        );
     }
 
     @Transactional(readOnly = true)

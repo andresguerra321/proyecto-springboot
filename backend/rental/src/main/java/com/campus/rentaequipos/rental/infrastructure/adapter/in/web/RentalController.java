@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,14 +20,17 @@ import java.util.UUID;
 public class RentalController {
 
     private final RentalUseCase rentalUseCase;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
-    public RentalController(RentalUseCase rentalUseCase) {
+    public RentalController(RentalUseCase rentalUseCase, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         this.rentalUseCase = rentalUseCase;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @GetMapping
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Get all rentals", description = "Retrieves all rentals in the system")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all rentals", description = "Retrieves all rentals in the system (Solo Administradores)")
     public ResponseEntity<List<RentalResponse>> getAllRentals() {
         return ResponseEntity.ok(rentalUseCase.getAllRentals());
     }
@@ -41,9 +45,50 @@ public class RentalController {
 
     @GetMapping("/client/{clientId}")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Get client rentals", description = "Retrieves all rentals for a specific client")
-    public ResponseEntity<List<RentalResponse>> getClientRentals(@PathVariable UUID clientId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLIENTE', 'PROVEEDOR')")
+    @Operation(summary = "Get client rentals", description = "Retrieves all rentals for a specific client (Protegido contra IDOR)")
+    public ResponseEntity<List<RentalResponse>> getClientRentals(
+            @PathVariable UUID clientId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        
+        boolean isAdminOrProvider = userDetails != null && userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PROVEEDOR"));
+
+        if (!isAdminOrProvider && userDetails != null) {
+            String clientOwnerUsername = jdbcTemplate.query(
+                    "SELECT u.username FROM client_profiles c JOIN users u ON c.user_id = u.id WHERE c.id = ?",
+                    rs -> rs.next() ? rs.getString("username") : null,
+                    clientId
+            );
+            if (clientOwnerUsername == null || !clientOwnerUsername.equals(userDetails.getUsername())) {
+                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no tiene permisos para consultar el historial de reservas de otro cliente");
+            }
+        }
         return ResponseEntity.ok(rentalUseCase.getClientRentals(clientId));
+    }
+
+    @GetMapping("/provider/{providerId}")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')")
+    @Operation(summary = "Get provider rentals", description = "Retrieves all rentals/solicitudes associated with a provider's equipment (Protegido contra IDOR)")
+    public ResponseEntity<List<RentalResponse>> getProviderRentals(
+            @PathVariable UUID providerId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && userDetails != null) {
+            String providerOwnerUsername = jdbcTemplate.query(
+                    "SELECT u.username FROM provider_profiles p JOIN users u ON p.user_id = u.id WHERE p.id = ?",
+                    rs -> rs.next() ? rs.getString("username") : null,
+                    providerId
+            );
+            if (providerOwnerUsername == null || !providerOwnerUsername.equals(userDetails.getUsername())) {
+                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no tiene permisos para consultar los alquileres de otro proveedor");
+            }
+        }
+        return ResponseEntity.ok(rentalUseCase.getProviderRentals(providerId));
     }
 
     @GetMapping("/{id}")

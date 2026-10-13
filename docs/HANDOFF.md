@@ -2,7 +2,7 @@
 
 **Proyecto:** Plataforma de Renta de Herramientas y Equipos de Construcción  
 **Fecha:** Octubre 2026  
-**Tecnologías:** Spring Boot 3.4.x, Java 17/21, PostgreSQL 16, Flyway, Maven Multi-Módulo, Spring Security, JWT, Docker, H2 (Testing)  
+**Tecnologías:** Spring Boot 3.4.x, Java 17/21, PostgreSQL 16, Flyway, Maven Multi-Módulo, Spring Security 6, JWT, Docker, H2 (Testing)  
 **Ramas Actuales en Remoto:** `main`, `develop`, `frontend`  
 
 ---
@@ -10,11 +10,11 @@
 ## 🎯 1. Visión General y Propósito del Proyecto
 
 El proyecto consiste en una plataforma integral para la gestión y alquiler de maquinaria y herramientas industriales orientada a tres actores principales:
-1. **Clientes (Contratistas y Particulares):** Exploran equipos, reservan por rangos de fechas, pagan en línea y consultan facturas e historial.
-2. **Proveedores de Equipos:** Publican y administran el inventario de herramientas (especificaciones, fotos, precios), gestionan solicitudes de alquiler y controlan entregas y devoluciones.
-3. **Administradores del Sistema:** Monitorean usuarios, supervisan alquileres globales y analizan reportes financieros y operativos.
+1. **Clientes (Contratistas y Particulares):** Exploran equipos, reservan por rangos de fechas (con validación de solapamiento), pagan en línea, descargan facturas e inspeccionan su historial.
+2. **Proveedores de Equipos:** Publican y administran el inventario de herramientas (especificaciones, fotos por URL o archivo multipart, precios), gestionan solicitudes de alquiler exclusivas de sus equipos, reciben métricas en su dashboard (KPIs) y controlan entregas y devoluciones con inspecciones técnicas y registro de averías.
+3. **Administradores del Sistema:** Monitorean usuarios y empresas proveedoras (verificación de cuentas), supervisan alquileres globales y analizan reportes financieros y operativos.
 
-El desarrollo se rige por los lineamientos del documento institucional [docs/ejercicioDemo.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/ejercicioDemo.md).
+El desarrollo se rige estrictamente por los lineamientos del documento institucional [docs/ejercicioDemo.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/ejercicioDemo.md).
 
 ---
 
@@ -24,16 +24,16 @@ El sistema se ha diseñado bajo los más altos estándares de ingeniería de sof
 
 ### 2.1. Arquitectura Hexagonal (Puertos y Adaptadores)
 Cada módulo vertical implementa una separación estricta en tres capas concéntricas:
-- **Capa de Dominio (`domain`):** Núcleo agnóstico de frameworks. Contiene las entidades puras (`Tool`, `Rental`, `User`, `Invoice`), Value Objects (`Money`, `DateRange`), enumeraciones de estado y los **Puertos** (interfaces como `ToolRepository`, `RentalRepository`, `JwtTokenPort`).
-- **Capa de Aplicación (`application`):** Orquesta los casos de uso (`ToolUseCase`, `RentalUseCase`, `BillingUseCase`, `AuthUseCase`) y define los DTOs de entrada y salida (Records inmutables).
+- **Capa de Dominio (`domain`):** Núcleo agnóstico de frameworks. Contiene las entidades puras (`Tool`, `Rental`, `RentalInspection`, `DamageReport`, `User`, `ClientProfile`, `ProviderProfile`, `Invoice`), Value Objects (`Money`, `DateRange`), enumeraciones de estado y los **Puertos** (interfaces como `ToolRepository`, `RentalRepository`, `RentalInspectionRepository`, `DamageReportRepository`, `ClientProfileRepository`, `ProviderProfileRepository`, `JwtTokenPort`).
+- **Capa de Aplicación (`application`):** Orquesta los casos de uso (`ToolUseCase`, `RentalUseCase`, `InspectionUseCase`, `ProfileUseCase`, `BillingUseCase`, `AuthUseCase`, `ReportingUseCase`) y define los DTOs de entrada y salida (Records inmutables).
 - **Capa de Infraestructura (`infrastructure`):** Implementa los adaptadores tecnológicos:
-  - *Adaptadores de Entrada (Inbound):* Controladores REST (`ToolController`, `RentalController`, `BillingController`, `AuthController`, `UserController`).
-  - *Adaptadores de Salida (Outbound):* Repositorios de persistencia basados en Spring Data JPA (`ToolRepositoryAdapter`, `RentalRepositoryAdapter`), entidades JPA (`ToolJpaEntity`, etc.), codificadores BCrypt y filtros JWT.
+  - *Adaptadores de Entrada (Inbound):* Controladores REST (`ToolController`, `ToolAvailabilityController`, `RentalController`, `InspectionController`, `ClientProfileController`, `ProviderProfileController`, `BillingController`, `AuthController`, `UserController`, `ReportingController`).
+  - *Adaptadores de Salida (Outbound):* Repositorios de persistencia basados en Spring Data JPA (`ToolRepositoryAdapter`, `RentalRepositoryAdapter`, `RentalInspectionRepositoryAdapter`, `DamageReportRepositoryAdapter`, `ClientProfileRepositoryAdapter`, `ProviderProfileRepositoryAdapter`), entidades JPA con anotaciones Jakarta Persistence, codificadores BCrypt, consultas agregadas JDBC y filtros JWT.
 
 ```
-       [ HTTP Request / Swagger / Postman ]
-                        │
-                        ▼
+       [ HTTP Request / Swagger / Postman / Frontend ]
+                         │
+                         ▼
        ┌────────────────────────────────────────────────────────┐
        │ Adaptador de Entrada (Inbound REST Controller)         │
        └────────────────────────┬───────────────────────────────┘
@@ -62,13 +62,13 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 
 | Módulo | Propósito en el Dominio | Dependencias Clave |
 | :--- | :--- | :--- |
-| [`shared-kernel`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/shared-kernel) | Value Objects transversales (`Money`, `DateRange`), excepciones base y manejador global | Spring Web, Jackson, Validation |
-| [`identity`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/identity) | Autenticación, gestión de credenciales, roles y generación/validación de tokens JWT | `shared-kernel`, Spring Security, JJWT, Spring Data JPA |
-| [`catalog`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/catalog) | Gestión de herramientas, categorías, fichas técnicas y fotografías | `shared-kernel`, Spring Data JPA |
-| [`rental`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/rental) | Contratos de alquiler, cálculo de días, reservas y ciclo de vida de entrega/devolución | `shared-kernel`, `catalog`, Spring Data JPA |
-| [`billing`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/billing) | Transacciones de pago y generación de facturas con discriminación de IVA (19%) | `shared-kernel`, `rental`, Spring Data JPA |
-| [`reporting`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/reporting) | Consultas analíticas y reportes de solo lectura (ingresos, equipos más rentados, clientes top) | `shared-kernel`, Spring Data JPA |
-| [`bootstrap`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/bootstrap) | Ensamblador final de Spring Boot, configuración de seguridad global, OpenAPI Swagger y migraciones Flyway | Agrega todos los módulos anteriores |
+| [`shared-kernel`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/shared-kernel) | Value Objects transversales (`Money`, `DateRange` con método `overlaps`), excepciones base y manejador global | Spring Web, Jackson, Validation |
+| [`identity`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/identity) | Autenticación JWT, roles, perfiles de clientes particulares/contratistas y perfiles comerciales de proveedores | `shared-kernel`, Spring Security, JJWT, Spring Data JPA |
+| [`catalog`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/catalog) | Gestión de herramientas, categorías, fichas técnicas, subida multipart de fotos y almacenamiento de imágenes | `shared-kernel`, Spring Data JPA, Spring Security |
+| [`rental`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/rental) | Contratos de alquiler, cálculo de días, verificación de solapamiento de fechas, inspecciones (DELIVERY/RETURN) y daños | `shared-kernel`, `catalog`, Spring Data JPA, Spring Security |
+| [`billing`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/billing) | Transacciones de pago, facturación legal con IVA (19%) y generación de vista HTML para impresión fiscal | `shared-kernel`, `rental`, Spring Data JPA, Spring Security |
+| [`reporting`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/reporting) | Analítica global (ingresos, equipos top, clientes top, disponibilidad de stock) y KPIs para el dashboard de proveedor | `shared-kernel`, Spring Data JPA, Spring Security, Spring JDBC |
+| [`bootstrap`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/bootstrap) | Ensamblador Spring Boot, seguridad global, CORS, ResourceHandlers `/uploads/**`, OpenAPI Swagger y Flyway | Agrega todos los módulos anteriores |
 
 ---
 
@@ -81,98 +81,120 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 - **Migraciones Flyway:**
   - `V1__create_schema.sql`: Creación de 15 tablas relacionales, llaves primarias UUID, llaves foráneas e índices.
   - `V2__seed_data.sql`: Población de datos consistente con contraseñas encriptadas con BCrypt.
-- **Volumen:** Cumple rigurosamente el requisito de $\ge 20$ registros por entidad (42 usuarios, 25 herramientas, 25 fotos, 25 fichas, 22 reservas, 22 pagos, 20 facturas).
+- **Volumen:** Cumple rigurosamente el requisito de $\ge 20$ registros por entidad (42 usuarios, 20 perfiles de cliente, 20 perfiles de proveedor, 25 herramientas, 25 fotos, 25 fichas, 22 reservas, 22 pagos, 20 facturas, 20 inspecciones, 20 reportes de daño).
 
 ---
 
-### 2.4. Seguridad y Control de Acceso (Spring Security 6 + JWT)
-- **Estrategia Stateless:** Manejo de sesiones sin estado; cada petición autenticada valida el encabezado `Authorization: Bearer <token>`.
-- **Roles Implementados:** `ROLE_CLIENTE`, `ROLE_PROVEEDOR`, `ROLE_ADMIN`.
-- **Rutas Públicas:**
-  - `/api/v1/auth/register` y `/api/v1/auth/login`
-  - `GET /api/v1/tools/**` (catálogo y categorías abiertas para exploración pública)
-  - `/swagger-ui/**` y `/v3/api-docs/**`
-  - `/api/v1/health`
-- **Rutas Protegidas:**
-  - Registro, actualización y eliminación de herramientas: `PROVEEDOR` y `ADMIN`.
-  - Crear reservas y realizar pagos: `CLIENTE`.
-  - Listado de usuarios y métricas avanzadas: `ADMIN`.
+### 2.4. Seguridad, Mitigación de Vulnerabilidades y Decisiones Arquitectónicas
+
+#### A. Mitigación contra IDOR (Insecure Direct Object References)
+- **El problema:** Endpoints como `GET /api/v1/rentals/client/{clientId}`, `GET /api/v1/rentals/provider/{providerId}` y `GET /api/v1/users/{id}` reciben identificadores en la URL. Si un cliente malintencionado consulta el ID de otro usuario o proveedor, podría acceder a información confidencial.
+- **La solución implementada:**
+  - `GET /api/v1/users/{id}`: Compara el `username` del usuario solicitado contra el `AuthenticationPrincipal` del JWT. Si no es el mismo y no posee el rol `ROLE_ADMIN`, lanza inmediatamente un `AccessDeniedException` (HTTP 403 Forbidden).
+  - `GET /api/v1/rentals/client/{clientId}`: Valida a nivel de base de datos que el perfil de cliente consultado pertenezca al usuario autenticado mediante `client_profiles.user_id = users.id`. Los usuarios `CLIENTE` solo pueden ver sus propias reservas.
+  - `GET /api/v1/rentals/provider/{providerId}`: Valida que el perfil pertenezca a la empresa del proveedor autenticado, impidiendo que proveedores competidores vean alquileres ajenos.
+  - `GET /api/v1/rentals`: Bloqueado con `@PreAuthorize("hasRole('ADMIN')")`.
+  - Endpoints de conveniencia sin paso de ID por URL: `GET /api/v1/users/me`, `GET /api/v1/clients/me`, `GET /api/v1/providers/me`.
+
+#### B. Configuración de CORS (Cross-Origin Resource Sharing)
+- En `SecurityConfig.java`:
+  - `allowedOriginPatterns = List.of("*")` (permite cualquier origen local como `http://localhost:5173`, `http://localhost:3000`, `http://127.0.0.1:5500`).
+  - `allowedMethods = List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")`.
+  - `allowedHeaders = List.of("Authorization", "Content-Type", "Accept", "X-Requested-With")`.
+  - `allowCredentials = true`.
+  - La comunicación desde el frontend en cualquier puerto o servidor de desarrollo está 100% habilitada sin bloqueos de navegador.
+
+#### C. Almacenamiento de JWT en Frontend (`localStorage` vs. `HttpOnly Cookies`)
+- **Decisión Consciente:** Para fines académicos y de integración simple con frontend desacoplado (Single Page Application / Vanilla JS), el token se almacena en el cliente.
+- **Justificación de Riesgos y Mitigación:**
+  - El almacenamiento en `localStorage` simplifica el flujo SPA pero expone el token a ataques Cross-Site Scripting (XSS) si se introduce código malicioso en la aplicación.
+  - Para mitigar este riesgo, todo el contenido renderizado dinámicamente en el frontend utilizará sanitización estricta (`textContent`, codificación HTML y ausencia de `eval()` o `innerHTML` sin escapar).
+  - Los tokens poseen expiración configurable (`jwt.expiration-ms=86400000` / 24 horas) para limitar la ventana de exposición.
+  - Para un despliegue bancario/productivo de misión crítica, la recomendación es migrar a cookies `Set-Cookie: __Host-jwt; HttpOnly; Secure; SameSite=Strict`.
 
 ---
 
-### 2.5. Estrategia de Ramas en Git (Git Flow)
-El repositorio remoto (`https://github.com/andresguerra321/proyecto-springboot.git`) cuenta con:
-1. `main`: Rama de producción estable.
-2. `develop`: Rama de integración donde reside todo el backend consolidado, probado y documentado.
-3. `frontend`: Rama creada a partir de `develop`, dedicada exclusivamente a la construcción de las interfaces de usuario web.
+## 📦 3. Inventario Completo de Endpoints del Backend
 
----
+### 3.1. Autenticación y Cuentas
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Público | Registro de usuarios con roles |
+| `POST` | `/api/v1/auth/login` | Público | Autenticación y generación de JWT Bearer |
+| `GET` | `/api/v1/users/me` | Autenticado | Perfil e identidad del usuario conectado |
+| `GET` | `/api/v1/users/{id}` | Propietario / ADMIN | Detalle de usuario (Protegido contra IDOR) |
+| `GET` | `/api/v1/users` | ADMIN | Listado global de usuarios registrados |
 
-### 2.6. Suite de Pruebas Automatizadas
-Se implementó una arquitectura de pruebas en dos niveles:
-1. **Pruebas Unitarias de Dominio y Casos de Uso:**
-   - [`MoneyTest.java`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/shared-kernel/src/test/java/com/campus/rentaequipos/shared/domain/valueobject/MoneyTest.java): Operaciones monetarias, factores y redondeo `HALF_UP`.
-   - [`DateRangeTest.java`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/shared-kernel/src/test/java/com/campus/rentaequipos/shared/domain/valueobject/DateRangeTest.java): Cálculo exacto de días y solapamientos de fechas.
-   - [`ToolUseCaseTest.java`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/catalog/src/test/java/com/campus/rentaequipos/catalog/application/usecase/ToolUseCaseTest.java): Lógica de negocio del catálogo con Mockito.
-   - [`RentalUseCaseTest.java`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/rental/src/test/java/com/campus/rentaequipos/rental/application/usecase/RentalUseCaseTest.java): Confirmación, cancelación y liberación de stock de herramientas.
-2. **Pruebas de Integración con H2 en Memoria:**
-   - [backend/bootstrap/src/test/resources/application.yml](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/bootstrap/src/test/resources/application.yml) configura una base de datos H2 en modo compatibilidad PostgreSQL para ejecutar `mvnw clean test` de forma 100% aislada, sin necesidad de tener Docker levantado en la máquina host.
+### 3.2. Perfiles Comerciales (Clientes y Proveedores)
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/clients` | Autenticado | Crear perfil de cliente / contratista |
+| `GET` | `/api/v1/clients/me` | CLIENTE | Perfil comercial del cliente logueado |
+| `GET` | `/api/v1/clients/{id}` | Autenticado | Consultar perfil de cliente por UUID |
+| `GET` | `/api/v1/clients/user/{userId}` | Autenticado | Consultar perfil por User ID |
+| `GET` | `/api/v1/clients` | PROVEEDOR / ADMIN | Listar todos los clientes registrados |
+| `PUT` | `/api/v1/clients/{id}` | Autenticado | Actualizar datos de contacto y dirección |
+| `POST` | `/api/v1/providers` | Autenticado | Crear perfil comercial de empresa proveedora |
+| `GET` | `/api/v1/providers/me` | PROVEEDOR | Perfil comercial del proveedor logueado |
+| `GET` | `/api/v1/providers/{id}` | Público | Consultar perfil de proveedor por UUID |
+| `GET` | `/api/v1/providers` | Público | Listar catálogo de empresas proveedoras |
+| `PUT` | `/api/v1/providers/{id}` | Autenticado | Actualizar datos comerciales de la empresa |
+| `PATCH` | `/api/v1/providers/{id}/verify` | ADMIN | Verificar y aprobar formalmente a un proveedor |
 
----
+### 3.3. Catálogo de Herramientas y Disponibilidad
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/tools` | Público | Listar herramientas con filtros (`status`, `categoryId`, `providerId`, `search`) |
+| `GET` | `/api/v1/tools/categories` | Público | Listar categorías taxonómicas de equipos |
+| `GET` | `/api/v1/tools/{id}` | Público | Detalle técnico, fotos y especificaciones de la herramienta |
+| `GET` | `/api/v1/tools/{id}/availability` | Público | **Verificación de disponibilidad por fechas (`?from=&to=`) y lista de rangos ocupados** |
+| `POST` | `/api/v1/tools` | PROVEEDOR / ADMIN | Registrar nueva herramienta en el inventario |
+| `PUT` | `/api/v1/tools/{id}` | PROVEEDOR / ADMIN | Actualizar información técnica o precios |
+| `DELETE` | `/api/v1/tools/{id}` | PROVEEDOR / ADMIN | Eliminar herramienta del catálogo |
+| `POST` | `/api/v1/tools/{id}/images` | PROVEEDOR / ADMIN | Asociar fotografía por URL externa |
+| `POST` | `/api/v1/tools/{id}/images/upload` | PROVEEDOR / ADMIN | **Subir archivo de fotografía (Multipart File) y guardar en `/uploads/**`** |
 
-## 📦 3. ¿Qué llevamos hasta ahora? (Inventario de Entregables)
+### 3.4. Alquileres y Reservas
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/rentals` | CLIENTE | Crear reserva (con validación de solapamiento de fechas) |
+| `GET` | `/api/v1/rentals` | ADMIN | Listar todas las reservas del sistema |
+| `GET` | `/api/v1/rentals/{id}` | Autenticado | Consultar reserva e ítems contratados |
+| `GET` | `/api/v1/rentals/client/{clientId}` | Propietario / ADMIN | Historial de alquileres del cliente (Anti-IDOR) |
+| `GET` | `/api/v1/rentals/provider/{providerId}` | Proveedor dueño / ADMIN | **Solicitudes y alquileres de equipos del proveedor (Anti-IDOR)** |
+| `PATCH` | `/api/v1/rentals/{id}/confirm` | PROVEEDOR / ADMIN | Aceptar/Confirmar solicitud de alquiler |
+| `PATCH` | `/api/v1/rentals/{id}/start` | PROVEEDOR / ADMIN | Registrar entrega del equipo (`IN_PROGRESS`) |
+| `PATCH` | `/api/v1/rentals/{id}/complete` | PROVEEDOR / ADMIN | Confirmar retorno y liberar herramienta (`AVAILABLE`) |
+| `PATCH` | `/api/v1/rentals/{id}/cancel` | Autenticado | Cancelar reserva y liberar equipo (`AVAILABLE`) |
 
-### 3.1. Matriz de Endpoints Implementados y Probados
+### 3.5. Inspecciones Físicas y Reportes de Averías (Devolución)
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/inspections` | PROVEEDOR / ADMIN | Crear acta de inspección física (`DELIVERY` o `RETURN`) |
+| `GET` | `/api/v1/inspections/rental/{rentalId}` | Autenticado | Consultar inspecciones asociadas a un alquiler |
+| `GET` | `/api/v1/inspections/{id}` | Autenticado | Detalle de inspección técnica |
+| `POST` | `/api/v1/inspections/{id}/damages` | PROVEEDOR / ADMIN | **Registrar daño/avería (actualiza equipo a `MAINTENANCE` o `RETIRED`)** |
+| `GET` | `/api/v1/inspections/{id}/damages` | Autenticado | Consultar averías reportadas en una inspección |
+| `GET` | `/api/v1/inspections/damages` | Autenticado | Listado global de daños y averías reportadas |
 
-```
-AUTH & USUARIOS:
-  POST   /api/v1/auth/register           -> Registro público con asignación de roles
-  POST   /api/v1/auth/login              -> Autenticación pública y generación de JWT
-  GET    /api/v1/users/me                -> Consulta de identidad del usuario autenticado
-  GET    /api/v1/users                   -> Listado de usuarios registrados (ADMIN)
-  GET    /api/v1/users/{id}              -> Detalle de usuario por UUID
+### 3.6. Pagos y Facturación Electrónica
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/billing/payments` | CLIENTE | Procesar pago (tarjeta, transferencia, etc.) y generar factura |
+| `GET` | `/api/v1/billing/payments/{id}` | Autenticado | Consultar comprobante de transacción |
+| `GET` | `/api/v1/billing/payments/rental/{rentalId}` | Autenticado | Pagos efectuados para una reserva |
+| `GET` | `/api/v1/billing/invoices/{id}` | Autenticado | Detalle de factura contable (subtotal, IVA 19%, total) |
+| `GET` | `/api/v1/billing/invoices/rental/{rentalId}` | Autenticado | Factura emitida para un alquiler |
+| `GET` | `/api/v1/billing/invoices/{id}/html` | Autenticado | **Factura oficial en formato HTML con soporte para impresión (`@media print`)** |
 
-CATÁLOGO DE HERRAMIENTAS:
-  GET    /api/v1/tools                   -> Listado público con filtros (?status=&categoryId=&search=)
-  GET    /api/v1/tools/categories        -> Listado de categorías maestras
-  GET    /api/v1/tools/{id}              -> Detalle técnico de herramienta
-  POST   /api/v1/tools                   -> Registrar nueva herramienta (PROVEEDOR/ADMIN)
-  PUT    /api/v1/tools/{id}              -> Actualizar herramienta existente (PROVEEDOR/ADMIN)
-  DELETE /api/v1/tools/{id}              -> Eliminar herramienta (PROVEEDOR/ADMIN)
-
-RESERVAS Y ALQUILERES:
-  POST   /api/v1/rentals                 -> Crear reserva de alquiler (CLIENTE)
-  GET    /api/v1/rentals                 -> Listar todas las reservas del sistema
-  GET    /api/v1/rentals/{id}            -> Detalle de una reserva e ítems contratados
-  GET    /api/v1/rentals/client/{id}     -> Historial de alquileres de un cliente
-  PATCH  /api/v1/rentals/{id}/confirm    -> Confirmar reserva (PROVEEDOR/ADMIN)
-  PATCH  /api/v1/rentals/{id}/start      -> Registrar entrega de equipo (IN_PROGRESS)
-  PATCH  /api/v1/rentals/{id}/complete   -> Registrar devolución y liberar herramientas (COMPLETED)
-  PATCH  /api/v1/rentals/{id}/cancel     -> Cancelar reserva y liberar herramientas (CANCELLED)
-
-FACTURACIÓN Y PAGOS:
-  POST   /api/v1/billing/payments        -> Procesar pago, confirmar reserva y emitir factura
-  GET    /api/v1/billing/payments/{id}   -> Consultar comprobante de pago
-  GET    /api/v1/billing/payments/rental/{rentalId} -> Pagos asociados a una reserva
-  GET    /api/v1/billing/invoices/{id}   -> Consultar factura legal (con IVA 19%)
-  GET    /api/v1/billing/invoices/rental/{rentalId} -> Factura emitida para un alquiler
-
-REPORTES:
-  GET    /api/v1/reporting/income             -> Ingresos brutos consolidados
-  GET    /api/v1/reporting/most-rented-tools  -> Top herramientas más demandadas
-  GET    /api/v1/reporting/frequent-clients   -> Top clientes con más transacciones
-
-SISTEMA:
-  GET    /api/v1/health                  -> Healthcheck de disponibilidad de la API
-```
-
-### 3.2. Documentación y Recursos Auxiliares
-- **Guía de Compilación:** [docs/COMPILACION.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/COMPILACION.md) (Maven CLI, generación de `.jar` y conversión a `.war` para Apache Tomcat externo).
-- **Guía de Despliegue:** [docs/DESPLIEGUE.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/DESPLIEGUE.md) (Docker Compose multistage, PostgreSQL 16 y variables de entorno).
-- **Diagrama Relacional:**
-  - Imagen física: [docs/diagrama_relacional.png](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/diagrama_relacional.png).
-  - Diagrama interactivo Mermaid: Incorporado en el [README.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/README.md#L18-L45).
-- **Colección de Postman:** [docs/postman_collection.json](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/postman_collection.json) estructurada con 7 carpetas de peticiones y script dinámico para almacenamiento de token `{{token}}`.
+### 3.7. Analítica y Reportes
+| Método | Endpoint | Roles Permitidos | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/reporting/income` | ADMIN | Reporte de ingresos brutos consolidados |
+| `GET` | `/api/v1/reporting/most-rented-tools` | ADMIN | Ranking de herramientas más alquiladas |
+| `GET` | `/api/v1/reporting/frequent-clients` | ADMIN | Ranking de clientes con mayor número de alquileres |
+| `GET` | `/api/v1/reporting/tool-availability` | ADMIN / PROVEEDOR | Métricas de stock: disponibles, en renta, en mantenimiento y retiradas |
+| `GET` | `/api/v1/reporting/provider/{providerId}` | PROVEEDOR / ADMIN | **4 KPIs del Proveedor: total equipos, equipos en renta, ganancias y pendientes** |
 
 ---
 
@@ -180,39 +202,46 @@ SISTEMA:
 
 | Requisito del Documento Demo | Estado | Observación |
 | :--- | :---: | :--- |
-| **Arquitectura Hexagonal + DDD + Multi-módulo** | ✅ 100% | 7 módulos Maven desacoplados por dominio |
-| **Normalización en 4FN** | ✅ 100% | 15 tablas sin MVDs + justificación teórica |
+| **Arquitectura Hexagonal + DDD + Multi-módulo** | ✅ 100% | 8 módulos Maven desacoplados por dominio |
+| **Normalización en 4FN** | ✅ 100% | 15 tablas sin dependencias multivaluadas (MVDs) |
 | **Al menos 20 registros por entidad** | ✅ 100% | Semilla completa en `data.sql` y `V2__seed_data.sql` |
-| **Documentación (README, COMPILACION, DESPLIEGUE)** | ✅ 100% | Completa y probada |
-| **Seguridad JWT con roles (Admin, Proveedor, Cliente)** | ✅ 100% | Spring Security 6, BCrypt y filtros por rol |
+| **Documentación (README, COMPILACION, DESPLIEGUE)** | ✅ 100% | Completos y actualizados |
+| **Seguridad JWT con roles (Admin, Proveedor, Cliente)** | ✅ 100% | Spring Security 6, BCrypt, protección IDOR y filtros por rol |
 | **CRUD completo de Herramientas, Reservas y Pagos** | ✅ 100% | Métodos `GET`, `POST`, `PUT`, `PATCH`, `DELETE` implementados |
+| **CRUD completo de Clientes y Proveedores** | ✅ 100% | Perfiles comerciales implementados en módulo `identity` |
+| **Carga de Fotografías** | ✅ 100% | Doble soporte: URLs externas y subida multipart a `/uploads/**` |
+| **Disponibilidad por Fechas (Solapamiento)** | ✅ 100% | `DateRange.overlaps` en reservas y `/availability` para UI |
+| **Devoluciones con Reporte de Daños e Inspecciones** | ✅ 100% | `rental_inspections` y `damage_reports` con endpoints REST |
+| **Descarga / Impresión de Facturas** | ✅ 100% | JSON detallado y vista HTML imprimible con `@media print` |
+| **KPIs y Métricas de Proveedor** | ✅ 100% | Endpoint `/api/v1/reporting/provider/{id}` con los 4 KPIs clave |
+| **Configuración CORS** | ✅ 100% | Permitido para cualquier origen y credenciales en `SecurityConfig` |
 | **Documentación OpenAPI / Swagger** | ✅ 100% | Swagger UI expuesto en `/swagger-ui.html` con Bearer Auth |
-| **Colección de Postman** | ✅ 100% | Exportada en `docs/postman_collection.json` |
-| **Pruebas Automatizadas** | ✅ 100% | Tests unitarios + contexto H2 pasando al 100% |
+| **Colección de Postman** | ✅ 100% | Exportada en `docs/postman_collection.json` con 8 carpetas |
+| **Pruebas Automatizadas** | ✅ 100% | Tests unitarios + contexto H2 pasando al 100% (13 tests) |
 | **Docker Compose** | ✅ 100% | Configuración con Postgres 16 y app backend |
-| **Reportes y Estadísticas** | 🟡 85% | Listos ingresos, herramientas top y clientes top; falta disponibilidad de inventario |
-| **Devoluciones con Reporte de Daños** | 🟡 50% | Tablas listas en BD; falta exponer endpoints REST de inspecciones |
-| **Frontend Responsivo con Paneles por Rol** | 🔴 Pendiente | Carpeta creada; código de interfaz pendiente de desarrollo |
+| **Frontend Responsivo con Paneles por Rol** | 🟡 Siguiente Paso | Backend formalizado al 100%; listo para iniciar construcción de interfaz |
 
 ---
 
-## 🗺️ 5. Hoja de Ruta (Roadmap) y Siguientes Pasos
+## 🗺️ 5. Hoja de Ruta para el Frontend (Rama `frontend`)
 
-Para el relevo o continuación inmediata del proyecto:
+Habiendo finalizado, probado y blindado el backend, la fase inmediata es la construcción del frontend:
 
-1. **Prioridad 1: Desarrollo del Frontend (Rama `frontend`)**
-   - Construir la interfaz de usuario responsiva (móviles, tablets y escritorio).
-   - Implementar el almacenamiento del token JWT en el cliente (`localStorage` o `sessionStorage`) e interceptor HTTP.
-   - Desarrollar las 3 vistas especializadas:
-     - *Vista Cliente:* Catálogo interactivo con buscador y filtros, modal de fechas de alquiler, formulario de pago y visualización de factura.
-     - *Vista Proveedor:* Panel de gestión de herramientas (formulario con fotos y specs) y control de solicitudes de reserva.
-     - *Vista Admin:* Tabla de usuarios registrados y dashboard con métricas financieras.
-
-2. **Prioridad 2: Pulir Endpoints Menores del Backend (Opcional)**
-   - Añadir endpoint `GET /api/v1/reporting/tool-availability` (conteo de herramientas por estado: disponibles, alquiladas, mantenimiento).
-   - Exponer controlador de inspecciones físicas y daños (`/api/v1/inspections`) aprovechando las tablas `rental_inspections` y `damage_reports` ya existentes en la base de datos.
-
-3. **Prioridad 3: Fusión Final y Entrega**
-   - Unificar la rama `frontend` sobre `develop` mediante Pull Request.
-   - Realizar la fusión de `develop` hacia `main`.
-   - Validar el despliegue con `docker-compose up -d --build`.
+1. **Estructura de Carpetas del Frontend:**
+   - Ubicación: Carpeta `frontend/` en la raíz del proyecto.
+   - Tecnologías recomendadas: HTML5 semántico, CSS3 moderno (Vanilla CSS con variables de diseño, glassmorphism, responsive flexbox/grid, `@media print` para facturas) y JavaScript Vanilla modular (`ES6 Modules`).
+2. **Componentes Clave a Construir:**
+   - **Sistema de Autenticación:** Modal/pantalla de Login y Registro con guardado de token en `localStorage` y decodificación de rol (`ROLE_CLIENTE`, `ROLE_PROVEEDOR`, `ROLE_ADMIN`).
+   - **Vista Cliente:**
+     - Catálogo de herramientas con tarjetas interactivas, galería de fotos, badges de estado y filtros en tiempo real.
+     - Modal de reserva con selector de fechas (consumiendo `GET /tools/{id}/availability` para deshabilitar fechas ocupadas).
+     - Pasarela de pago simulada y visualización/impresión de factura electrónica.
+     - Historial de alquileres del cliente con estados en tiempo real (`PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`).
+   - **Vista Proveedor:**
+     - Dashboard con los 4 KPIs principales (`GET /reporting/provider/{id}`).
+     - Gestión de herramientas: formulario para registrar/editar herramientas con carga de imagen (file upload o URL) y especificaciones técnicas.
+     - Panel de solicitudes de alquiler (`GET /rentals/provider/{id}`) con botones de acción para aceptar, iniciar entrega e inspeccionar devolución.
+     - Modal de inspección de devolución y reporte de averías con cálculo de costos.
+   - **Vista Administrador:**
+     - Tabla interactiva de usuarios y verificación de empresas proveedoras.
+     - Métricas globales de ingresos, herramientas más demandadas y clientes frecuentes.

@@ -43,4 +43,18 @@ public class ReportingController {
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(reportingUseCase.getFrequentClients(limit));
     }
+
+    @GetMapping("/tool-availability")
+    @Operation(summary = "Get tool availability report", description = "Retrieves stock status metrics: available, rented, maintenance, and retired tools")
+    public ResponseEntity<com.campus.rentaequipos.reporting.domain.model.ToolAvailabilityReport> getToolAvailabilityReport() {
+        return ResponseEntity.ok(reportingUseCase.getToolAvailabilityReport());
+    }
+
+    @GetMapping("/provider/{providerId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')")
+    @Operation(summary = "Métricas y KPIs del dashboard de proveedor", description = "Calcula los KPIs clave del proveedor: total herramientas, herramientas en renta, averías, ganancias acumuladas y solicitudes de alquiler pendientes")
+    public ResponseEntity<com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport> getProviderDashboardReport(
+            @PathVariable java.util.UUID providerId) {
+        return ResponseEntity.ok(reportingUseCase.getProviderDashboardReport(providerId));
+    }
 }

@@ -2,7 +2,7 @@
   "info": {
     "name": "Plataforma Renta Herramientas y Equipos - API Collection",
     "_postman_id": "7b89f81a-941e-450a-9dcb-9a84a6c230f8",
-    "description": "Colección completa de endpoints para pruebas de la Plataforma de Renta de Herramientas y Equipos en Spring Boot 3 (Arquitectura Hexagonal + DDD + JWT).",
+    "description": "Colección completa de endpoints para pruebas de la Plataforma de Renta de Herramientas y Equipos en Spring Boot 3 (Arquitectura Hexagonal + DDD + JWT + Normalización 4FN).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -102,10 +102,10 @@
       ]
     },
     {
-      "name": "2. Usuarios (Users)",
+      "name": "2. Usuarios y Perfiles (Users & Profiles)",
       "item": [
         {
-          "name": "Perfil Actual (Me)",
+          "name": "Perfil de Usuario Autenticado (/me)",
           "request": {
             "method": "GET",
             "header": [
@@ -137,6 +137,91 @@
               "path": ["api", "v1", "users"]
             }
           }
+        },
+        {
+          "name": "Perfil de Cliente Autenticado (/clients/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clients/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "clients", "me"]
+            }
+          }
+        },
+        {
+          "name": "Listar Clientes (Admin / Proveedor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "clients"]
+            }
+          }
+        },
+        {
+          "name": "Perfil de Proveedor Autenticado (/providers/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/providers/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "providers", "me"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todos los Proveedores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "providers"]
+            }
+          }
+        },
+        {
+          "name": "Verificar Proveedor (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/providers/d0000000-0000-0000-0000-000000000001/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "providers", "d0000000-0000-0000-0000-000000000001", "verify"]
+            }
+          }
         }
       ]
     },
@@ -144,7 +229,7 @@
       "name": "3. Catálogo de Herramientas (Catalog)",
       "item": [
         {
-          "name": "Listar Herramientas (Exploración Pública con Filtros)",
+          "name": "Listar Herramientas (Exploración Pública)",
           "request": {
             "method": "GET",
             "header": [],
@@ -156,6 +241,46 @@
                 {
                   "key": "status",
                   "value": "AVAILABLE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar Herramientas por Proveedor (Panel Proveedor)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools?providerId=d0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools"],
+              "query": [
+                {
+                  "key": "providerId",
+                  "value": "d0000000-0000-0000-0000-000000000001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultar Disponibilidad y Fechas Ocupadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000001/availability?from=2026-06-01&to=2026-06-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000001", "availability"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-05"
                 }
               ]
             }
@@ -189,7 +314,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"providerId\": \"d0000000-0000-0000-0000-000000000001\",\n  \"categoryId\": \"c0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Generador Eléctrico 8500W\",\n  \"brand\": \"Honda\",\n  \"model\": \"EU7000is\",\n  \"serialNumber\": \"HN-GEN-9941\",\n  \"description\": \"Generador a gasolina súper silenciado con tecnología inverter\",\n  \"dailyPrice\": 45.00,\n  \"replacementValue\": 3500.00,\n  \"images\": [\n    {\n      \"imageUrl\": \"https://images.unsplash.com/photo-1581092160607-ee22621dd758\",\n      \"isPrimary\": true\n    }\n  ],\n  \"specifications\": [\n    {\n      \"specName\": \"Potencia Máxima\",\n      \"specValue\": \"8500 Watts\"\n    },\n    {\n      \"specName\": \"Combustible\",\n      \"specValue\": \"Gasolina Corriente\"\n    }\n  ]\n}"
+              "raw": "{\n  \"providerId\": \"d0000000-0000-0000-0000-000000000001\",\n  \"categoryId\": \"c0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Generador Eléctrico 8500W\",\n  \"brand\": \"Honda\",\n  \"model\": \"EU7000is\",\n  \"serialNumber\": \"HN-GEN-9941\",\n  \"description\": \"Generador a gasolina súper silenciado con tecnología inverter\",\n  \"dailyPrice\": 45.00,\n  \"replacementValue\": 3500.00,\n  \"images\": [\n    {\n      \"imageUrl\": \"https://images.unsplash.com/photo-1581092160607-ee22621dd758\",\n      \"isPrimary\": true\n    }\n  ],\n  \"specifications\": [\n    {\n      \"specName\": \"Potencia Máxima\",\n      \"specValue\": \"8500 Watts\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/tools",
@@ -199,9 +324,9 @@
           }
         },
         {
-          "name": "Actualizar Herramienta (PUT)",
+          "name": "Asociar Imagen por URL a Herramienta",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Authorization",
@@ -214,29 +339,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"providerId\": \"d0000000-0000-0000-0000-000000000001\",\n  \"categoryId\": \"c0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Generador Eléctrico 8500W (Edición Silenciada)\",\n  \"brand\": \"Honda\",\n  \"model\": \"EU7000is-V2\",\n  \"serialNumber\": \"HN-GEN-9941\",\n  \"description\": \"Generador con mantenimiento al día y tanque lleno\",\n  \"dailyPrice\": 48.00,\n  \"replacementValue\": 3600.00,\n  \"images\": [],\n  \"specifications\": []\n}"
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1504307651254-35680f356dfd\",\n  \"isPrimary\": false\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000001",
+              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000001/images",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000001"]
-            }
-          }
-        },
-        {
-          "name": "Eliminar Herramienta (DELETE)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000025",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000025"]
+              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000001", "images"]
             }
           }
         }
@@ -261,7 +369,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": \"c1000000-0000-0000-0000-000000000001\",\n  \"startDate\": \"2026-06-01\",\n  \"endDate\": \"2026-06-05\",\n  \"toolIds\": [\n    \"e0000000-0000-0000-0000-000000000001\"\n  ]\n}"
+              "raw": "{\n  \"clientId\": \"c1000000-0000-0000-0000-000000000001\",\n  \"startDate\": \"2026-07-01\",\n  \"endDate\": \"2026-07-05\",\n  \"toolIds\": [\n    \"e0000000-0000-0000-0000-000000000001\"\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/rentals",
@@ -271,7 +379,7 @@
           }
         },
         {
-          "name": "Listar Todas las Reservas",
+          "name": "Listar Todas las Reservas (Admin)",
           "request": {
             "method": "GET",
             "header": [
@@ -284,6 +392,40 @@
               "raw": "{{baseUrl}}/api/v1/rentals",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "rentals"]
+            }
+          }
+        },
+        {
+          "name": "Listar Reservas por Cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/client/c1000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "client", "c1000000-0000-0000-0000-000000000001"]
+            }
+          }
+        },
+        {
+          "name": "Listar Solicitudes y Alquileres de un Proveedor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/provider/d0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "provider", "d0000000-0000-0000-0000-000000000001"]
             }
           }
         },
@@ -358,7 +500,121 @@
       ]
     },
     {
-      "name": "5. Pagos y Facturación (Billing)",
+      "name": "5. Inspecciones y Averías (Inspections)",
+      "item": [
+        {
+          "name": "Registrar Inspección de Entrega (DELIVERY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rentalId\": \"f0000000-0000-0000-0000-000000000001\",\n  \"inspectionType\": \"DELIVERY\",\n  \"inspectorNotes\": \"Equipo verificado en bodega. Funcionando al 100%\",\n  \"status\": \"PASSED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inspections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inspections"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Inspección de Retorno (RETURN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rentalId\": \"f0000000-0000-0000-0000-000000000001\",\n  \"inspectionType\": \"RETURN\",\n  \"inspectorNotes\": \"Herramienta devuelta por el cliente. Inspección visual y eléctrica superada\",\n  \"status\": \"PASSED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inspections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inspections"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Inspecciones por Alquiler",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inspections/rental/f0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inspections", "rental", "f0000000-0000-0000-0000-000000000001"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Reporte de Avería / Daño",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toolId\": \"e0000000-0000-0000-0000-000000000001\",\n  \"severity\": \"MODERATE\",\n  \"description\": \"Fisura superficial en cubierta plástica y cable desgastado\",\n  \"repairCost\": 45.00,\n  \"isChargedToClient\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inspections/80000000-0000-0000-0000-000000000001/damages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inspections", "80000000-0000-0000-0000-000000000001", "damages"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todos los Daños Reportados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inspections/damages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inspections", "damages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Pagos y Facturación (Billing)",
       "item": [
         {
           "name": "Procesar Pago de Reserva",
@@ -401,11 +657,28 @@
               "path": ["api", "v1", "billing", "invoices", "rental", "f0000000-0000-0000-0000-000000000001"]
             }
           }
+        },
+        {
+          "name": "Descargar/Ver Factura en HTML Imprimible (@media print)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/billing/invoices/90000000-0000-0000-0000-000000000001/html",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "billing", "invoices", "90000000-0000-0000-0000-000000000001", "html"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "6. Reportes y Métricas (Reporting)",
+      "name": "7. Reportes y Métricas (Reporting)",
       "item": [
         {
           "name": "Reporte de Ingresos Globales",
@@ -469,11 +742,45 @@
               ]
             }
           }
+        },
+        {
+          "name": "Disponibilidad de Inventario Global",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporting/tool-availability",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reporting", "tool-availability"]
+            }
+          }
+        },
+        {
+          "name": "KPIs del Dashboard de Proveedor (4 Métricas Clave)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporting/provider/d0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reporting", "provider", "d0000000-0000-0000-0000-000000000001"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "7. Health Check",
+      "name": "8. Health Check",
       "item": [
         {
           "name": "Verificar Estado del Backend",

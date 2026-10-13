@@ -59,10 +59,11 @@ public class ReportingRepositoryAdapter implements ReportingRepository {
     @Override
     public List<FrequentClientReport> getFrequentClients(int limit) {
         String query = """
-                SELECT u.id, u.email, COUNT(r.id) as total_rentals
-                FROM app_users u
-                JOIN rentals r ON u.id = r.client_id
-                GROUP BY u.id, u.email
+                SELECT c.id, u.email, COUNT(r.id) as total_rentals
+                FROM client_profiles c
+                JOIN users u ON c.user_id = u.id
+                JOIN rentals r ON c.id = r.client_id
+                GROUP BY c.id, u.email
                 ORDER BY total_rentals DESC
                 LIMIT ?
                 """;
@@ -72,5 +73,61 @@ public class ReportingRepositoryAdapter implements ReportingRepository {
                 rs.getString("email"),
                 rs.getLong("total_rentals")
         ), limit);
+    }
+
+    @Override
+    public com.campus.rentaequipos.reporting.domain.model.ToolAvailabilityReport getToolAvailabilityReport() {
+        String query = """
+                SELECT 
+                    COUNT(*) as total_tools,
+                    COUNT(CASE WHEN status = 'AVAILABLE' THEN 1 END) as available_tools,
+                    COUNT(CASE WHEN status = 'RENTED' THEN 1 END) as rented_tools,
+                    COUNT(CASE WHEN status = 'MAINTENANCE' THEN 1 END) as maintenance_tools,
+                    COUNT(CASE WHEN status = 'RETIRED' THEN 1 END) as retired_tools
+                FROM tools
+                """;
+
+        return jdbcTemplate.queryForObject(query, (rs, rowNum) -> new com.campus.rentaequipos.reporting.domain.model.ToolAvailabilityReport(
+                rs.getLong("total_tools"),
+                rs.getLong("available_tools"),
+                rs.getLong("rented_tools"),
+                rs.getLong("maintenance_tools"),
+                rs.getLong("retired_tools")
+        ));
+    }
+
+    @Override
+    public com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport getProviderDashboardReport(UUID providerId) {
+        String query = """
+                SELECT 
+                    (SELECT COUNT(*) FROM tools WHERE provider_id = ?) as total_tools,
+                    (SELECT COUNT(*) FROM tools WHERE provider_id = ? AND status = 'RENTED') as rented_tools,
+                    (SELECT COUNT(*) FROM tools WHERE provider_id = ? AND status = 'MAINTENANCE') as maintenance_tools,
+                    (SELECT COALESCE(SUM(ri.total_price), 0)
+                     FROM rental_items ri
+                     JOIN tools t ON t.id = ri.tool_id
+                     JOIN rentals r ON r.id = ri.rental_id
+                     WHERE t.provider_id = ? AND r.status IN ('CONFIRMED', 'IN_PROGRESS', 'COMPLETED')) as total_earnings,
+                    (SELECT COUNT(DISTINCT r.id)
+                     FROM rentals r
+                     JOIN rental_items ri ON ri.rental_id = r.id
+                     JOIN tools t ON t.id = ri.tool_id
+                     WHERE t.provider_id = ? AND r.status = 'PENDING') as pending_rentals,
+                    (SELECT COUNT(DISTINCT r.id)
+                     FROM rentals r
+                     JOIN rental_items ri ON ri.rental_id = r.id
+                     JOIN tools t ON t.id = ri.tool_id
+                     WHERE t.provider_id = ? AND r.status = 'IN_PROGRESS') as active_rentals
+                """;
+
+        return jdbcTemplate.queryForObject(query, (rs, rowNum) -> new com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport(
+                providerId,
+                rs.getLong("total_tools"),
+                rs.getLong("rented_tools"),
+                rs.getLong("maintenance_tools"),
+                rs.getBigDecimal("total_earnings"),
+                rs.getLong("pending_rentals"),
+                rs.getLong("active_rentals")
+        ), providerId, providerId, providerId, providerId, providerId, providerId);
     }
 }

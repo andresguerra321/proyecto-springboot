@@ -127,28 +127,70 @@ El sistema utiliza **JWT (JSON Web Tokens)** para la seguridad de las rutas, div
 | **Auth** | `POST` | `/api/v1/auth/register` | Público | Registro de cliente o proveedor |
 | **Auth** | `POST` | `/api/v1/auth/login` | Público | Autenticación y obtención de JWT |
 | **Users** | `GET` | `/api/v1/users/me` | Autenticado | Perfil y roles del usuario actual |
+| **Users** | `GET` | `/api/v1/users/{id}` | Propietario, `ADMIN` | Detalle de usuario (Protegido contra IDOR) |
 | **Users** | `GET` | `/api/v1/users` | `ADMIN` | Listado general de usuarios |
-| **Catalog** | `GET` | `/api/v1/tools` | Público | Catálogo con filtros (`status`, `categoryId`, `search`) |
+| **Profiles** | `GET` | `/api/v1/clients/me` | `CLIENTE` | Perfil comercial del cliente logueado |
+| **Profiles** | `GET` | `/api/v1/clients` | `PROVEEDOR`, `ADMIN` | Listar clientes registrados |
+| **Profiles** | `GET` | `/api/v1/providers/me` | `PROVEEDOR` | Perfil de empresa proveedora logueada |
+| **Profiles** | `GET` | `/api/v1/providers` | Público | Listar empresas proveedoras |
+| **Profiles** | `PATCH` | `/api/v1/providers/{id}/verify` | `ADMIN` | Aprobar y verificar cuenta comercial de proveedor |
+| **Catalog** | `GET` | `/api/v1/tools` | Público | Catálogo con filtros (`status`, `categoryId`, `providerId`, `search`) |
 | **Catalog** | `GET` | `/api/v1/tools/categories` | Público | Listado maestro de categorías |
 | **Catalog** | `GET` | `/api/v1/tools/{id}` | Público | Detalle técnico e imágenes de equipo |
+| **Catalog** | `GET` | `/api/v1/tools/{id}/availability` | Público | **Disponibilidad por rango de fechas (`?from=&to=`) y fechas ocupadas** |
 | **Catalog** | `POST` | `/api/v1/tools` | `PROVEEDOR`, `ADMIN` | Registrar nueva herramienta |
 | **Catalog** | `PUT` | `/api/v1/tools/{id}` | `PROVEEDOR`, `ADMIN` | Actualizar herramienta existente |
 | **Catalog** | `DELETE` | `/api/v1/tools/{id}` | `PROVEEDOR`, `ADMIN` | Eliminar herramienta del catálogo |
-| **Rental** | `POST` | `/api/v1/rentals` | `CLIENTE` | Crear nueva reserva de herramientas |
-| **Rental** | `GET` | `/api/v1/rentals` | Autenticado | Listar reservas del sistema |
-| **Rental** | `GET` | `/api/v1/rentals/{id}` | Autenticado | Detalle de reserva e ítems |
-| **Rental** | `GET` | `/api/v1/rentals/client/{clientId}` | Autenticado | Historial de reservas de un cliente |
-| **Rental** | `PATCH` | `/api/v1/rentals/{id}/confirm` | `PROVEEDOR`, `ADMIN` | Confirmar reserva |
+| **Catalog** | `POST` | `/api/v1/tools/{id}/images` | `PROVEEDOR`, `ADMIN` | Asociar imagen por URL |
+| **Catalog** | `POST` | `/api/v1/tools/{id}/images/upload` | `PROVEEDOR`, `ADMIN` | **Subir archivo de imagen (Multipart) a `/uploads/**`** |
+| **Rental** | `POST` | `/api/v1/rentals` | `CLIENTE` | Crear reserva (con validación de solapamiento de fechas) |
+| **Rental** | `GET` | `/api/v1/rentals` | `ADMIN` | Listar todas las reservas del sistema |
+| **Rental** | `GET` | `/api/v1/rentals/{id}` | Autenticado | Detalle de reserva e ítems contratados |
+| **Rental** | `GET` | `/api/v1/rentals/client/{clientId}` | Propietario, `ADMIN` | Historial de reservas de un cliente (Protegido contra IDOR) |
+| **Rental** | `GET` | `/api/v1/rentals/provider/{providerId}` | Proveedor dueño, `ADMIN` | **Solicitudes de alquiler para equipos del proveedor (Anti-IDOR)** |
+| **Rental** | `PATCH` | `/api/v1/rentals/{id}/confirm` | `PROVEEDOR`, `ADMIN` | Confirmar solicitud de reserva |
 | **Rental** | `PATCH` | `/api/v1/rentals/{id}/start` | `PROVEEDOR`, `ADMIN` | Entrega de equipo (pasa a `IN_PROGRESS`) |
-| **Rental** | `PATCH` | `/api/v1/rentals/{id}/complete` | `PROVEEDOR`, `ADMIN` | Devolución y cierre (libera herramientas) |
-| **Rental** | `PATCH` | `/api/v1/rentals/{id}/cancel` | Autenticado | Cancelar reserva (libera herramientas) |
-| **Billing** | `POST` | `/api/v1/billing/payments` | Autenticado | Procesar pago y emitir factura |
-| **Billing** | `GET` | `/api/v1/billing/payments/{id}` | Autenticado | Consultar recibo de pago |
+| **Rental** | `PATCH` | `/api/v1/rentals/{id}/complete` | `PROVEEDOR`, `ADMIN` | Devolución y cierre (libera herramientas a `AVAILABLE`) |
+| **Rental** | `PATCH` | `/api/v1/rentals/{id}/cancel` | Autenticado | Cancelar reserva (libera herramientas a `AVAILABLE`) |
+| **Inspections** | `POST` | `/api/v1/inspections` | `PROVEEDOR`, `ADMIN` | Registrar inspección física (`DELIVERY` o `RETURN`) |
+| **Inspections** | `GET` | `/api/v1/inspections/rental/{rentalId}` | Autenticado | Consultar actas de inspección de un alquiler |
+| **Inspections** | `POST` | `/api/v1/inspections/{id}/damages` | `PROVEEDOR`, `ADMIN` | **Reportar avería / daño físico (pasa equipo a `MAINTENANCE` o `RETIRED`)** |
+| **Inspections** | `GET` | `/api/v1/inspections/damages` | Autenticado | Listar daños y costos de reparación |
+| **Billing** | `POST` | `/api/v1/billing/payments` | `CLIENTE` | Procesar pago y emitir factura legal |
+| **Billing** | `GET` | `/api/v1/billing/payments/{id}` | Autenticado | Consultar comprobante de pago |
 | **Billing** | `GET` | `/api/v1/billing/invoices/{id}` | Autenticado | Consultar factura legal (con IVA 19%) |
 | **Billing** | `GET` | `/api/v1/billing/invoices/rental/{rentalId}` | Autenticado | Factura asociada a una reserva |
-| **Reporting** | `GET` | `/api/v1/reporting/income` | `ADMIN` | Reporte financiero de ingresos |
-| **Reporting** | `GET` | `/api/v1/reporting/most-rented-tools` | `ADMIN` | Top herramientas más rentadas |
-| **Reporting** | `GET` | `/api/v1/reporting/frequent-clients` | `ADMIN` | Top clientes con más alquileres |
+| **Billing** | `GET` | `/api/v1/billing/invoices/{id}/html` | Autenticado | **Factura oficial en HTML imprimible con estilos `@media print`** |
+| **Reporting** | `GET` | `/api/v1/reporting/income` | `ADMIN` | Reporte financiero de ingresos brutos |
+| **Reporting** | `GET` | `/api/v1/reporting/most-rented-tools` | `ADMIN` | Ranking de herramientas más rentadas |
+| **Reporting** | `GET` | `/api/v1/reporting/frequent-clients` | `ADMIN` | Top clientes con más transacciones |
+| **Reporting** | `GET` | `/api/v1/reporting/tool-availability` | `ADMIN`, `PROVEEDOR` | Métricas de stock: disponibles, rentadas, mantenimiento y retiradas |
+| **Reporting** | `GET` | `/api/v1/reporting/provider/{providerId}` | `PROVEEDOR`, `ADMIN` | **4 KPIs del Proveedor: total equipos, equipos en renta, ganancias y pendientes** |
+
+---
+
+## 🔒 Decisiones de Seguridad y Arquitectura
+
+### 1. Configuración de CORS (Cross-Origin Resource Sharing)
+Para permitir que cualquier frontend desacoplado (Single Page Application en React, Vue, Vite o Vanilla JS en `localhost:5173`, `localhost:3000`, `127.0.0.1:5500`) consuma la API sin bloqueos del navegador:
+- Configurado en `SecurityConfig.java` con `CorsConfigurationSource`.
+- Orígenes permitidos: `*` mediante `allowedOriginPatterns`.
+- Métodos permitidos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`.
+- Cabeceras autorizadas: `Authorization`, `Content-Type`, `Accept`, `X-Requested-With`.
+- Credenciales: `allowCredentials = true`.
+
+### 2. Almacenamiento de Token JWT en el Cliente (`localStorage` vs. Cookies)
+- **Decisión del Proyecto:** Se opta por almacenar el token JWT en el cliente (`localStorage` o `sessionStorage`) y enviarlo mediante el encabezado `Authorization: Bearer <token>`.
+- **Análisis de Seguridad:**
+  - *Ventaja:* Facilita una arquitectura 100% desacoplada y libre de estado (stateless) para clientes móviles y SPAs.
+  - *Riesgo Conocido:* `localStorage` es accesible mediante JavaScript, por lo que es vulnerable ante ataques Cross-Site Scripting (XSS).
+  - *Mitigaciones Aplicadas:*
+    1. El frontend implementa codificación y renderizado seguro (`textContent`, plantillas sin `eval` ni `innerHTML` sin escapar).
+    2. Los tokens JWT tienen expiración temporal configurada (`jwt.expiration-ms=86400000`).
+    3. Para entornos bancarios de producción con el frontend bajo el mismo dominio de segundo nivel, la recomendación es migrar a cookies `HttpOnly; Secure; SameSite=Strict`.
+
+### 3. Mitigación contra IDOR (Insecure Direct Object References)
+- Se valida la pertenencia de los recursos (`users/{id}`, `rentals/client/{clientId}`, `rentals/provider/{providerId}`) contra el usuario autenticado extraído del JWT. Un cliente o proveedor no puede consultar el historial de reservas de otro usuario alterando el parámetro en la URL.
 
 ---
 
@@ -161,7 +203,7 @@ Encuentra la colección lista para importar en:
 > **Tip:** Al ejecutar la petición *Login* en Postman, el script integrado guarda el token JWT automáticamente en la variable `{{token}}` para todas las peticiones protegidas.
 
 ### 2. Pruebas Unitarias con Maven
-Para ejecutar la suite de pruebas unitarias automatizadas (Value Objects, UseCases y Domain Services) sin necesidad de levantar Docker:
+Para ejecutar la suite de pruebas automatizadas (Value Objects, UseCases, Repositories y Contexto de Integración H2) sin necesidad de levantar Docker:
 ```bash
 cd backend
 ./mvnw clean test
@@ -169,5 +211,6 @@ cd backend
 *(En Windows usa `mvnw.cmd clean test`)*
 
 ---
-Consulta [COMPILACION.md](docs/COMPILACION.md) para más detalles del empaquetado, y [DESPLIEGUE.md](docs/DESPLIEGUE.md) para las estrategias de despliegue desde cero.
+Consulta [COMPILACION.md](docs/COMPILACION.md) para más detalles del empaquetado, [DESPLIEGUE.md](docs/DESPLIEGUE.md) para las estrategias de despliegue, y [HANDOFF.md](docs/HANDOFF.md) para el informe de traspaso técnico del proyecto.
+
 

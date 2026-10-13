@@ -33,9 +33,15 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get user by ID", description = "Retrieves user details by their UUID")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
-        return ResponseEntity.ok(authUseCase.getUserById(id));
+    @Operation(summary = "Get user by ID", description = "Retrieves user details by their UUID (Solo el propio usuario o ADMIN)")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse user = authUseCase.getUserById(id);
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && (userDetails == null || !user.username().equals(userDetails.getUsername()))) {
+            throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no tiene permisos para consultar información de otros usuarios");
+        }
+        return ResponseEntity.ok(user);
     }
 
     @GetMapping

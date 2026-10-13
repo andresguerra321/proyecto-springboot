@@ -117,4 +117,35 @@ class RentalUseCaseTest {
         assertEquals(ToolStatus.AVAILABLE, testTool.getStatus());
         verify(toolRepository).save(testTool);
     }
+
+    @Test
+    @DisplayName("Debe detectar solapamiento de fechas al verificar disponibilidad")
+    void shouldDetectDateOverlapWhenCheckingAvailability() {
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+
+        LocalDate queryStart = LocalDate.now().plusDays(1);
+        LocalDate queryEnd = LocalDate.now().plusDays(2);
+
+        com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse response =
+                rentalUseCase.checkToolAvailability(toolId, queryStart, queryEnd);
+
+        assertNotNull(response);
+        assertFalse(response.isAvailable());
+        assertEquals(1, response.bookedDateRanges().size());
+    }
+
+    @Test
+    @DisplayName("Debe listar las solicitudes y alquileres de un proveedor")
+    void shouldGetProviderRentals() {
+        UUID providerId = UUID.randomUUID();
+        when(toolRepository.findByProviderId(providerId)).thenReturn(List.of(testTool));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+
+        List<RentalResponse> rentals = rentalUseCase.getProviderRentals(providerId);
+
+        assertNotNull(rentals);
+        assertEquals(1, rentals.size());
+        assertEquals("RNT-TEST123", rentals.get(0).rentalCode());
+    }
 }

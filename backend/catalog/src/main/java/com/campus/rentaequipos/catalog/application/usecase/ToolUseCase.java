@@ -146,6 +146,16 @@ public class ToolUseCase {
         return mapToResponse(savedTool);
     }
 
+    @Transactional
+    public ToolResponse addImageToTool(UUID toolId, String imageUrl, boolean isPrimary) {
+        Tool tool = toolRepository.findById(toolId)
+                .orElseThrow(() -> new EntityNotFoundException("Tool", toolId));
+        ToolImage image = new ToolImage(UUID.randomUUID(), imageUrl, isPrimary);
+        tool.addImage(image);
+        Tool saved = toolRepository.save(tool);
+        return mapToResponse(saved);
+    }
+
     private ToolResponse mapToResponse(Tool tool) {
         CategoryResponse categoryResponse = new CategoryResponse(
                 tool.getCategory().getId(),

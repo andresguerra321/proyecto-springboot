@@ -63,6 +63,13 @@ public class Tool {
         }
     }
 
+    public void addImage(ToolImage image) {
+        if (this.images == null) {
+            this.images = new ArrayList<>();
+        }
+        this.images.add(image);
+    }
+
     // Getters
     public UUID getId() { return id; }
     public UUID getProviderId() { return providerId; }

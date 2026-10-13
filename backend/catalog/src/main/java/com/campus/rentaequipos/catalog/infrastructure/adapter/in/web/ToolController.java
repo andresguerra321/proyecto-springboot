@@ -77,4 +77,43 @@ public class ToolController {
         toolUseCase.deleteTool(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/images")
+    @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Asociar imagen a una herramienta", description = "Agrega una imagen por URL a una herramienta existente")
+    public ResponseEntity<ToolResponse> addImage(
+            @PathVariable UUID id,
+            @RequestBody ToolRequest.ImageRequest request) {
+        return ResponseEntity.ok(toolUseCase.addImageToTool(id, request.imageUrl(), request.isPrimary()));
+    }
+
+    @PostMapping(value = "/{id}/images/upload", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Subir archivo de imagen para herramienta", description = "Sube un archivo de imagen en formato multipart y lo asocia a la herramienta")
+    public ResponseEntity<ToolResponse> uploadImage(
+            @PathVariable UUID id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo de imagen no puede estar vacío");
+        }
+        try {
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads");
+            if (!java.nio.file.Files.exists(uploadDir)) {
+                java.nio.file.Files.createDirectories(uploadDir);
+            }
+            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "tool.jpg";
+            String cleanName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = UUID.randomUUID() + "_" + cleanName;
+            java.nio.file.Path targetPath = uploadDir.resolve(fileName);
+            java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            String fileUrl = "/uploads/" + fileName;
+            return ResponseEntity.ok(toolUseCase.addImageToTool(id, fileUrl, isPrimary));
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Error al guardar la imagen en el servidor: " + e.getMessage(), e);
+        }
+    }
 }

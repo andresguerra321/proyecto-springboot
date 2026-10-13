@@ -28,4 +28,12 @@ public class ReportingUseCase {
     public List<FrequentClientReport> getFrequentClients(int limit) {
         return reportingRepository.getFrequentClients(limit);
     }
+
+    public com.campus.rentaequipos.reporting.domain.model.ToolAvailabilityReport getToolAvailabilityReport() {
+        return reportingRepository.getToolAvailabilityReport();
+    }
+
+    public com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport getProviderDashboardReport(java.util.UUID providerId) {
+        return reportingRepository.getProviderDashboardReport(providerId);
+    }
 }
