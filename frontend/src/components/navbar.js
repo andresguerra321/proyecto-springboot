@@ -65,12 +65,6 @@ export function renderNavbar(activeRoute = 'catalog') {
               </a>
             </div>
 
-            <!-- Mode Tag -->
-            <div class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Funcionando en modo interactivo independiente (Stitch)">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Stitch Mock</span>
-            </div>
-
             ${isAuth ? `
               <!-- Authenticated User Dropdown / Info -->
               <div class="flex items-center gap-3 pl-2 border-l border-slate-200">

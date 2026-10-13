@@ -407,27 +407,6 @@ export async function renderCatalogView() {
 
           </div>
 
-          <!-- Bottom Showcase of System States matching bottom of mockup -->
-          <div class="border-t border-slate-200 pt-8 mt-12 space-y-4">
-            <div class="flex items-center justify-between text-xs text-slate-500">
-              <span class="font-bold uppercase tracking-wider text-[11px]">Demostración de Estados de la Plataforma (Stitch & Impeccable Showcase)</span>
-              <div class="flex items-center gap-2">
-                <button id="toggle-state-normal" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${viewMode === 'normal' ? 'bg-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600'}">
-                  Normal
-                </button>
-                <button id="toggle-state-skeleton" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${viewMode === 'skeleton' ? 'bg-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600'}">
-                  Skeleton
-                </button>
-                <button id="toggle-state-empty" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${viewMode === 'empty' ? 'bg-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600'}">
-                  Vacío
-                </button>
-                <button id="toggle-state-error" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${viewMode === 'error' ? 'bg-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600'}">
-                  Error
-                </button>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     `;
@@ -537,12 +516,6 @@ export async function renderCatalogView() {
       viewMode = 'normal';
       render();
     });
-
-    // State preview toggles
-    container.querySelector('#toggle-state-normal')?.addEventListener('click', () => { viewMode = 'normal'; render(); });
-    container.querySelector('#toggle-state-skeleton')?.addEventListener('click', () => { viewMode = 'skeleton'; render(); });
-    container.querySelector('#toggle-state-empty')?.addEventListener('click', () => { viewMode = 'empty'; render(); });
-    container.querySelector('#toggle-state-error')?.addEventListener('click', () => { viewMode = 'error'; render(); });
   }
 
   render();
