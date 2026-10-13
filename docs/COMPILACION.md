@@ -1,65 +1,46 @@
-# Guía de Compilación del Proyecto
+# Guía de Compilación (COMPILACION.md)
 
-Esta guía describe el proceso de compilación, construcción y empaquetado del backend multi-módulo con Maven y Java 17.
+Este documento detalla el proceso de compilación del proyecto utilizando **Maven** y una estructura multi-módulo basada en Arquitectura Hexagonal.
 
----
+## Estructura de Módulos (Maven Multi-Module)
+El proyecto está estructurado alrededor de un archivo `pom.xml` padre que agrega y gestiona la versión de los siguientes módulos:
 
-## 📋 Requisitos Previos
+- `shared-kernel`: Clases transversales sin dependencias de infraestructura pesada.
+- `identity`: Módulo de autenticación (JWT, Roles).
+- `catalog`: Módulo de catálogo de herramientas.
+- `rental`: Módulo de reglas de negocio para reservas.
+- `billing`: Pagos y facturas.
+- `reporting`: Reportes en modo solo lectura.
+- `bootstrap`: Módulo de inicialización, que empaca la aplicación Spring Boot y orquesta la inyección de dependencias (`SecurityConfig`, etc.).
 
-1. **Java Development Kit (JDK):** Versión 17 o superior instalada (`java -version`).
-2. **Maven:** Se incluye el Maven Wrapper oficial (`mvnw`), por lo que no es estrictamente necesario tener Maven instalado de forma global.
+**Nota Importante:** Ningún módulo de dominio depende del módulo `bootstrap`.
 
----
+## Compilar Localmente (Con Maven)
 
-## 🏗 Estructura Multi-módulo de Compilación
+Si deseas compilar la aplicación para verificar los errores, o para correr los test unitarios localmente fuera de Docker, sigue estos pasos:
 
-El proyecto está compuesto por los siguientes módulos orquestados por el POM raíz:
+### 1. Pre-requisitos
+- **Java JDK 21**
+- **Maven 3.9+** (Opcional, el proyecto incluye Maven Wrapper `mvnw`).
 
-1. `shared-kernel`: Clases transversales, Value Objects (`Money`, `DateRange`) y excepciones de dominio.
-2. `identity`: Autenticación, usuarios, roles, JWT y perfiles de cliente/proveedor.
-3. `catalog`: Catálogo de herramientas, inventario, categorías y disponibilidad.
-4. `rental`: Reservas, control de alquileres, entregas y devoluciones.
-5. `billing`: Pagos, facturación y recibos.
-6. `reporting`: Consultas de analítica, estadísticas de rentabilidad e historial.
-7. `bootstrap`: Módulo ensamblador que contiene la clase `@SpringBootApplication` y genera el ejecutable empaquetado (`bootstrap.jar`).
-
----
-
-## 🛠 Comandos de Compilación
-
-### 1. Limpiar y compilar todos los módulos (sin tests)
+### 2. Ejecutar la compilación
+Navega a la carpeta `backend` donde se encuentra el `pom.xml` raíz del proyecto:
 ```bash
-# En Linux / macOS
-./mvnw clean package -DskipTests
-
-# En Windows PowerShell
-.\mvnw.cmd clean package -DskipTests
+cd backend
+./mvnw clean install
 ```
+*(En Windows usa `mvnw.cmd clean install`)*
 
-### 2. Compilar ejecutando pruebas unitarias
-```bash
-./mvnw clean package
-# o en Windows
-.\mvnw.cmd clean package
-```
+### 3. Explicación del Proceso
+- El ciclo `clean install` limpiará las carpetas `target/` de todos los sub-módulos.
+- Compilará primero el `shared-kernel`.
+- Luego compilará cada módulo vertical (`identity`, `catalog`, etc.).
+- Finalmente, compilará el módulo `bootstrap` generando el archivo ejecutable (`fat-jar`) o archivo `war`.
+- El archivo resultante se deposita en: `backend/bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar`.
 
-### 3. Compilar un solo módulo específico (ej. `shared-kernel` o `identity`)
-```bash
-./mvnw clean install -pl shared-kernel -am
-```
-
----
-
-## 📦 Artefacto Resultante
-
-El JAR ejecutable se genera en el directorio `target` del módulo `bootstrap`:
-
-```
-bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar
-```
-
-Para ejecutar el JAR compilado manualmente:
-
-```bash
-java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar
-```
+## Empaquetado Alternativo para Tomcat Tradicional (.war)
+Por defecto, la compilación genera un archivo `.jar` embebido. Si un requerimiento exige desplegarlo sobre un servidor Apache Tomcat nativo externo (no embebido), es necesario:
+1. Ir al `pom.xml` del módulo `bootstrap` y cambiar `<packaging>jar</packaging>` por `<packaging>war</packaging>`.
+2. Incluir la dependencia `spring-boot-starter-tomcat` con *scope provided*.
+3. En la clase principal `RentaEquiposApplication`, heredar de `SpringBootServletInitializer` y sobrescribir el método `configure`.
+4. Ejecutar nuevamente `./mvnw clean package` y localizar el archivo `.war` en la carpeta `target/`.

@@ -29,7 +29,7 @@ services:
   # ==============================================================================
   app:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: renta_herramientas_app
     restart: unless-stopped

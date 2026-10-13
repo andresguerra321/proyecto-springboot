@@ -1,0 +1,493 @@
+{
+  "info": {
+    "name": "Plataforma Renta Herramientas y Equipos - API Collection",
+    "_postman_id": "7b89f81a-941e-450a-9dcb-9a84a6c230f8",
+    "description": "Colección completa de endpoints para pruebas de la Plataforma de Renta de Herramientas y Equipos en Spring Boot 3 (Arquitectura Hexagonal + DDD + JWT).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8085",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación (Auth)",
+      "item": [
+        {
+          "name": "Registro de Usuario (Cliente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"carlos_contratista\",\n  \"email\": \"carlos@constructora.com\",\n  \"password\": \"Password123*\",\n  \"roles\": [\"ROLE_CLIENTE\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Registro de Usuario (Proveedor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"maquinaria_bogota\",\n  \"email\": \"contacto@maquinariabogota.com\",\n  \"password\": \"Password123*\",\n  \"roles\": [\"ROLE_PROVEEDOR\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Inicio de Sesión (Login) y Guardado de Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "    console.log(\"JWT Token guardado en la colección:\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_central\",\n  \"password\": \"Admin2026*\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Usuarios (Users)",
+      "item": [
+        {
+          "name": "Perfil Actual (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todos los Usuarios (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Catálogo de Herramientas (Catalog)",
+      "item": [
+        {
+          "name": "Listar Herramientas (Exploración Pública con Filtros)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools?status=AVAILABLE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AVAILABLE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Categorías",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Nueva Herramienta (Proveedor/Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"providerId\": \"d0000000-0000-0000-0000-000000000001\",\n  \"categoryId\": \"c0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Generador Eléctrico 8500W\",\n  \"brand\": \"Honda\",\n  \"model\": \"EU7000is\",\n  \"serialNumber\": \"HN-GEN-9941\",\n  \"description\": \"Generador a gasolina súper silenciado con tecnología inverter\",\n  \"dailyPrice\": 45.00,\n  \"replacementValue\": 3500.00,\n  \"images\": [\n    {\n      \"imageUrl\": \"https://images.unsplash.com/photo-1581092160607-ee22621dd758\",\n      \"isPrimary\": true\n    }\n  ],\n  \"specifications\": [\n    {\n      \"specName\": \"Potencia Máxima\",\n      \"specValue\": \"8500 Watts\"\n    },\n    {\n      \"specName\": \"Combustible\",\n      \"specValue\": \"Gasolina Corriente\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Herramienta (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"providerId\": \"d0000000-0000-0000-0000-000000000001\",\n  \"categoryId\": \"c0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Generador Eléctrico 8500W (Edición Silenciada)\",\n  \"brand\": \"Honda\",\n  \"model\": \"EU7000is-V2\",\n  \"serialNumber\": \"HN-GEN-9941\",\n  \"description\": \"Generador con mantenimiento al día y tanque lleno\",\n  \"dailyPrice\": 48.00,\n  \"replacementValue\": 3600.00,\n  \"images\": [],\n  \"specifications\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000001"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Herramienta (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000025",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000025"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Reservas y Alquileres (Rentals)",
+      "item": [
+        {
+          "name": "Crear Reserva de Alquiler",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"c1000000-0000-0000-0000-000000000001\",\n  \"startDate\": \"2026-06-01\",\n  \"endDate\": \"2026-06-05\",\n  \"toolIds\": [\n    \"e0000000-0000-0000-0000-000000000001\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todas las Reservas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals"]
+            }
+          }
+        },
+        {
+          "name": "Confirmar Reserva (Proveedor)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar Entrega de Equipo (Start)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "start"]
+            }
+          }
+        },
+        {
+          "name": "Finalizar Alquiler / Devolución (Complete)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar Reserva",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Pagos y Facturación (Billing)",
+      "item": [
+        {
+          "name": "Procesar Pago de Reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rentalId\": \"f0000000-0000-0000-0000-000000000001\",\n  \"amount\": 330.00,\n  \"paymentMethod\": \"CREDIT_CARD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/billing/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "billing", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Factura por ID de Reserva",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/billing/invoices/rental/f0000000-0000-0000-0000-000000000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "billing", "invoices", "rental", "f0000000-0000-0000-0000-000000000001"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Reportes y Métricas (Reporting)",
+      "item": [
+        {
+          "name": "Reporte de Ingresos Globales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporting/income",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reporting", "income"]
+            }
+          }
+        },
+        {
+          "name": "Herramientas Más Rentadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporting/most-rented-tools?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reporting", "most-rented-tools"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clientes Frecuentes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporting/frequent-clients?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reporting", "frequent-clients"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Health Check",
+      "item": [
+        {
+          "name": "Verificar Estado del Backend",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

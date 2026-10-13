@@ -1,80 +1,61 @@
-# Guía de Despliegue del Proyecto
+# Guía de Despliegue (DESPLIEGUE.md)
 
-Esta guía describe el procedimiento para desplegar la plataforma utilizando **Docker y Docker Compose** (método principal y recomendado) o mediante **Apache Tomcat / Jar Autónomo**.
+Este documento contiene las instrucciones exactas para levantar el sistema "Renta Equipos" desde cero, usando contenedores Docker.
 
----
+## Estrategia de Despliegue (Contenedores)
+El sistema se empaqueta en imágenes Docker mediante un *Multistage Build*. Esto significa que el código fuente se compila y empaqueta **dentro del proceso de construcción de Docker** usando Maven, y posteriormente solo se traslada el archivo `.jar` resultante a la imagen de ejecución, garantizando una imagen ligera de Java 21 Alpine.
 
-## 🐳 Método 1: Despliegue con Docker y Docker Compose (Recomendado)
+El `docker-compose.yml` orquesta dos servicios principales:
+1. **postgres:** Base de datos PostgreSQL.
+2. **app:** API de Spring Boot.
 
-### 📋 Requisitos
-- **Docker Engine:** Versión 20.10+ o Docker Desktop instalado y corriendo.
-- **Docker Compose:** Versión 2.0+.
+## Pasos para Levantar desde Cero
 
-### ⚙ 1. Configuración de Variables de Entorno
-Copia o verifica el archivo `.env` en la raíz del proyecto:
+Sigue estrictamente este proceso en un entorno que posea Docker Engine instalado.
 
-```env
-# Puerto en el Host para la API REST
-APP_PORT=8085
-
-# Configuración de PostgreSQL
-DB_PORT=5434
-DB_NAME=renta_herramientas_db
-DB_USER=postgres
-DB_PASSWORD=postgres
-
-# Modo Hibernate
-HIBERNATE_DDL_AUTO=update
-
-# Llave Secreta JWT y tiempo de expiración (24h)
-JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-JWT_EXPIRATION_MS=86400000
-```
-
-### 🚀 2. Construcción y Despliegue
-Ejecuta el siguiente comando en la raíz del proyecto:
-
+### Paso 1: Variables de Entorno (Opcional pero recomendado)
+En la raíz del proyecto encontrarás el archivo `.env.example`. Puedes crear un archivo `.env` renombrándolo para inyectar configuraciones:
 ```bash
-docker compose up -d --build
+cp .env.example .env
 ```
+*(Por defecto, `docker-compose` está diseñado para usar los valores seguros predeterminados si no configuras el archivo `.env`)*
 
-Docker se encargará de:
-1. Compilar los módulos con Maven en una etapa temporal (`builder`).
-2. Generar la imagen runtime mínima con Eclipse Temurin JRE 17.
-3. Iniciar el contenedor de PostgreSQL (`renta_herramientas_postgres`) y esperar a que esté saludable (*healthy*).
-4. Iniciar el contenedor de la aplicación (`renta_herramientas_app`).
-
-### 🔍 3. Comprobación del Despliegue
-Verifica el estado de los contenedores:
-
+### Paso 2: Ejecutar Docker Compose
+Abre tu consola en la raíz del repositorio (donde se encuentra `docker-compose.yml`) e ingresa el siguiente comando:
 ```bash
-docker compose ps
+docker-compose up -d --build
 ```
 
-Accede a la verificación en tu navegador:
-- **Health Check:** [http://localhost:8085/api/v1/health](http://localhost:8085/api/v1/health)
-- **Documentación Swagger:** [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html)
+**¿Qué ocurre aquí?**
+1. Docker bajará la imagen de `postgres:16-alpine`.
+2. Se iniciará el contenedor `renta_herramientas_postgres`.
+3. El contenedor `app` comenzará su construcción desde la carpeta `/backend` usando el `Dockerfile` interno. (Tomará unos minutos descargar las dependencias de Maven la primera vez).
+4. El contenedor `app` esperará a que `postgres` esté saludable (`healthcheck`).
+5. Cuando inicia el `app`, **Flyway** se ejecuta automáticamente aplicando las migraciones (esquema inicial y creación de registros en la base de datos).
 
-### 🛑 4. Detener el Despliegue
+### Paso 3: Verificación de Estado
+Comprueba que los contenedores estén corriendo:
 ```bash
-docker compose down
+docker-compose ps
+```
+Ambos contenedores deberían mostrarse con estado `Up`.
+
+Para visualizar los registros en tiempo real y comprobar que Spring Boot arrancó exitosamente:
+```bash
+docker logs -f renta_herramientas_app
 ```
 
----
+### Paso 4: Probar la Disponibilidad
+La API estará expuesta en el puerto **8085** de tu máquina local.
+- **Swagger:** Navega en tu explorador web a: `http://localhost:8085/swagger-ui.html`
+- Para detener el servicio de manera limpia, usa:
+```bash
+docker-compose down
+```
 
-## ☕ Método 2: Despliegue Standalone (JAR Embebido)
-
-Si se cuenta con un servidor PostgreSQL ya configurado:
-
-1. Compilar el proyecto:
-   ```bash
-   ./mvnw clean package -DskipTests
-   ```
-2. Ejecutar el artefacto especificando las variables de base de datos:
-   ```bash
-   java -Dserver.port=8085 \
-        -Dspring.datasource.url=jdbc:postgresql://localhost:5432/renta_herramientas_db \
-        -Dspring.datasource.username=postgres \
-        -Dspring.datasource.password=postgres \
-        -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar
-   ```
+## Cambiar el Despliegue a Servidor Tomcat Nativo
+Si el requerimiento institucional dicta un despliegue sin contenedor Docker directamente en Apache Tomcat 10:
+1. Sigue las instrucciones de compilación a `.war` definidas en `COMPILACION.md`.
+2. Renombra el archivo generado a `ROOT.war` si deseas que la aplicación responda a `/`, o a `renta-equipos.war` para que responda a `/renta-equipos`.
+3. Mueve este archivo al directorio `webapps/` de tu instalación de Tomcat.
+4. Asegúrate de configurar las variables de entorno de base de datos en las propiedades del servidor (ej. en `setenv.sh` de Tomcat), ya que las propiedades del `application.yml` dependen de inyecciones del OS como `DB_HOST`, `DB_USER`, `DB_PASSWORD`.
