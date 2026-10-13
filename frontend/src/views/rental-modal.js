@@ -73,7 +73,12 @@ export async function openRentalModal(tool) {
         <!-- Left: Tool Details Card -->
         <div class="space-y-4">
           <div class="relative h-48 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
-            <img src="${primaryImg}" alt="${tool.name}" class="w-full h-full object-cover" />
+            <img 
+              src="${primaryImg}" 
+              alt="${tool.name}" 
+              class="w-full h-full object-cover" 
+              onerror="window.ToolRentCacheShield?.handleImageError(this, '${primaryImg}', '${tool.categoryName || ''}', '${tool.name?.replace(/'/g, "\\'")}')"
+            />
             <div class="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-800 border border-slate-200 shadow-sm">
               ${tool.brand || 'DeWalt'} · ${tool.model || 'DWD520K'}
             </div>

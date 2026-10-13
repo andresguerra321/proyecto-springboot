@@ -228,7 +228,11 @@ export async function renderProviderDashboard() {
                           <td class="py-3.5 px-4 text-center"><input type="checkbox" class="rounded text-[#ea580c] focus:ring-0" /></td>
                           <td class="py-3.5 px-4">
                             <div class="flex items-center gap-3">
-                              <img src="${img}" class="w-11 h-11 rounded-lg object-contain bg-slate-50 border border-slate-200 p-1" />
+                              <img 
+                                src="${img}" 
+                                class="w-11 h-11 rounded-lg object-contain bg-slate-50 border border-slate-200 p-1" 
+                                onerror="window.ToolRentCacheShield?.handleImageError(this, '${img}', '${tool.categoryName || ''}', '${tool.name?.replace(/'/g, "\\'")}')"
+                              />
                               <div>
                                 <a href="#/product/${tool.id}" class="font-bold text-slate-900 hover:text-[#ea580c] transition-colors">${tool.name}</a>
                                 <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">

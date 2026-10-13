@@ -392,6 +392,8 @@ export async function renderCatalogView() {
                     alt="${tool.name}" 
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 select-none" 
                     loading="lazy"
+                    data-original-url="${primaryImg}"
+                    onerror="window.ToolRentCacheShield?.handleImageError(this, '${primaryImg}', '${tool.categoryName || ''}', '${tool.name.replace(/'/g, "\\'")}')"
                   />
                   <div class="absolute top-3 right-3 z-10">
                     ${statusBadge}

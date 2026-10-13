@@ -29,10 +29,9 @@ export const mockTools = [
     replacementValue: 650000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true },
-      { imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&auto=format&fit=crop&q=80', isPrimary: false },
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: false },
-      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', isPrimary: false },
+      { imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1000&auto=format&fit=crop&q=80', isPrimary: true },
+      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80', isPrimary: false },
+      { imageUrl: 'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=1000&auto=format&fit=crop&q=80', isPrimary: false },
     ],
     description: 'Taladro percutor inalámbrico de alto rendimiento con motor sin escobillas (brushless). Ofrece 3 velocidades y luz LED de 3 modos para trabajos en concreto, metal y madera.',
     specs: [
@@ -59,19 +58,19 @@ export const mockTools = [
     name: 'Mezcladora de concreto 400 L',
     categoryId: 'cat-construccion',
     categoryName: 'Construcción',
-    brand: 'Imer',
-    model: 'Syntesi 350',
+    brand: 'Cipsa',
+    model: 'Maxi 10 Syntesi',
     dailyPrice: 120000,
     replacementValue: 4800000,
     status: 'RENTED',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Trompo mezclador con tambor de 400 litros y motor a gasolina de 9 HP. Ideal para vaciado continuo de vigas, placas y zapatas en obra civil.',
     specs: [
       { specName: 'Capacidad del tambor', specValue: '400 L' },
       { specName: 'Rendimiento de mezcla', specValue: '280 L' },
-      { specName: 'Motor', specValue: 'Gasolina 9 HP' },
+      { specName: 'Motor', specValue: 'Gasolina Honda 9 HP' },
       { specName: 'Llantas', specValue: 'Neumáticas con rin' },
       { specName: 'Peso', specValue: '190 kg' },
     ],
@@ -96,7 +95,7 @@ export const mockTools = [
     replacementValue: 7200000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'El martillo demoledor eléctrico más potente para suelos y pavimentos. Energía de impacto de 62 J con sistema de reducción de vibraciones Vibration Control.',
     specs: [
@@ -127,7 +126,7 @@ export const mockTools = [
     replacementValue: 4200000,
     status: 'MAINTENANCE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Tronzadora de disco a gasolina para corte de concreto, asfalto y mampostería. Sistema de filtro de aire de larga duración con separación previa ciclónica.',
     specs: [
@@ -158,7 +157,7 @@ export const mockTools = [
     replacementValue: 45000000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Plataforma tijera eléctrica compacta para trabajo en alturas en interiores y exteriores planos. Emisión cero y funcionamiento silencioso.',
     specs: [
@@ -189,7 +188,7 @@ export const mockTools = [
     replacementValue: 8500000,
     status: 'RENTED',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Planta eléctrica insonorizada con tecnología Inverter y arranque eléctrico. Suministro eléctrico limpio y estable para maquinaria e instrumentos sensibles.',
     specs: [
@@ -221,10 +220,9 @@ export const mockTools = [
     replacementValue: 850000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true },
-      { imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&auto=format&fit=crop&q=80', isPrimary: false },
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: false },
-      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', isPrimary: false },
+      { imageUrl: 'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=1000&auto=format&fit=crop&q=80', isPrimary: true },
+      { imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1000&auto=format&fit=crop&q=80', isPrimary: false },
+      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80', isPrimary: false },
     ],
     description: 'Taladro percutor profesional ideal para trabajos de construcción y remodelación. Ofrece gran potencia y versatilidad para perforar en concreto, metal y madera. Incluye maletín y accesorios.',
     specs: [
@@ -260,7 +258,7 @@ export const mockTools = [
     replacementValue: 5600000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1581092162384-8987c1d64718?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Placa vibratoria unidireccional para compactación de asfalto y suelos mixtos. Excelente avance y maniobrabilidad en espacios reducidos.',
     specs: [
@@ -291,7 +289,7 @@ export const mockTools = [
     replacementValue: 1800000,
     status: 'MAINTENANCE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Cuerpo de andamio certificado de alta seguridad para fachadas e interiores. Nudo de disco autoblocante con 8 conexiones por punto.',
     specs: [
@@ -322,7 +320,7 @@ export const mockTools = [
     replacementValue: 780000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Esmeriladora angular de 7 pulgadas con motor de alto rendimiento para desbaste pesado y corte en vigas de acero y mampostería.',
     specs: [
@@ -353,7 +351,7 @@ export const mockTools = [
     replacementValue: 2400000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d69102a56?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Potente guadañadora profesional para desmalezado de terrenos rústicos, mantenimiento de taludes y desmonte de matorrales.',
     specs: [
@@ -383,7 +381,7 @@ export const mockTools = [
     replacementValue: 6800000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Equipo de soldadura TIG y electrodo revestido con tecnología Auto-Line. Arco ultraestable para tuberías, estructuras y acero inoxidable.',
     specs: [
@@ -413,7 +411,7 @@ export const mockTools = [
     replacementValue: 3900000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Lavadora a presión de agua fría con bomba de cigüeñal y pistones cerámicos. Especial para limpieza de fachadas, maquinaria y obras.',
     specs: [
@@ -443,7 +441,7 @@ export const mockTools = [
     replacementValue: 2800000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Compresor vertical de 200 PSI máx con motor de inducción libre de aceite. Ideal para clavadoras neumáticas, pintura y soplado.',
     specs: [
@@ -473,7 +471,7 @@ export const mockTools = [
     replacementValue: 4600000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Combinado robusto para perforaciones profundas en hormigón armado y demolición media con embrague de seguridad.',
     specs: [
@@ -502,7 +500,7 @@ export const mockTools = [
     replacementValue: 28000000,
     status: 'AVAILABLE',
     images: [
-      { imageUrl: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+      { imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', isPrimary: true }
     ],
     description: 'Torre telescópica con mástil vertical de 8.5 m y 4 reflectores de halogenuros metálicos de 1.000 W cada uno. Motor diésel con generador integrado.',
     specs: [
@@ -520,6 +518,35 @@ export const mockTools = [
       city: 'Bogotá D.C.'
     }
   }
+];
+
+// Curated Bank of URLs matching DB V2__seed_data.sql for offline preloading
+export const curatedCatalogImageUrls = [
+  'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092162384-8987c1d64718?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092446327-9b52bd1570c2?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1590496793929-36417d3117de?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop&q=80',
 ];
 
 export const mockRequests = [

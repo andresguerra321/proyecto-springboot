@@ -152,14 +152,26 @@ export async function renderProductPageView(toolId) {
                     <button class="thumb-btn w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
                       idx === activeImageIndex ? 'border-brand-500 ring-2 ring-orange-500/20' : 'border-slate-200 hover:border-slate-300'
                     }" data-index="${idx}">
-                      <img src="${img.imageUrl}" class="w-full h-full object-cover" alt="Thumbnail ${idx + 1}" />
+                      <img 
+                        src="${img.imageUrl}" 
+                        class="w-full h-full object-cover" 
+                        alt="Thumbnail ${idx + 1}" 
+                        loading="lazy"
+                        onerror="window.ToolRentCacheShield?.handleImageError(this, '${img.imageUrl}', '${tool.categoryName || ''}', '${tool.name.replace(/'/g, "\\'")}')"
+                      />
                     </button>
                   `).join('')}
                 </div>
 
                 <!-- Main Image Canvas -->
                 <div class="relative flex-1 bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm flex items-center justify-center min-h-[440px] group">
-                  <img id="main-product-image" src="${currentImg}" class="max-h-[420px] w-full object-contain p-6 transition-all duration-300" alt="${tool.name}" />
+                  <img 
+                    id="main-product-image" 
+                    src="${currentImg}" 
+                    class="max-h-[420px] w-full object-contain p-6 transition-all duration-300" 
+                    alt="${tool.name}" 
+                    onerror="window.ToolRentCacheShield?.handleImageError(this, '${currentImg}', '${tool.categoryName || ''}', '${tool.name.replace(/'/g, "\\'")}')"
+                  />
                   
                   <!-- Left/Right navigation arrows -->
                   <button id="btn-prev-photo" class="absolute left-4 w-9 h-9 rounded-full bg-white/90 border border-slate-200 shadow-md flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-white transition-all">
