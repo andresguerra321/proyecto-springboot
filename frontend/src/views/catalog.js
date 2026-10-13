@@ -151,21 +151,26 @@ export async function renderCatalogView() {
                 ${renderIcon('ChevronUp', 'w-4 h-4 text-slate-400')}
               </div>
               <div class="space-y-2.5 text-xs text-slate-700 pt-1" id="sidebar-categories-list">
-                ${categories.slice(0, 6).map(cat => `
-                  <label class="flex items-center justify-between cursor-pointer group">
-                    <div class="flex items-center gap-2.5">
-                      <input 
-                        type="radio" 
-                        name="sidebar-cat-radio" 
-                        value="${cat.id}" 
-                        ${selectedCategory === cat.id ? 'checked' : ''} 
-                        class="accent-[#FF5A1F] cursor-pointer"
-                      />
-                      <span class="group-hover:text-slate-900 transition-colors">${cat.name}</span>
-                    </div>
-                    ${cat.count ? `<span class="text-slate-400 text-[11px]">(${cat.count})</span>` : ''}
-                  </label>
-                `).join('')}
+                ${categories.map(cat => {
+                  const count = cat.id === 'cat-all' 
+                    ? allTools.length 
+                    : allTools.filter(t => t.categoryId === cat.id).length;
+                  return `
+                    <label class="flex items-center justify-between cursor-pointer group py-0.5">
+                      <div class="flex items-center gap-2.5">
+                        <input 
+                          type="radio" 
+                          name="sidebar-cat-radio" 
+                          value="${cat.id}" 
+                          ${selectedCategory === cat.id ? 'checked' : ''} 
+                          class="accent-[#FF5A1F] cursor-pointer"
+                        />
+                        <span class="group-hover:text-slate-900 transition-colors">${cat.name}</span>
+                      </div>
+                      <span class="text-slate-400 text-[11px] font-mono">(${count})</span>
+                    </label>
+                  `;
+                }).join('')}
               </div>
             </div>
 
@@ -355,7 +360,7 @@ export async function renderCatalogView() {
 
     // Render cards matching img/ToolRent Equipment Marketplace Interface.png
     productsContainer.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-150" id="tools-cards-grid">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in" id="tools-cards-grid">
         ${filtered.map(tool => {
           const isAvailable = tool.status === 'AVAILABLE';
           const isRented = tool.status === 'RENTED';
@@ -376,7 +381,7 @@ export async function renderCatalogView() {
                </span>`;
 
           return `
-            <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group">
+            <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs card-lift animate-scale-in flex flex-col justify-between group">
               
               <div>
                 <!-- Tool Image Canvas with Status Badge -->

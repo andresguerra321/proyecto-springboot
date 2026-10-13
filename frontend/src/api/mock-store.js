@@ -341,6 +341,184 @@ export const mockTools = [
       phone: '+57 310 888 7766',
       city: 'Bogotá D.C.'
     }
+  },
+  {
+    id: 'tool-011',
+    name: 'Desbrozadora a gasolina Stihl FS 250',
+    categoryId: 'cat-jardineria',
+    categoryName: 'Jardinería',
+    brand: 'Stihl',
+    model: 'FS 250',
+    dailyPrice: 45000,
+    replacementValue: 2400000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d69102a56?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Potente guadañadora profesional para desmalezado de terrenos rústicos, mantenimiento de taludes y desmonte de matorrales.',
+    specs: [
+      { specName: 'Cilindrada', specValue: '40.2 cm³' },
+      { specName: 'Potencia', specValue: '2.15 HP' },
+      { specName: 'Peso', specValue: '6.3 kg' },
+      { specName: 'Capacidad tanque', specValue: '0.64 L' }
+    ],
+    highlights: ['Arnés profesional doble', 'Cuchilla de 3 puntas y yoyo de nylon', 'Sistema antivibratorio'],
+    provider: {
+      id: 'prov-001',
+      name: 'Constructoras del Norte S.A.S.',
+      rating: 4.8,
+      reviewsCount: 124,
+      phone: '+57 317 654 3210',
+      city: 'Floridablanca, Santander'
+    }
+  },
+  {
+    id: 'tool-012',
+    name: 'Soldador Inverter Miller Maxstar 210',
+    categoryId: 'cat-soldadura',
+    categoryName: 'Soldadura',
+    brand: 'Miller',
+    model: 'Maxstar 210',
+    dailyPrice: 95000,
+    replacementValue: 6800000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Equipo de soldadura TIG y electrodo revestido con tecnología Auto-Line. Arco ultraestable para tuberías, estructuras y acero inoxidable.',
+    specs: [
+      { specName: 'Corriente de salida', specValue: '5 - 210 A' },
+      { specName: 'Voltaje de entrada', specValue: '120 - 480 V' },
+      { specName: 'Ciclo de trabajo', specValue: '60% @ 175 A' },
+      { specName: 'Peso', specValue: '15.9 kg' }
+    ],
+    highlights: ['Portaelectrodo y pinza de masa', 'Careta fotosensible incluida', 'Función Hot Start'],
+    provider: {
+      id: 'prov-002',
+      name: 'Equipos & Maquinaria Colombia',
+      rating: 4.9,
+      reviewsCount: 89,
+      phone: '+57 310 888 7766',
+      city: 'Bogotá D.C.'
+    }
+  },
+  {
+    id: 'tool-013',
+    name: 'Hidrolavadora industrial Kärcher HD 6/15',
+    categoryId: 'cat-limpieza',
+    categoryName: 'Limpieza',
+    brand: 'Kärcher',
+    model: 'HD 6/15-4 Classic',
+    dailyPrice: 65000,
+    replacementValue: 3900000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Lavadora a presión de agua fría con bomba de cigüeñal y pistones cerámicos. Especial para limpieza de fachadas, maquinaria y obras.',
+    specs: [
+      { specName: 'Presión de trabajo', specValue: '150 bar / 2.175 PSI' },
+      { specName: 'Caudal de agua', specValue: '600 L/h' },
+      { specName: 'Potencia conectada', specValue: '3.4 kW' },
+      { specName: 'Peso', specValue: '52 kg' }
+    ],
+    highlights: ['Manguera de alta presión 10m', 'Lanza de acero inoxidable 850mm', 'Boquilla de alto impacto'],
+    provider: {
+      id: 'prov-001',
+      name: 'Constructoras del Norte S.A.S.',
+      rating: 4.8,
+      reviewsCount: 124,
+      phone: '+57 317 654 3210',
+      city: 'Floridablanca, Santander'
+    }
+  },
+  {
+    id: 'tool-014',
+    name: 'Compresor de aire DeWalt 15 Galones',
+    categoryId: 'cat-otros',
+    categoryName: 'Otros',
+    brand: 'DeWalt',
+    model: 'DXCM271.COM',
+    dailyPrice: 55000,
+    replacementValue: 2800000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Compresor vertical de 200 PSI máx con motor de inducción libre de aceite. Ideal para clavadoras neumáticas, pintura y soplado.',
+    specs: [
+      { specName: 'Capacidad de tanque', specValue: '57 L (15 Gal)' },
+      { specName: 'Presión máx.', specValue: '200 PSI' },
+      { specName: 'Flujo de aire', specValue: '5.1 SCFM @ 90 PSI' },
+      { specName: 'Nivel de ruido', specValue: '78 dBA' }
+    ],
+    highlights: ['Ruedas neumáticas de 10"', 'Regulador de alta precisión', 'Doble acople rápido'],
+    provider: {
+      id: 'prov-002',
+      name: 'Equipos & Maquinaria Colombia',
+      rating: 4.9,
+      reviewsCount: 89,
+      phone: '+57 310 888 7766',
+      city: 'Bogotá D.C.'
+    }
+  },
+  {
+    id: 'tool-015',
+    name: 'Rotomartillo demoledor SDS-Max 1500W',
+    categoryId: 'cat-demolicion',
+    categoryName: 'Demolición',
+    brand: 'Bosch',
+    model: 'GBH 8-45 D',
+    dailyPrice: 85000,
+    replacementValue: 4600000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Combinado robusto para perforaciones profundas en hormigón armado y demolición media con embrague de seguridad.',
+    specs: [
+      { specName: 'Potencia', specValue: '1.500 W' },
+      { specName: 'Energía de impacto', specValue: '12.5 J' },
+      { specName: 'Diámetro de perforación', specValue: '12 - 45 mm' }
+    ],
+    highlights: ['Bloqueo automático de gatillo', 'Maletín de transporte', 'Puntero y cincel SDS-Max'],
+    provider: {
+      id: 'prov-001',
+      name: 'Constructoras del Norte S.A.S.',
+      rating: 4.8,
+      reviewsCount: 124,
+      phone: '+57 317 654 3210',
+      city: 'Floridablanca, Santander'
+    }
+  },
+  {
+    id: 'tool-016',
+    name: 'Torre de iluminación móvil 4x1000W',
+    categoryId: 'cat-generadores',
+    categoryName: 'Generadores',
+    brand: 'Generac Mobile',
+    model: 'VT1 Light Tower',
+    dailyPrice: 180000,
+    replacementValue: 28000000,
+    status: 'AVAILABLE',
+    images: [
+      { imageUrl: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=800&auto=format&fit=crop&q=80', isPrimary: true }
+    ],
+    description: 'Torre telescópica con mástil vertical de 8.5 m y 4 reflectores de halogenuros metálicos de 1.000 W cada uno. Motor diésel con generador integrado.',
+    specs: [
+      { specName: 'Potencia luminosa', specValue: '360.000 lúmenes' },
+      { specName: 'Mástil telescópico', specValue: '8.5 m rotación 340°' },
+      { specName: 'Autonomía de combustible', specValue: '60 horas continuas' }
+    ],
+    highlights: ['Remolque vial con luces y tiro', 'Estabilizadores mecánicos', 'Arranque eléctrico'],
+    provider: {
+      id: 'prov-002',
+      name: 'Equipos & Maquinaria Colombia',
+      rating: 4.9,
+      reviewsCount: 89,
+      phone: '+57 310 888 7766',
+      city: 'Bogotá D.C.'
+    }
   }
 ];
 
