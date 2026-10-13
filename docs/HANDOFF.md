@@ -2,8 +2,9 @@
 
 **Proyecto:** Plataforma de Renta de Herramientas y Equipos de Construcción  
 **Fecha:** Octubre 2026  
-**Tecnologías:** Spring Boot 3.4.x, Java 17/21, PostgreSQL 16, Flyway, Maven Multi-Módulo, Spring Security 6, JWT, Docker, H2 (Testing)  
-**Ramas Actuales en Remoto:** `main`, `develop`, `frontend`  
+**Tecnologías Backend:** Spring Boot 3.4.x, Java 21, PostgreSQL 16, Flyway, Maven Multi-Módulo, Spring Security 6, JWT, Docker, H2 (Testing)  
+**Tecnologías Frontend:** Vite, Vanilla JavaScript (ES6 Modules), Tailwind CSS v3.4, PostCSS, Lucide Icons, Glassmorphism UI  
+**Ramas Actuales en Remoto:** `main`, `develop`, `frontend` (Sincronizadas)  
 
 ---
 
@@ -219,29 +220,93 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | **Colección de Postman** | ✅ 100% | Exportada en `docs/postman_collection.json` con 8 carpetas |
 | **Pruebas Automatizadas** | ✅ 100% | Tests unitarios + contexto H2 pasando al 100% (13 tests) |
 | **Docker Compose** | ✅ 100% | Configuración con Postgres 16 y app backend |
-| **Frontend Responsivo con Paneles por Rol** | 🟡 Siguiente Paso | Backend formalizado al 100%; listo para iniciar construcción de interfaz |
+| **Frontend Responsivo con Paneles por Rol** | ✅ 100% | Desarrollado con Vite, Tailwind CSS v3, Lucide y ES6 Modules. Paneles de Cliente, Proveedor y Admin completamente operativos |
 
 ---
 
-## 🗺️ 5. Hoja de Ruta para el Frontend (Rama `frontend`)
+## 💻 5. Implementación Completa del Frontend (Vite + Tailwind CSS v3)
 
-Habiendo finalizado, probado y blindado el backend, la fase inmediata es la construcción del frontend:
+El frontend se ha construido como una Single Page Application (SPA) desacoplada, moderna y de alto rendimiento ubicada en el directorio [`frontend/`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend):
 
-1. **Estructura de Carpetas del Frontend:**
-   - Ubicación: Carpeta `frontend/` en la raíz del proyecto.
-   - Tecnologías recomendadas: HTML5 semántico, CSS3 moderno (Vanilla CSS con variables de diseño, glassmorphism, responsive flexbox/grid, `@media print` para facturas) y JavaScript Vanilla modular (`ES6 Modules`).
-2. **Componentes Clave a Construir:**
-   - **Sistema de Autenticación:** Modal/pantalla de Login y Registro con guardado de token en `localStorage` y decodificación de rol (`ROLE_CLIENTE`, `ROLE_PROVEEDOR`, `ROLE_ADMIN`).
-   - **Vista Cliente:**
-     - Catálogo de herramientas con tarjetas interactivas, galería de fotos, badges de estado y filtros en tiempo real.
-     - Modal de reserva con selector de fechas (consumiendo `GET /tools/{id}/availability` para deshabilitar fechas ocupadas).
-     - Pasarela de pago simulada y visualización/impresión de factura electrónica.
-     - Historial de alquileres del cliente con estados en tiempo real (`PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`).
-   - **Vista Proveedor:**
-     - Dashboard con los 4 KPIs principales (`GET /reporting/provider/{id}`).
-     - Gestión de herramientas: formulario para registrar/editar herramientas con carga de imagen (file upload o URL) y especificaciones técnicas.
-     - Panel de solicitudes de alquiler (`GET /rentals/provider/{id}`) con botones de acción para aceptar, iniciar entrega e inspeccionar devolución.
-     - Modal de inspección de devolución y reporte de averías con cálculo de costos.
-   - **Vista Administrador:**
-     - Tabla interactiva de usuarios y verificación de empresas proveedoras.
-     - Métricas globales de ingresos, herramientas más demandadas y clientes frecuentes.
+### 5.1. Stack Tecnológico y Diseño
+- **Empaquetador y DevServer:** **Vite** para desarrollo ultrarrápido y construcción optimizada para producción (`npm run build`).
+- **Sistema de Estilos:** **Tailwind CSS v3.4** con PostCSS y Autoprefixer.
+- **Tipografía y Estética Industrial:**
+  - Tipografía Google Fonts: **Outfit** (encabezados modernos de impacto) e **Inter** (cuerpo de lectura optimizado).
+  - Paleta de colores tailored: `slate-950` de fondo con gradientes radiales sutiles, acentos de construcción en ámbar (`brand-500` / `#f59e0b`), y estados semánticos (verde esmeralda, azul cobalto, rojo carmesí).
+  - Efectos visuales: *Glassmorphism* (`glass-card` con `backdrop-blur-xl`), sombras con resplandor (`shadow-glow-amber`), micro-animaciones en hover y transiciones fluidas.
+  - Íconos vectoriales SVG limpios generados mediante la librería **Lucide**.
+
+### 5.2. Arquitectura de Módulos Frontend (`frontend/src/`)
+```
+frontend/src/
+├── api/
+│   └── client.js             # Cliente HTTP centralizado con inyección automática de Bearer JWT,
+│                             # soporte Multipart (archivos) y detección de 401 sesión expirada.
+├── auth/
+│   └── state.js              # Gestor reactivo de sesión en localStorage, decodificador de claims JWT,
+│                             # registro comercial y control de roles (hasRole, isAdmin, isProvider, isClient).
+├── components/
+│   ├── navbar.js             # Barra de navegación adaptativa según rol (público, cliente, proveedor, admin).
+│   ├── auth-modal.js         # Modal conmutador de Login/Registro con botones de acceso demo en 1 clic.
+│   ├── modal.js              # Controlador modal reutilizable con soporte de tecla Escape y backdrop animado.
+│   ├── toast.js              # Sistema de notificaciones flotantes toast para confirmaciones y errores.
+│   └── footer.js             # Pie de página institucional con enlace directo a Swagger UI y estado de la API.
+├── views/
+│   ├── catalog.js            # Catálogo interactivo con buscador en vivo, filtros por categorías y modal técnico.
+│   ├── rental-modal.js       # Selector de fechas con validación en vivo de disponibilidad (/availability),
+│                             # cálculo de días + 19% IVA, checkout simulado y link directo a factura HTML.
+│   ├── client-dashboard.js   # Panel del Cliente: historial de reservas, estados de entrega y facturas legales.
+│   ├── provider-dashboard.js # Panel del Proveedor: 4 KPIs de negocio, CRUD de herramientas con subida de fotos
+│                             # (Multipart/URL), flujo de despacho y acta de inspección con reporte de averías (4FN).
+│   └── admin-dashboard.js    # Panel Admin: verificación de empresas proveedoras, auditoría de usuarios y reportes.
+├── utils/
+│   ├── formatters.js         # Formateadores de moneda (COP/USD), fechas legibles y badges semánticos.
+│   └── icons.js              # Renderizador dinámico de íconos Lucide SVG.
+├── style.css                 # Directivas de Tailwind CSS, fuentes y clases utilitarias de diseño.
+└── main.js                   # Enrutador por hash (#/catalog, #/client, #/provider, #/admin) y arranque reactivo.
+```
+
+### 5.3. Paneles de Usuario por Rol Implementados
+
+1. **👤 Portal Cliente (`ROLE_CLIENTE`):**
+   - Exploración del catálogo con buscador y selector de categorías.
+   - Ficha técnica completa de herramientas con especificaciones y galería de fotos.
+   - **Reserva con Validación de Disponibilidad:** Consulta en tiempo real `/tools/{id}/availability?from=&to=` para impedir el alquiler en fechas ya ocupadas.
+   - **Pasarela de Pago Simulada:** Desglose con depósito de garantía, 19% de IVA y método de pago (Tarjeta / PSE / Transferencia).
+   - **Visualización / Descarga de Factura Oficial:** Apertura directa del endpoint `/billing/invoices/{id}/html` formateado con estilos `@media print`.
+   - Historial personal de reservas con opción de cancelación antes de la confirmación.
+
+2. **🚜 Portal Proveedor (`ROLE_PROVEEDOR`):**
+   - **Tarjetas de los 4 KPIs:** Total herramientas, herramientas en alquiler activo, ganancias brutas acumuladas y solicitudes pendientes de confirmación.
+   - **Gestión de Inventario (CRUD):** Formulario para registrar nuevas herramientas con detalles técnicos y subida de fotos (por archivo multipart a `/uploads/**` o enlace web directo).
+   - **Flujo Operativo de Alquiler:** Botones para `Confirmar Alquiler`, `Despachar / Entregar en Obra` (`IN_PROGRESS`) y `Recibir Devolución`.
+   - **Modal de Inspección Técnica y Reporte de Averías (4FN):** Permite registrar observaciones de entrega/devolución y, en caso de daño, reportar la avería con costo de reparación y cambio de estado del equipo a `MAINTENANCE` o `RETIRED`.
+
+3. **🛡️ Portal Administrador (`ROLE_ADMIN`):**
+   - **Verificación de Proveedores:** Listado de empresas registradas con botón para verificar y activar formalmente su cuenta comercial (`PATCH /providers/{id}/verify`).
+   - **Auditoría de Usuarios:** Visualización de todos los usuarios registrados y sus roles en el sistema.
+   - **Supervisión Global de Alquileres:** Monitor de transacciones y estados de alquiler en toda la plataforma.
+   - **Analítica y Métricas:** Rankings de herramientas más alquiladas, clientes más frecuentes e ingresos totales consolidados.
+
+### 5.4. Cómo Ejecutar el Frontend Localmente
+```bash
+cd frontend
+npm install
+npm run dev
+```
+La aplicación inicia de inmediato en: **`http://localhost:5173/`**
+
+---
+
+## 📌 6. Checklist de Cumplimiento de Entregables (`ejercicioDemo.md`)
+
+| # | Requisito Obligatorio | Cumplimiento | Evidencia en el Proyecto |
+|---|---|:---:|---|
+| **1** | Repositorio GitHub con Código Fuente | ✅ 100% | Repositorio multi-módulo con ramas `develop` y `frontend` sincronizadas, commits descriptivos y código modular. |
+| **2** | Backend Completo en Spring Boot 3 + Java 21 | ✅ 100% | Arquitectura Hexagonal con 8 módulos Maven, JWT Stateless, Spring Security 6, control de solapamiento de fechas, CORS y manejo global de errores. |
+| **3** | Base de Datos Relacional Normalizada en 4FN | ✅ 100% | 15 tablas en PostgreSQL 16 sin MVDs, migraciones Flyway automáticas (`V1` y `V2`) y $\ge 20$ registros por entidad en `db/data.sql`. |
+| **4** | Documentación Completa del Proyecto | ✅ 100% | `README.md` estructurado, diagrama relacional PNG y Mermaid, guía de configuración `application.yml`, Swagger UI interactivo y guía `HANDOFF.md`. |
+| **5** | Frontend Responsivo con HTML, CSS y JS | ✅ 100% | Single Page Application en `frontend/` con Vite, Tailwind CSS v3, diseño adaptable (móvil, tablet, escritorio) y paneles dedicados por rol. |
+| **6** | Funcionalidades de Negocio del Sistema | ✅ 100% | Gestión de usuarios/proveedores, CRUD de herramientas con fotos, reservas con control de disponibilidad, pagos simulados, facturación HTML e inspección con daños. |
+| **7** | Pruebas de API y Despliegue Tomcat | ✅ 100% | Colección completa en `docs/postman_collection.json` con auto-captura de JWT, tests unitarios en Maven (`mvnw test`) y Tomcat embebido en puerto `8085`. |
