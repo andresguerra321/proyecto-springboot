@@ -273,6 +273,13 @@ Para permitir moldear y explorar la interfaz al 100% sin requerir el backend de 
    - Documento imprimible con membrete oficial de ToolRent, NIT 901.234.567-8, datos completos del cliente y proveedor, tabla detallada de equipos alquilados con días y subtotales, IVA del 19%, y datos bancarios de pago.
    - Botones para volver, descargar comprobante y mandar a imprimir directamente (`window.print()`).
 
+6. **🔔 Centro de Notificaciones Interactivo y Store Reactivo:**
+   - **Campana Dinámica con Contador:** Badge reactivo en el navbar superior (`#btn-navbar-notifications`) y en el menú móvil (`#mobile-btn-notifs`) con actualización en tiempo real mediante eventos desacoplados `notifications:change`.
+   - **Menú Popover Flotante:** Desplegable interactivo con cierre al hacer click fuera, selector de filtros rápido (*Todas* vs. *No leídas*), botón para "Marcar todas como leídas", eliminación individual y botón de reinicio de ejemplos.
+   - **Píldoras y Categorías Temáticas:** Iconos temáticos según el evento (`RENTAL`, `PAYMENT`, `ALERT`, `INSPECTION`, `DAMAGE`).
+   - **Navegación Profunda (Deep Linking):** Al hacer clic en una notificación, marca como leída y redirige al panel correspondiente (`#/client` o `#/provider`).
+   - **Disparadores en Tiempo Real:** Integrado con el flujo de checkout/pago (`rental-modal.js`), aprobación, despacho, devolución con daños y registro de nuevas herramientas (`provider-dashboard.js`), disparando simultáneamente banners Toast en pantalla.
+
 ### 5.4. Cómo Ejecutar el Frontend Localmente
 ```bash
 cd frontend
