@@ -1,23 +1,22 @@
 /**
- * Format numeric value as Colombian Pesos or Dollars
+ * Format numeric value as Colombian Pesos (COP) matching Stitch reference design: "$ 185.000"
  */
-export function formatCurrency(amount, currency = 'USD') {
-  if (amount === undefined || amount === null) return '$0.00';
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+export function formatCurrency(amount) {
+  if (amount === undefined || amount === null) return '$ 0';
+  const formattedNumber = new Intl.NumberFormat('es-CO', {
+    maximumFractionDigits: 0
   }).format(amount);
+  return `$ ${formattedNumber}`;
 }
 
 /**
- * Format ISO date string (YYYY-MM-DD) to friendly Spanish date
+ * Format ISO date string or date to friendly Spanish format e.g. "13 oct 2026"
  */
 export function formatDate(dateString) {
   if (!dateString) return '—';
   try {
-    const [year, month, day] = dateString.split('-');
+    const clean = dateString.split('T')[0];
+    const [year, month, day] = clean.split('-');
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('es-ES', {
       day: 'numeric',
@@ -30,36 +29,36 @@ export function formatDate(dateString) {
 }
 
 /**
- * Return HTML badge markup for Tool status
+ * Return semantic HTML badge markup for Tool status matching Stitch ToolRent design
  */
 export function getToolStatusBadge(status) {
   const map = {
-    AVAILABLE: { label: 'Disponible', class: 'badge-available', dot: 'bg-emerald-400' },
-    RENTED: { label: 'Alquilada', class: 'badge-rented', dot: 'bg-blue-400' },
-    MAINTENANCE: { label: 'En Taller / Daño', class: 'badge-maintenance', dot: 'bg-amber-400' },
-    RETIRED: { label: 'Retirada', class: 'badge-retired', dot: 'bg-rose-400' },
+    AVAILABLE: { label: 'Disponible', class: 'badge-disponible', dot: 'bg-emerald-500' },
+    RENTED: { label: 'Alquilada', class: 'badge-alquilada', dot: 'bg-blue-500' },
+    MAINTENANCE: { label: 'Mantenimiento', class: 'badge-mantenimiento', dot: 'bg-amber-500' },
+    RETIRED: { label: 'Retirada', class: 'badge-cancelada', dot: 'bg-rose-500' },
   };
 
-  const item = map[status] || { label: status, class: 'badge-cancelled', dot: 'bg-slate-400' };
+  const item = map[status] || { label: status, class: 'badge-pendiente', dot: 'bg-slate-400' };
   return `<span class="${item.class}">
-    <span class="w-1.5 h-1.5 rounded-full ${item.dot} animate-pulse"></span>
+    <span class="w-1.5 h-1.5 rounded-full ${item.dot}"></span>
     ${item.label}
   </span>`;
 }
 
 /**
- * Return HTML badge markup for Rental status
+ * Return semantic HTML badge markup for Rental status matching Stitch ToolRent design
  */
 export function getRentalStatusBadge(status) {
   const map = {
-    PENDING: { label: 'Pendiente Aprobación', class: 'badge-pending', dot: 'bg-amber-400' },
-    CONFIRMED: { label: 'Confirmada / Lista', class: 'badge-confirmed', dot: 'bg-indigo-400' },
-    IN_PROGRESS: { label: 'En Obra / Despachada', class: 'badge-in-progress', dot: 'bg-sky-400' },
-    COMPLETED: { label: 'Completada / Devuelta', class: 'badge-completed', dot: 'bg-emerald-400' },
-    CANCELLED: { label: 'Cancelada', class: 'badge-cancelled', dot: 'bg-rose-400' },
+    PENDING: { label: 'Pendiente', class: 'badge-pendiente', dot: 'bg-slate-400' },
+    CONFIRMED: { label: 'Confirmada', class: 'badge-confirmada', dot: 'bg-orange-500' },
+    IN_PROGRESS: { label: 'En curso', class: 'badge-en-curso', dot: 'bg-sky-500' },
+    COMPLETED: { label: 'Completada', class: 'badge-completada', dot: 'bg-emerald-500' },
+    CANCELLED: { label: 'Cancelada', class: 'badge-cancelada', dot: 'bg-rose-500' },
   };
 
-  const item = map[status] || { label: status, class: 'badge-cancelled', dot: 'bg-slate-400' };
+  const item = map[status] || { label: status, class: 'badge-pendiente', dot: 'bg-slate-400' };
   return `<span class="${item.class}">
     <span class="w-1.5 h-1.5 rounded-full ${item.dot}"></span>
     ${item.label}

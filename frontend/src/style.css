@@ -6,120 +6,112 @@
 
 @layer base {
   body {
-    @apply bg-surface-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-slate-950 min-h-screen flex flex-col;
-    background-image: 
-      radial-gradient(at 10% 20%, rgba(245, 158, 11, 0.05) 0px, transparent 50%),
-      radial-gradient(at 90% 80%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 100%);
-    background-attachment: fixed;
+    @apply bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-toolrent-500 selection:text-white min-h-screen flex flex-col;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight text-white;
+    @apply font-display tracking-tight text-slate-900;
   }
 }
 
 @layer components {
-  /* Glassmorphism Cards */
-  .glass-card {
-    @apply bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-xl transition-all duration-300;
+  /* ToolRent Clean Cards */
+  .tr-card {
+    @apply bg-white border border-slate-200/90 rounded-2xl shadow-card transition-all duration-200;
   }
   
-  .glass-card-hover {
-    @apply glass-card hover:border-brand-500/50 hover:shadow-glow-amber hover:-translate-y-1;
+  .tr-card-hover {
+    @apply tr-card hover:shadow-card-hover hover:border-slate-300;
   }
 
-  .glass-card-subtle {
-    @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-xl;
-  }
-
-  /* Buttons */
+  /* ToolRent Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm
-           bg-gradient-to-r from-brand-500 to-amber-500 text-slate-950 font-semibold shadow-md shadow-brand-500/20
-           hover:from-brand-400 hover:to-amber-400 hover:shadow-glow-amber active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-sm hover:shadow
+           active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm
-           bg-slate-800/80 text-slate-200 border border-slate-700/80 hover:bg-slate-700 hover:text-white
-           hover:border-slate-600 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-sm
+           active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm
-           border border-brand-500/40 text-brand-400 hover:bg-brand-500/10 hover:border-brand-500
-           active:scale-95 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+           border border-[#ea580c] text-[#ea580c] hover:bg-orange-50
+           active:scale-[0.98] transition-all duration-150;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm
-           bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white
-           active:scale-95 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+           bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100
+           active:scale-[0.98] transition-all duration-150;
   }
 
   .btn-success {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm
-           bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white
-           active:scale-95 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+           bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100
+           active:scale-[0.98] transition-all duration-150;
   }
 
-  /* Inputs */
+  .btn-disabled {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none;
+  }
+
+  /* ToolRent Form Inputs */
   .input-field {
-    @apply w-full px-4 py-2.5 bg-slate-900/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm
-           focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all duration-200;
+    @apply w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 text-sm
+           focus:outline-none focus:border-[#ea580c] focus:ring-2 focus:ring-orange-500/20 transition-all duration-150;
   }
 
-  /* Badge Styles */
-  .badge-available {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  /* Semantic Status Badges (Stitch Design) */
+  .badge-disponible {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200;
   }
 
-  .badge-rented {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  .badge-alquilada {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200;
   }
 
-  .badge-maintenance {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20;
+  .badge-mantenimiento {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200;
   }
 
-  .badge-retired {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20;
+  .badge-confirmada {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200;
   }
 
-  .badge-pending {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30;
+  .badge-en-curso {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200;
   }
 
-  .badge-confirmed {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30;
+  .badge-completada {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200;
   }
 
-  .badge-in-progress {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-300 border border-sky-500/30;
+  .badge-cancelada {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200;
   }
 
-  .badge-completed {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30;
-  }
-
-  .badge-cancelled {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30;
+  .badge-pendiente {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200;
   }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
 }

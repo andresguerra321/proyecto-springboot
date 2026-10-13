@@ -224,70 +224,54 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 
 ---
 
-## 💻 5. Implementación Completa del Frontend (Vite + Tailwind CSS v3)
+## 💻 5. Implementación Completa del Frontend (Vite + Tailwind CSS v3 + Stitch ToolRent Design System)
 
-El frontend se ha construido como una Single Page Application (SPA) desacoplada, moderna y de alto rendimiento ubicada en el directorio [`frontend/`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend):
+El frontend se ha construido como una Single Page Application (SPA) desacoplada, moderna y de alto impacto estético ubicada en el directorio [`frontend/`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend), moldeada fielmente según los mockups de diseño de **ToolRent** generados con el MCP de Stitch:
 
 ### 5.1. Stack Tecnológico y Diseño
 - **Empaquetador y DevServer:** **Vite** para desarrollo ultrarrápido y construcción optimizada para producción (`npm run build`).
 - **Sistema de Estilos:** **Tailwind CSS v3.4** con PostCSS y Autoprefixer.
-- **Tipografía y Estética Industrial:**
-  - Tipografía Google Fonts: **Outfit** (encabezados modernos de impacto) e **Inter** (cuerpo de lectura optimizado).
-  - Paleta de colores tailored: `slate-950` de fondo con gradientes radiales sutiles, acentos de construcción en ámbar (`brand-500` / `#f59e0b`), y estados semánticos (verde esmeralda, azul cobalto, rojo carmesí).
-  - Efectos visuales: *Glassmorphism* (`glass-card` con `backdrop-blur-xl`), sombras con resplandor (`shadow-glow-amber`), micro-animaciones en hover y transiciones fluidas.
-  - Íconos vectoriales SVG limpios generados mediante la librería **Lucide**.
+- **Identidad de Marca e Interfaz ToolRent (Stitch Design System):**
+  - **Paleta de Color:** Naranja industrial ToolRent (`#ea580c` / `brand-600`), fondos limpios de SaaS moderno (`#f8fafc`), tarjetas blancas pulidas (`bg-white` con bordes sutiles `border-slate-200/80` y sombras suaves), acentos semánticos (verde esmeralda, azul cobalto, rojo carmesí).
+  - **Tipografía:** Google Fonts **Outfit** (encabezados de marca de alto impacto) e **Inter** (cuerpo de lectura optimizado).
+  - **Precios en Moneda Nacional:** Formato de Pesos Colombianos con puntos como separadores de miles (ej. `$ 185.000 / día`).
+  - **Íconos Vectoriales:** Librería **Lucide** SVG modularizada.
 
-### 5.2. Arquitectura de Módulos Frontend (`frontend/src/`)
-```
-frontend/src/
-├── api/
-│   └── client.js             # Cliente HTTP centralizado con inyección automática de Bearer JWT,
-│                             # soporte Multipart (archivos) y detección de 401 sesión expirada.
-├── auth/
-│   └── state.js              # Gestor reactivo de sesión en localStorage, decodificador de claims JWT,
-│                             # registro comercial y control de roles (hasRole, isAdmin, isProvider, isClient).
-├── components/
-│   ├── navbar.js             # Barra de navegación adaptativa según rol (público, cliente, proveedor, admin).
-│   ├── auth-modal.js         # Modal conmutador de Login/Registro con botones de acceso demo en 1 clic.
-│   ├── modal.js              # Controlador modal reutilizable con soporte de tecla Escape y backdrop animado.
-│   ├── toast.js              # Sistema de notificaciones flotantes toast para confirmaciones y errores.
-│   └── footer.js             # Pie de página institucional con enlace directo a Swagger UI y estado de la API.
-├── views/
-│   ├── catalog.js            # Catálogo interactivo con buscador en vivo, filtros por categorías y modal técnico.
-│   ├── rental-modal.js       # Selector de fechas con validación en vivo de disponibilidad (/availability),
-│                             # cálculo de días + 19% IVA, checkout simulado y link directo a factura HTML.
-│   ├── client-dashboard.js   # Panel del Cliente: historial de reservas, estados de entrega y facturas legales.
-│   ├── provider-dashboard.js # Panel del Proveedor: 4 KPIs de negocio, CRUD de herramientas con subida de fotos
-│                             # (Multipart/URL), flujo de despacho y acta de inspección con reporte de averías (4FN).
-│   └── admin-dashboard.js    # Panel Admin: verificación de empresas proveedoras, auditoría de usuarios y reportes.
-├── utils/
-│   ├── formatters.js         # Formateadores de moneda (COP/USD), fechas legibles y badges semánticos.
-│   └── icons.js              # Renderizador dinámico de íconos Lucide SVG.
-├── style.css                 # Directivas de Tailwind CSS, fuentes y clases utilitarias de diseño.
-└── main.js                   # Enrutador por hash (#/catalog, #/client, #/provider, #/admin) y arranque reactivo.
-```
+### 5.2. Modo Autónomo de Mock (Evaluación sin Backend Activo)
+Para permitir moldear y explorar la interfaz al 100% sin requerir el backend de Spring Boot ni la base de datos PostgreSQL activos:
+- **`USE_MOCK_BACKEND = true`** en [`frontend/src/api/client.js`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend/src/api/client.js).
+- **Almacén en Memoria (`mock-store.js`):** Cuenta con 24 herramientas categorizadas, solicitudes con transiciones de estado, 42 usuarios con roles y métricas financieras exactas.
+- **Transición a Backend Real:** Basta con cambiar `USE_MOCK_BACKEND = false` para que todas las llamadas se dirijan automáticamente a `http://localhost:8085/api/v1`.
 
-### 5.3. Paneles de Usuario por Rol Implementados
+### 5.3. Vistas Moldeadas Fielmente según los Mockups de Stitch (`img/`)
 
-1. **👤 Portal Cliente (`ROLE_CLIENTE`):**
-   - Exploración del catálogo con buscador y selector de categorías.
-   - Ficha técnica completa de herramientas con especificaciones y galería de fotos.
-   - **Reserva con Validación de Disponibilidad:** Consulta en tiempo real `/tools/{id}/availability?from=&to=` para impedir el alquiler en fechas ya ocupadas.
-   - **Pasarela de Pago Simulada:** Desglose con depósito de garantía, 19% de IVA y método de pago (Tarjeta / PSE / Transferencia).
-   - **Visualización / Descarga de Factura Oficial:** Apertura directa del endpoint `/billing/invoices/{id}/html` formateado con estilos `@media print`.
-   - Historial personal de reservas con opción de cancelación antes de la confirmación.
+1. **🛒 Catálogo Marketplace (`img/ToolRent_ Equipment Rental Marketplace.png`):**
+   - Barra superior con logo poligonal ToolRent, buscador en tiempo real, selector de categorías (*pills* horizontales) y filtros laterales (rango de precio, disponibilidad, marca).
+   - Modal de ficha técnica completa (*Hammer Drill / Taladro*) con galería de fotos, tabla de especificaciones y tarjeta del proveedor con calificación por estrellas.
 
-2. **🚜 Portal Proveedor (`ROLE_PROVEEDOR`):**
-   - **Tarjetas de los 4 KPIs:** Total herramientas, herramientas en alquiler activo, ganancias brutas acumuladas y solicitudes pendientes de confirmación.
-   - **Gestión de Inventario (CRUD):** Formulario para registrar nuevas herramientas con detalles técnicos y subida de fotos (por archivo multipart a `/uploads/**` o enlace web directo).
-   - **Flujo Operativo de Alquiler:** Botones para `Confirmar Alquiler`, `Despachar / Entregar en Obra` (`IN_PROGRESS`) y `Recibir Devolución`.
-   - **Modal de Inspección Técnica y Reporte de Averías (4FN):** Permite registrar observaciones de entrega/devolución y, en caso de daño, reportar la avería con costo de reparación y cambio de estado del equipo a `MAINTENANCE` o `RETIRED`.
+2. **🔑 Acceso y Registro Split-Screen (`img/ToolRent Construction Equipment Login.png`):**
+   - Modal dividido con imagen hero a pantalla completa de excavadora pesada en atardecer de construcción.
+   - Selector visual de roles: tarjetas interactivas de **Cliente** ("Quiero alquilar equipos") vs. **Proveedor** ("Quiero publicar mis equipos").
+   - Botones de acceso rápido demo en 1 clic (`Admin`, `Proveedor`, `Cliente`) para agilizar la evaluación de jurados y profesores.
 
-3. **🛡️ Portal Administrador (`ROLE_ADMIN`):**
-   - **Verificación de Proveedores:** Listado de empresas registradas con botón para verificar y activar formalmente su cuenta comercial (`PATCH /providers/{id}/verify`).
-   - **Auditoría de Usuarios:** Visualización de todos los usuarios registrados y sus roles en el sistema.
-   - **Supervisión Global de Alquileres:** Monitor de transacciones y estados de alquiler en toda la plataforma.
-   - **Analítica y Métricas:** Rankings de herramientas más alquiladas, clientes más frecuentes e ingresos totales consolidados.
+3. **🚜 Panel del Proveedor (`img/ToolRent Rental Requests Dashboard.png`):**
+   - **5 Tarjetas KPI:** Total herramientas (24), En alquiler (5), Ganancias acumuladas ($ 8.450.000), Solicitudes pendientes (6) y Calificación (4.8 ★).
+   - **Tabla Operativa de Solicitudes:** Botones de cambio de estado en vivo (`Confirmar`, `Registrar entrega`, `Registrar devolución`).
+   - **Modal de Inspección Técnica y Reporte de Daños (4FN):** Formulario para registrar observaciones de devolución, marcar si hubo daños, calcular costo de reposición y cambiar el estado del equipo a mantenimiento.
+   - **Drawer Lateral de Nueva Herramienta:** Formulario desplegable para registrar equipos con especificaciones técnicas y subida de imágenes.
+
+4. **🛡️ Panel del Administrador (`img/ToolRent Dashboard with User Management Panel.png`):**
+   - **4 Métricas Superiores:** Ingresos totales ($ 12.450.000 | ↑ 12%), Alquileres activos (18 | ↑ 5%), Usuarios registrados (42 | ↑ 8%), Herramientas disponibles (56 de 78).
+   - **3 Gráficos de Analítica:**
+     - *Herramientas más alquiladas:* Gráfico de barras de progreso horizontales (Top 5).
+     - *Clientes frecuentes:* Ranking numerado con volumen de alquileres (Top 5).
+     - *Estado del inventario:* Gráfico de dona SVG (Disponibles 72%, Alquiladas 21%, En mantenimiento 8%).
+   - **Gestión de Usuarios con Pestañas:** Filtros por `Todos (42)`, `Clientes (31)`, `Proveedores (10)`, `Administradores (1)`, buscador en vivo, y Drawer lateral para `+ Nuevo usuario`, `Editar usuario` y `Eliminar usuario`.
+   - **Inventario Global de Herramientas:** Acordeón desplegable con tabla de inventario completo.
+
+5. **📄 Visor de Factura Oficial (`img/Minimal ToolRent Rental Invoice Viewer.png`):**
+   - Documento imprimible con membrete oficial de ToolRent, NIT 901.234.567-8, datos completos del cliente y proveedor, tabla detallada de equipos alquilados con días y subtotales, IVA del 19%, y datos bancarios de pago.
+   - Botones para volver, descargar comprobante y mandar a imprimir directamente (`window.print()`).
 
 ### 5.4. Cómo Ejecutar el Frontend Localmente
 ```bash

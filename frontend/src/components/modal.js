@@ -11,29 +11,38 @@ class ModalController {
     };
   }
 
-  open({ title, content, maxWidth = 'max-w-2xl', onClose = null }) {
+  open({ title = '', content, maxWidth = 'max-w-2xl', hideHeader = false, onClose = null }) {
     this.container = document.getElementById('modal-container');
     if (!this.container) return;
 
     this.onCloseCallback = onClose;
 
     const modalBackdrop = document.createElement('div');
-    modalBackdrop.className = 'fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0 overflow-y-auto';
+    modalBackdrop.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0 overflow-y-auto';
     modalBackdrop.id = 'active-modal-backdrop';
 
     modalBackdrop.innerHTML = `
-      <div class="glass-card w-full ${maxWidth} my-8 transform transition-all duration-300 scale-95 opacity-0 overflow-hidden border border-slate-700/80 shadow-2xl relative" id="modal-box">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-          <h3 class="text-lg font-bold text-white font-display flex items-center gap-2">${title}</h3>
-          <button id="modal-close-btn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors" aria-label="Cerrar modal">
+      <div class="bg-white rounded-2xl w-full ${maxWidth} my-8 transform transition-all duration-300 scale-95 opacity-0 overflow-hidden border border-slate-200/80 shadow-2xl relative" id="modal-box">
+        ${!hideHeader ? `
+          <!-- Modal Header -->
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">${title}</h3>
+            <button id="modal-close-btn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Cerrar modal">
+              ${renderIcon('X', 'w-5 h-5')}
+            </button>
+          </div>
+          <!-- Modal Content -->
+          <div class="p-6 max-h-[85vh] overflow-y-auto" id="modal-body">
+            ${typeof content === 'string' ? content : ''}
+          </div>
+        ` : `
+          <button id="modal-close-btn" class="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:bg-slate-100 transition-colors" aria-label="Cerrar modal">
             ${renderIcon('X', 'w-5 h-5')}
           </button>
-        </div>
-        <!-- Modal Content -->
-        <div class="p-6 max-h-[80vh] overflow-y-auto" id="modal-body">
-          ${typeof content === 'string' ? content : ''}
-        </div>
+          <div class="max-h-[90vh] overflow-y-auto" id="modal-body">
+            ${typeof content === 'string' ? content : ''}
+          </div>
+        `}
       </div>
     `;
 

@@ -9,365 +9,522 @@ export async function renderCatalogView() {
   if (!container) return;
 
   container.innerHTML = `
-    <!-- Hero Banner -->
-    <section class="relative overflow-hidden py-14 md:py-20 border-b border-slate-800/80">
-      <!-- Glow Gradients -->
-      <div class="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs font-semibold mb-6 animate-fade-in">
-          ${renderIcon('Sparkles', 'w-4 h-4')} Maquinaria Pesada & Equipos Certificados para Obras
-        </div>
-
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black font-display tracking-tight text-white max-w-4xl mx-auto leading-tight">
-          Alquila la Maquinaria que tu <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-amber-300 to-yellow-500">Proyecto Necesita</span>
+    <!-- Hero Banner (ToolRent Header) -->
+    <section class="bg-white border-b border-slate-200 py-12 md:py-16 text-center">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black font-display tracking-tight text-slate-900 leading-tight">
+          Alquila el equipo que necesitas. <span class="text-[#ea580c]">Sin comprarlo.</span>
         </h1>
-
-        <p class="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto font-normal">
-          Generadores, demoledores, andamios y equipos industriales de alta resistencia con disponibilidad garantizada, entrega rápida y facturación en línea.
+        <p class="mt-3 text-base sm:text-lg text-slate-500 max-w-2xl mx-auto font-normal">
+          Herramientas y maquinaria de construcción disponibles en toda Colombia.
         </p>
 
-        <!-- Stats Counter Pill -->
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300">
-          <div class="flex items-center gap-2">
-            ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-400')}
-            <span>100% Equipos Asegurados</span>
-          </div>
-          <div class="flex items-center gap-2">
-            ${renderIcon('Clock', 'w-4 h-4 text-brand-400')}
-            <span>Disponibilidad por Fechas en Tiempo Real</span>
-          </div>
-          <div class="flex items-center gap-2">
-            ${renderIcon('FileCheck', 'w-4 h-4 text-sky-400')}
-            <span>Facturación Electrónica con IVA</span>
-          </div>
+        <!-- Horizontal Category Pills Bar -->
+        <div class="mt-8 flex items-center justify-center gap-2.5 overflow-x-auto pb-2 no-scrollbar" id="top-category-pills">
+          <!-- Dynamically populated -->
         </div>
       </div>
     </section>
 
-    <!-- Main Catalog Section -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+    <!-- Main Marketplace Section (Sidebar + Grid) -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       
-      <!-- Filters and Search Bar -->
-      <div class="glass-card p-4 sm:p-5 mb-8 space-y-4">
-        <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Left Column: Filter Sidebar -->
+        <aside class="lg:col-span-1 space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="font-bold text-slate-900 text-base">Filtros</h3>
+              <button id="btn-clear-filters" class="text-xs text-[#ea580c] hover:underline font-semibold">Limpiar todo</button>
+            </div>
+
+            <!-- Category Dropdown -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Categoría</label>
+              <select id="filter-category-select" class="input-field text-xs">
+                <option value="">Todas las categorías</option>
+              </select>
+            </div>
+
+            <!-- State Checkboxes -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Estado</label>
+              <div class="space-y-2 text-xs">
+                <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 hover:text-slate-900">
+                  <input type="radio" name="state-filter" value="" checked class="text-[#ea580c] focus:ring-orange-500" />
+                  <span>Todas</span>
+                </label>
+                <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 hover:text-slate-900">
+                  <input type="radio" name="state-filter" value="AVAILABLE" class="text-[#ea580c] focus:ring-orange-500" />
+                  <span>Disponible</span>
+                </label>
+                <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 hover:text-slate-900">
+                  <input type="radio" name="state-filter" value="RENTED" class="text-[#ea580c] focus:ring-orange-500" />
+                  <span>Alquilada</span>
+                </label>
+                <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 hover:text-slate-900">
+                  <input type="radio" name="state-filter" value="MAINTENANCE" class="text-[#ea580c] focus:ring-orange-500" />
+                  <span>Mantenimiento</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Price Range -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Precio por día</label>
+              <div class="flex items-center gap-2 text-xs">
+                <input type="text" id="price-min" value="$ 50.000" class="input-field text-center font-mono !py-1.5" readonly />
+                <span class="text-slate-400">–</span>
+                <input type="text" id="price-max" value="$ 1.200.000" class="input-field text-center font-mono !py-1.5" readonly />
+              </div>
+              <input type="range" id="price-slider" min="50000" max="1500000" step="25000" value="1500000" class="w-full mt-3 accent-[#ea580c]" />
+            </div>
+
+            <button id="btn-apply-filters" class="btn-primary w-full !py-2.5">
+              Aplicar filtros
+            </button>
+          </div>
+        </aside>
+
+        <!-- Right Column: Tools Grid -->
+        <main class="lg:col-span-3 space-y-6">
           
-          <!-- Search Input -->
-          <div class="relative w-full sm:w-96">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              ${renderIcon('Search', 'w-4 h-4')}
-            </span>
-            <input type="text" id="catalog-search" placeholder="Buscar por nombre, marca o modelo (ej. Honda, Bosch)..." class="input-field pl-10" />
+          <!-- Top Control Bar -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            
+            <div class="flex items-center gap-2">
+              <button id="pill-all-count" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 border border-slate-200 shadow-sm">
+                Todas (24)
+              </button>
+              <button id="pill-avail-count" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 bg-transparent">
+                Disponibles (16)
+              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div class="relative w-full sm:w-64">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  ${renderIcon('Search', 'w-3.5 h-3.5')}
+                </span>
+                <input type="text" id="grid-search-input" placeholder="Buscar en resultados..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#ea580c]" />
+              </div>
+
+              <select id="sort-select" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-[#ea580c]">
+                <option value="recent">Más recientes</option>
+                <option value="price-asc">Menor precio</option>
+                <option value="price-desc">Mayor precio</option>
+              </select>
+            </div>
+
           </div>
 
-          <!-- Status Filter -->
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Estado:</span>
-            <select id="catalog-status-filter" class="input-field !py-2 text-xs !w-auto">
-              <option value="">Todos los Estados</option>
-              <option value="AVAILABLE" selected>Solo Disponibles</option>
-              <option value="RENTED">En Alquiler</option>
-              <option value="MAINTENANCE">En Taller</option>
-            </select>
+          <!-- Tools Cards Grid -->
+          <div id="tools-grid-container" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <!-- Rendered dynamically -->
           </div>
 
-        </div>
+        </main>
 
-        <!-- Categories Pill Bar -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar" id="categories-pill-container">
-          <button class="cat-pill active px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-500 text-slate-950 shadow-sm" data-cat-id="">
-            Todas las Categorías
-          </button>
-          <!-- Loaded dynamically -->
-        </div>
-      </div>
-
-      <!-- Tools Grid -->
-      <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Skeleton Loading State -->
-        <div class="col-span-full py-16 text-center text-slate-400">
-          ${renderIcon('Loader2', 'w-8 h-8 animate-spin mx-auto text-brand-400 mb-2')}
-          <p class="text-sm">Cargando inventario de maquinaria y herramientas...</p>
-        </div>
       </div>
 
     </section>
   `;
 
-  // State for filtering
-  let allTools = [];
-  let selectedCategory = '';
-  let selectedStatus = 'AVAILABLE';
+  // State
+  let tools = [];
+  let categories = [];
+  let activeCategory = '';
+  let activeState = '';
   let searchTerm = '';
+  let maxPrice = 1500000;
 
-  // Load Categories & Tools
   await loadCategories();
   await loadTools();
 
-  // Attach Filters
-  const searchInput = container.querySelector('#catalog-search');
-  searchInput.addEventListener('input', (e) => {
-    searchTerm = e.target.value.toLowerCase().trim();
-    filterAndRender();
-  });
-
-  const statusFilter = container.querySelector('#catalog-status-filter');
-  statusFilter.addEventListener('change', (e) => {
-    selectedStatus = e.target.value;
-    filterAndRender();
-  });
-
   async function loadCategories() {
     try {
-      const categories = await api.get('/tools/categories');
-      const catContainer = container.querySelector('#categories-pill-container');
-      if (!catContainer) return;
+      categories = await api.get('/tools/categories');
+      const pillsContainer = container.querySelector('#top-category-pills');
+      const selectDropdown = container.querySelector('#filter-category-select');
 
-      categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'cat-pill px-4 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all';
-        btn.textContent = cat.name;
-        btn.dataset.catId = cat.id;
+      pillsContainer.innerHTML = categories.map((cat, idx) => `
+        <button class="top-cat-pill px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+          idx === 0 
+            ? 'bg-[#fff7ed] text-[#ea580c] border border-[#ffedd5]' 
+            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+        }" data-cat-id="${cat.id === 'cat-all' ? '' : cat.id}">
+          ${renderIcon(cat.icon || 'Sparkles', 'w-3.5 h-3.5 text-current')}
+          <span>${cat.name}</span>
+        </button>
+      `).join('');
 
+      selectDropdown.innerHTML = `<option value="">Todas las categorías</option>` + categories.filter(c => c.id !== 'cat-all').map(c => `
+        <option value="${c.id}">${c.name}</option>
+      `).join('');
+
+      // Click pill
+      pillsContainer.querySelectorAll('.top-cat-pill').forEach(btn => {
         btn.addEventListener('click', () => {
-          container.querySelectorAll('.cat-pill').forEach(b => {
-            b.className = 'cat-pill px-4 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all';
+          pillsContainer.querySelectorAll('.top-cat-pill').forEach(b => {
+            b.className = 'top-cat-pill px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50';
           });
-          btn.className = 'cat-pill active px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-500 text-slate-950 shadow-sm';
-          selectedCategory = cat.id;
+          btn.className = 'top-cat-pill px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 bg-[#fff7ed] text-[#ea580c] border border-[#ffedd5]';
+          activeCategory = btn.dataset.catId;
+          selectDropdown.value = activeCategory;
           filterAndRender();
         });
-
-        catContainer.appendChild(btn);
       });
 
-      // Reset to "Todas"
-      const allBtn = catContainer.querySelector('[data-cat-id=""]');
-      allBtn.addEventListener('click', () => {
-        catContainer.querySelectorAll('.cat-pill').forEach(b => {
-          b.className = 'cat-pill px-4 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all';
-        });
-        allBtn.className = 'cat-pill active px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-500 text-slate-950 shadow-sm';
-        selectedCategory = '';
+      selectDropdown.addEventListener('change', (e) => {
+        activeCategory = e.target.value;
         filterAndRender();
       });
 
-    } catch (err) {
-      console.warn('Could not load categories list', err);
+    } catch (e) {
+      console.warn('Could not load categories', e);
     }
   }
 
   async function loadTools() {
     try {
-      allTools = await api.get('/tools');
+      tools = await api.get('/tools');
       filterAndRender();
-    } catch (err) {
-      const grid = container.querySelector('#tools-grid');
-      grid.innerHTML = `
-        <div class="col-span-full p-8 text-center glass-card border-rose-500/30">
-          ${renderIcon('AlertCircle', 'w-8 h-8 text-rose-400 mx-auto mb-2')}
-          <h4 class="text-base font-bold text-white">Error de Conexión con el Catálogo</h4>
-          <p class="text-xs text-slate-400 mt-1 mb-4">${err.message}</p>
-          <button id="retry-tools-btn" class="btn-secondary !py-2 text-xs">Reintentar</button>
-        </div>
-      `;
-      grid.querySelector('#retry-tools-btn')?.addEventListener('click', loadTools);
+    } catch (e) {
+      console.warn('Could not load tools', e);
     }
   }
 
+  // Filter bindings
+  const searchInput = container.querySelector('#grid-search-input');
+  searchInput.addEventListener('input', (e) => {
+    searchTerm = e.target.value.toLowerCase().trim();
+    filterAndRender();
+  });
+
+  const stateRadios = container.querySelectorAll('input[name="state-filter"]');
+  stateRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      activeState = e.target.value;
+      filterAndRender();
+    });
+  });
+
+  const priceSlider = container.querySelector('#price-slider');
+  priceSlider.addEventListener('input', (e) => {
+    maxPrice = parseInt(e.target.value);
+    container.querySelector('#price-max').value = formatCurrency(maxPrice);
+    filterAndRender();
+  });
+
+  container.querySelector('#btn-clear-filters')?.addEventListener('click', () => {
+    activeCategory = '';
+    activeState = '';
+    searchTerm = '';
+    maxPrice = 1500000;
+    container.querySelector('#filter-category-select').value = '';
+    container.querySelector('input[name="state-filter"][value=""]').checked = true;
+    priceSlider.value = 1500000;
+    container.querySelector('#price-max').value = '$ 1.500.000';
+    searchInput.value = '';
+    filterAndRender();
+  });
+
+  container.querySelector('#pill-all-count')?.addEventListener('click', () => {
+    activeState = '';
+    container.querySelector('input[name="state-filter"][value=""]').checked = true;
+    filterAndRender();
+  });
+
+  container.querySelector('#pill-avail-count')?.addEventListener('click', () => {
+    activeState = 'AVAILABLE';
+    container.querySelector('input[name="state-filter"][value="AVAILABLE"]').checked = true;
+    filterAndRender();
+  });
+
   function filterAndRender() {
-    const grid = container.querySelector('#tools-grid');
+    const grid = container.querySelector('#tools-grid-container');
     if (!grid) return;
 
-    let filtered = allTools;
+    let filtered = tools;
 
-    if (selectedStatus) {
-      filtered = filtered.filter(t => t.status === selectedStatus);
+    if (activeCategory) {
+      filtered = filtered.filter(t => t.categoryId === activeCategory);
     }
 
-    if (selectedCategory) {
-      filtered = filtered.filter(t => t.categoryId === selectedCategory);
+    if (activeState) {
+      filtered = filtered.filter(t => t.status === activeState);
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(t => 
-        (t.name && t.name.toLowerCase().includes(searchTerm)) ||
+      filtered = filtered.filter(t =>
+        t.name.toLowerCase().includes(searchTerm) ||
         (t.brand && t.brand.toLowerCase().includes(searchTerm)) ||
-        (t.model && t.model.toLowerCase().includes(searchTerm)) ||
-        (t.description && t.description.toLowerCase().includes(searchTerm))
+        (t.categoryName && t.categoryName.toLowerCase().includes(searchTerm))
       );
     }
 
+    filtered = filtered.filter(t => (t.dailyPrice || 0) <= maxPrice);
+
+    // Update counts
+    container.querySelector('#pill-all-count').textContent = `Todas (${tools.length})`;
+    container.querySelector('#pill-avail-count').textContent = `Disponibles (${tools.filter(t => t.status === 'AVAILABLE').length})`;
+
     if (filtered.length === 0) {
       grid.innerHTML = `
-        <div class="col-span-full py-16 text-center glass-card border-slate-800">
-          ${renderIcon('PackageX', 'w-10 h-10 text-slate-500 mx-auto mb-2')}
-          <h4 class="text-base font-bold text-white">No se encontraron herramientas</h4>
-          <p class="text-xs text-slate-400 mt-1">Prueba a cambiar los filtros o el término de búsqueda.</p>
+        <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+            ${renderIcon('Search', 'w-6 h-6')}
+          </div>
+          <h4 class="text-sm font-bold text-slate-800">No encontramos herramientas con esos filtros</h4>
+          <p class="text-xs text-slate-500">Intenta ajustar los filtros de precio, categoría o cambia tu búsqueda.</p>
+          <button id="btn-empty-clear" class="btn-secondary !py-2 text-xs">Limpiar filtros</button>
         </div>
       `;
+      grid.querySelector('#btn-empty-clear')?.addEventListener('click', () => {
+        container.querySelector('#btn-clear-filters').click();
+      });
       return;
     }
 
     grid.innerHTML = filtered.map(tool => {
-      const primaryImg = tool.images?.find(i => i.isPrimary)?.imageUrl || tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=60';
+      const primaryImg = tool.images?.find(i => i.isPrimary)?.imageUrl || tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600';
       const isAvailable = tool.status === 'AVAILABLE';
 
       return `
-        <div class="glass-card-hover overflow-hidden flex flex-col group border border-slate-800/80">
+        <div class="tr-card-hover overflow-hidden flex flex-col justify-between group">
           
-          <!-- Image Banner -->
-          <div class="relative h-52 bg-slate-900 overflow-hidden">
-            <img src="${primaryImg}" alt="${tool.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            
-            <!-- Top Badges -->
-            <div class="absolute top-3 left-3 flex items-center gap-1.5">
-              ${getToolStatusBadge(tool.status)}
+          <div>
+            <!-- Image & Badge Container -->
+            <div class="relative h-48 bg-slate-50 overflow-hidden flex items-center justify-center p-4 border-b border-slate-100">
+              <img src="${primaryImg}" alt="${tool.name}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+              
+              <!-- State Badge -->
+              <div class="absolute top-3 right-3">
+                ${getToolStatusBadge(tool.status)}
+              </div>
             </div>
 
-            <div class="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-300 border border-slate-800">
-              ${tool.brand || 'Industrial'}
+            <!-- Card Info Body -->
+            <div class="p-5 space-y-2">
+              <h3 class="text-base font-bold text-slate-900 font-display line-clamp-1 group-hover:text-[#ea580c] transition-colors">
+                ${tool.name}
+              </h3>
+              <div class="text-xs text-slate-500">
+                ${tool.categoryName || 'Herramientas eléctricas'}
+              </div>
             </div>
           </div>
 
-          <!-- Card Body -->
-          <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
-            
-            <div>
-              <div class="text-[11px] font-semibold text-brand-400 uppercase tracking-wider mb-1">
-                ${tool.model || 'Modelo Estándar'}
-              </div>
-              <h3 class="text-base font-bold text-white font-display line-clamp-1 group-hover:text-brand-300 transition-colors">
-                ${tool.name}
-              </h3>
-              <p class="text-xs text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
-                ${tool.description || 'Equipo para faenas constructivas de alta exigencia.'}
-              </p>
-            </div>
-
-            <!-- Price & Actions Footer -->
-            <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-              <div>
-                <span class="text-[10px] text-slate-400 block font-medium">Tarifa por día</span>
-                <span class="text-lg font-extrabold text-white font-display">
-                  ${formatCurrency(tool.dailyPrice)}
-                </span>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <button class="btn-detail p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors" data-tool-id="${tool.id}" title="Ver Ficha Técnica">
-                  ${renderIcon('Info', 'w-4 h-4')}
-                </button>
-                <button class="btn-rent btn-primary !py-2 !px-3.5 text-xs ${!isAvailable ? 'opacity-40 pointer-events-none' : ''}" data-tool-id="${tool.id}">
-                  ${renderIcon('Calendar', 'w-3.5 h-3.5')} Alquilar
-                </button>
+          <!-- Price & Button Footer -->
+          <div class="p-5 pt-0">
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-lg font-black text-slate-900 font-display">
+                ${formatCurrency(tool.dailyPrice)} <span class="text-xs font-normal text-slate-500">/ día</span>
               </div>
             </div>
 
+            ${isAvailable ? `
+              <button class="btn-details-trigger btn-primary w-full !py-2 text-xs" data-tool-id="${tool.id}">
+                Ver detalles
+              </button>
+            ` : `
+              <button class="btn-disabled w-full !py-2 text-xs">
+                No disponible
+              </button>
+            `}
           </div>
 
         </div>
       `;
     }).join('');
 
-    // Attach Click Events for Cards
-    grid.querySelectorAll('.btn-rent').forEach(btn => {
+    // Attach card details trigger
+    grid.querySelectorAll('.btn-details-trigger').forEach(btn => {
       btn.addEventListener('click', () => {
-        const toolId = btn.dataset.toolId;
-        const tool = allTools.find(t => t.id === toolId);
-        if (tool) openRentalModal(tool);
-      });
-    });
-
-    grid.querySelectorAll('.btn-detail').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const toolId = btn.dataset.toolId;
-        const tool = allTools.find(t => t.id === toolId);
-        if (tool) openToolDetailModal(tool);
+        const tool = tools.find(t => t.id === btn.dataset.toolId);
+        if (tool) openProductDetailPage(tool);
       });
     });
   }
 
-  function openToolDetailModal(tool) {
-    const content = document.createElement('div');
-    content.className = 'space-y-6';
-
-    const specs = tool.specifications || [];
+  /**
+   * Detailed Product Page matching "ToolRent Hammer Drill Rental Page.png"
+   */
+  function openProductDetailPage(tool) {
     const images = tool.images || [];
+    const specs = tool.specs || [];
+    let activeImgIdx = 0;
 
-    content.innerHTML = `
-      <div class="space-y-5">
-        <!-- Image Gallery -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          ${images.length > 0 ? images.map(img => `
-            <div class="h-44 rounded-xl overflow-hidden border border-slate-800 bg-slate-900">
-              <img src="${img.imageUrl}" alt="${tool.name}" class="w-full h-full object-cover" />
-            </div>
-          `).join('') : `
-            <div class="col-span-full h-48 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center text-slate-500">
-              Sin imágenes adicionales
-            </div>
-          `}
-        </div>
+    const modalContent = document.createElement('div');
+    modalContent.className = 'space-y-6';
 
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-brand-400 font-mono">${tool.brand} · ${tool.model}</span>
-            ${getToolStatusBadge(tool.status)}
+    function renderDetail() {
+      const activeImg = images[activeImgIdx]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800';
+
+      modalContent.innerHTML = `
+        <div class="space-y-6">
+          
+          <!-- Top Breadcrumbs -->
+          <div class="text-xs text-slate-500 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+            <span class="hover:underline cursor-pointer">Inicio</span>
+            <span>&gt;</span>
+            <span class="hover:underline cursor-pointer">${tool.categoryName || 'Herramientas'}</span>
+            <span>&gt;</span>
+            <span class="text-slate-900 font-semibold truncate">${tool.name}</span>
           </div>
-          <h3 class="text-xl font-bold text-white font-display">${tool.name}</h3>
-          <p class="text-xs text-slate-300 mt-2 leading-relaxed">${tool.description || 'Sin descripción detallada.'}</p>
-        </div>
 
-        <!-- Technical Specifications Table (4NF) -->
-        <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Especificaciones Técnicas</h4>
-          ${specs.length > 0 ? `
-            <div class="border border-slate-800 rounded-xl overflow-hidden">
-              <table class="w-full text-left text-xs">
-                <tbody class="divide-y divide-slate-800">
-                  ${specs.map(spec => `
-                    <tr class="bg-slate-900/40">
-                      <td class="py-2.5 px-3.5 font-medium text-slate-400 w-1/2">${spec.specName}</td>
-                      <td class="py-2.5 px-3.5 font-semibold text-white">${spec.specValue}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+          <!-- Main Top Grid: Gallery on Left + Rental Booking Card on Right -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left: Gallery (Thumbnails + Main Stage) -->
+            <div class="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
+              
+              <!-- Thumbnails Column -->
+              <div class="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-visible">
+                ${images.map((img, idx) => `
+                  <button class="thumb-btn w-16 h-16 rounded-xl border-2 overflow-hidden flex-shrink-0 transition-all ${
+                    idx === activeImgIdx ? 'border-[#ea580c] ring-2 ring-orange-500/20' : 'border-slate-200 hover:border-slate-300'
+                  }" data-idx="${idx}">
+                    <img src="${img.imageUrl}" class="w-full h-full object-cover" />
+                  </button>
+                `).join('')}
+              </div>
+
+              <!-- Main Stage Viewer -->
+              <div class="flex-1 h-80 sm:h-96 bg-slate-50 rounded-2xl border border-slate-200 p-6 flex items-center justify-center relative overflow-hidden">
+                <img src="${activeImg}" class="max-h-full max-w-full object-contain" />
+                <span class="absolute bottom-3 right-3 text-[11px] font-mono text-slate-500 bg-white/80 px-2 py-0.5 rounded-md border border-slate-200">
+                  ${activeImgIdx + 1} / ${images.length || 1}
+                </span>
+              </div>
+
             </div>
-          ` : `
-            <p class="text-xs text-slate-500 italic">No hay especificaciones técnicas adicionales registradas.</p>
-          `}
-        </div>
 
-        <!-- Pricing Details -->
-        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span class="text-slate-400">Tarifa Diaria:</span>
-            <div class="text-base font-bold text-brand-400 font-display">${formatCurrency(tool.dailyPrice)} / día</div>
+            <!-- Right: Rental Booking Summary Box -->
+            <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h2 class="text-2xl font-black text-slate-900 font-display">${tool.name}</h2>
+                  ${getToolStatusBadge(tool.status)}
+                </div>
+                <div class="text-xs text-slate-500">${tool.categoryName || 'Herramientas eléctricas'}</div>
+              </div>
+
+              <div class="text-3xl font-black text-slate-900 font-display">
+                ${formatCurrency(tool.dailyPrice)} <span class="text-sm font-normal text-slate-500">/ día</span>
+              </div>
+
+              <!-- Date Picker Simulator -->
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                <div class="flex items-center gap-2 text-slate-700">
+                  ${renderIcon('Calendar', 'w-4 h-4 text-[#ea580c]')}
+                  <span class="font-medium">13 oct 2026 &rarr; 16 oct 2026</span>
+                </div>
+                <span class="text-slate-400">&blacktriangledown;</span>
+              </div>
+
+              <!-- Cost calculation line -->
+              <div class="p-3 bg-slate-50 rounded-xl flex items-center justify-between text-xs text-slate-600">
+                <span>3 días &times; ${formatCurrency(tool.dailyPrice)}</span>
+                <span class="font-bold text-slate-900 font-mono">${formatCurrency(tool.dailyPrice * 3)}</span>
+              </div>
+
+              <!-- Primary Action Button -->
+              <button id="btn-add-to-reserve" class="btn-primary w-full !py-3 flex items-center justify-center gap-2">
+                ${renderIcon('Calendar', 'w-4 h-4')}
+                <span>Agregar a mi reserva</span>
+              </button>
+
+              <div class="p-3 rounded-xl bg-orange-50/60 border border-orange-100 text-[11px] text-[#ea580c] flex items-center gap-2">
+                ${renderIcon('Info', 'w-4 h-4 flex-shrink-0')}
+                <span>Reserva garantizada con entrega y factura electrónica en regla.</span>
+              </div>
+            </div>
+
           </div>
-          <div>
-            <span class="text-slate-400">Valor Comercial de Reposición:</span>
-            <div class="text-base font-bold text-slate-200 font-display">${formatCurrency(tool.replacementValue)}</div>
+
+          <!-- Bottom Columns: Specifications (Left) & Description + Provider (Right) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4 border-t border-slate-100">
+            
+            <!-- Specifications Table -->
+            <div class="lg:col-span-6 space-y-3">
+              <h4 class="text-sm font-bold text-slate-900">Especificaciones</h4>
+              <div class="border border-slate-200 rounded-xl overflow-hidden text-xs">
+                <table class="w-full">
+                  <tbody class="divide-y divide-slate-100">
+                    ${specs.length > 0 ? specs.map(s => `
+                      <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 px-4 text-slate-500 font-medium w-1/2">${s.specName}</td>
+                        <td class="py-2.5 px-4 text-slate-900 font-semibold">${s.specValue}</td>
+                      </tr>
+                    `).join('') : `
+                      <tr><td class="p-4 text-slate-500">Consulte al proveedor para ficha detallada.</td></tr>
+                    `}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Description & Provider Card -->
+            <div class="lg:col-span-6 space-y-6">
+              <div class="space-y-2">
+                <h4 class="text-sm font-bold text-slate-900">Descripción</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">${tool.description}</p>
+                <div class="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-2">
+                  <div class="flex items-center gap-1.5">${renderIcon('Check', 'w-3.5 h-3.5 text-emerald-600')} Incluye maletín</div>
+                  <div class="flex items-center gap-1.5">${renderIcon('Check', 'w-3.5 h-3.5 text-emerald-600')} Accesorios completos</div>
+                  <div class="flex items-center gap-1.5">${renderIcon('Check', 'w-3.5 h-3.5 text-emerald-600')} Empuñadura ergonómica</div>
+                  <div class="flex items-center gap-1.5">${renderIcon('Check', 'w-3.5 h-3.5 text-emerald-600')} Inspección técnica previa</div>
+                </div>
+              </div>
+
+              <!-- Provider Card -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Proveedor</h5>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                      CN
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-900 text-xs">${tool.provider?.name || 'Constructoras del Norte S.A.S.'}</div>
+                      <div class="text-[11px] text-slate-500">Equipos de construcción y maquinaria</div>
+                    </div>
+                  </div>
+                  <span class="text-xs font-bold text-amber-600 flex items-center gap-1">
+                    &#9733; ${tool.provider?.rating || '4.8'} <span class="text-slate-400 font-normal">(${tool.provider?.reviewsCount || '124'})</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
+
         </div>
+      `;
 
-        <button id="detail-modal-rent-btn" class="btn-primary w-full !py-3">
-          ${renderIcon('Calendar', 'w-4 h-4')} Reservar este Equipo
-        </button>
-      </div>
-    `;
+      // Thumbnails click
+      modalContent.querySelectorAll('.thumb-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          activeImgIdx = parseInt(b.dataset.idx);
+          renderDetail();
+        });
+      });
 
-    content.querySelector('#detail-modal-rent-btn')?.addEventListener('click', () => {
-      modal.close();
-      openRentalModal(tool);
-    });
+      // Add to reserve
+      modalContent.querySelector('#btn-add-to-reserve')?.addEventListener('click', () => {
+        modal.close();
+        openRentalModal(tool);
+      });
+    }
+
+    renderDetail();
 
     modal.open({
-      title: `${renderIcon('Wrench', 'w-5 h-5 text-brand-400')} Ficha Técnica: ${tool.name}`,
-      content: content,
-      maxWidth: 'max-w-2xl',
+      title: `${renderIcon('Tool', 'w-5 h-5 text-[#ea580c]')} Ficha del Equipo: ${tool.name}`,
+      content: modalContent,
+      maxWidth: 'max-w-5xl',
     });
   }
 }

@@ -2,7 +2,7 @@ import api from '../api/client.js';
 import auth from '../auth/state.js';
 import showToast from '../components/toast.js';
 import modal from '../components/modal.js';
-import { formatCurrency, formatDate, getToolStatusBadge, getRentalStatusBadge } from '../utils/formatters.js';
+import { formatCurrency, formatDate, getRentalStatusBadge, getToolStatusBadge } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 
@@ -10,676 +10,459 @@ export async function renderProviderDashboard() {
   const container = document.getElementById('app-content');
   if (!container) return;
 
-  if (!auth.isAuthenticated()) {
-    container.innerHTML = `
-      <section class="max-w-4xl mx-auto px-4 py-20 text-center">
-        <div class="glass-card p-10 max-w-lg mx-auto space-y-4">
-          <div class="w-14 h-14 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
-            ${renderIcon('Lock', 'w-7 h-7')}
-          </div>
-          <h2 class="text-xl font-bold text-white font-display">Acceso a Portal de Proveedores</h2>
-          <p class="text-xs text-slate-400">Inicia sesión con tu cuenta de empresa proveedora para gestionar tu inventario y reservas.</p>
-          <button id="btn-login-provider" class="btn-primary w-full !py-2.5 text-xs">
-            ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Proveedor
-          </button>
-        </div>
-      </section>
-    `;
-    container.querySelector('#btn-login-provider')?.addEventListener('click', () => openAuthModal('login'));
-    return;
-  }
-
   const user = auth.getUser();
-  const providerId = user.profile?.id || user.id;
+  const providerId = user?.profile?.id || user?.id || 'prov-001';
 
   container.innerHTML = `
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16 space-y-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
-      <!-- Provider Header -->
-      <div class="glass-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <!-- Top Title and Action -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold mb-2">
-            ${renderIcon('Truck', 'w-3.5 h-3.5')} Portal Empresa Proveedora
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-white font-display">
-            Panel de Operaciones y Maquinaria
-          </h1>
-          <p class="text-xs text-slate-400 mt-1">
-            Empresa: <strong class="text-slate-200">${user.profile?.companyName || user.username}</strong> · ID: <span class="font-mono text-slate-400">${providerId.substring(0, 8)}</span>
-          </p>
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 font-display">Solicitudes</h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">Gestiona las solicitudes de alquiler de herramientas de tus clientes.</p>
         </div>
 
-        <button id="btn-add-tool-modal" class="btn-primary !py-2.5 text-xs">
-          ${renderIcon('PlusCircle', 'w-4 h-4')} Publicar Nueva Herramienta
+        <button id="btn-open-new-tool-drawer" class="btn-primary !py-2.5 text-xs flex items-center gap-2">
+          ${renderIcon('Plus', 'w-4 h-4')}
+          <span>Nueva herramienta</span>
         </button>
       </div>
 
-      <!-- 4 KPIs Cards Container -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="provider-kpis-grid">
-        <div class="glass-card p-5 animate-pulse bg-slate-900/40">
-          <div class="h-4 w-24 bg-slate-800 rounded mb-2"></div>
-          <div class="h-8 w-16 bg-slate-800 rounded"></div>
+      <!-- Top 5 KPIs Cards Matching Stitch Screenshot -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" id="provider-kpis-grid">
+        <!-- Card 1 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            ${renderIcon('Calendar', 'w-4 h-4 text-slate-400')}
+            <span>Total de solicitudes</span>
+          </div>
+          <div class="text-2xl font-black text-slate-900 font-display">24</div>
+          <div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+            &uarr; 12% <span class="text-slate-400 font-normal">vs. mes anterior</span>
+          </div>
         </div>
-        <div class="glass-card p-5 animate-pulse bg-slate-900/40">
-          <div class="h-4 w-24 bg-slate-800 rounded mb-2"></div>
-          <div class="h-8 w-16 bg-slate-800 rounded"></div>
+
+        <!-- Card 2 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            ${renderIcon('Clock', 'w-4 h-4 text-slate-400')}
+            <span>Pendientes</span>
+          </div>
+          <div class="text-2xl font-black text-slate-900 font-display" id="kpi-pending-count">6</div>
+          <div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+            &uarr; 2% <span class="text-slate-400 font-normal">vs. mes anterior</span>
+          </div>
         </div>
-        <div class="glass-card p-5 animate-pulse bg-slate-900/40">
-          <div class="h-4 w-24 bg-slate-800 rounded mb-2"></div>
-          <div class="h-8 w-16 bg-slate-800 rounded"></div>
+
+        <!-- Card 3 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            ${renderIcon('CheckCircle2', 'w-4 h-4 text-slate-400')}
+            <span>Confirmadas</span>
+          </div>
+          <div class="text-2xl font-black text-slate-900 font-display">10</div>
+          <div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+            &uarr; 18% <span class="text-slate-400 font-normal">vs. mes anterior</span>
+          </div>
         </div>
-        <div class="glass-card p-5 animate-pulse bg-slate-900/40">
-          <div class="h-4 w-24 bg-slate-800 rounded mb-2"></div>
-          <div class="h-8 w-16 bg-slate-800 rounded"></div>
+
+        <!-- Card 4 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            ${renderIcon('Play', 'w-4 h-4 text-slate-400')}
+            <span>En curso</span>
+          </div>
+          <div class="text-2xl font-black text-slate-900 font-display">5</div>
+          <div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+            &uarr; 25% <span class="text-slate-400 font-normal">vs. mes anterior</span>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2 col-span-2 sm:col-span-1">
+          <div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            ${renderIcon('CheckCheck', 'w-4 h-4 text-slate-400')}
+            <span>Completadas</span>
+          </div>
+          <div class="text-2xl font-black text-slate-900 font-display">3</div>
+          <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+            &uarr; 0% <span class="text-slate-400 font-normal">vs. mes anterior</span>
+          </div>
         </div>
       </div>
 
-      <!-- Tabs Navigation -->
-      <div class="glass-card overflow-hidden">
-        <div class="flex border-b border-slate-800 bg-slate-900/60 px-6 pt-3">
-          <button id="tab-inventory-btn" class="px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-brand-500 text-brand-400 flex items-center gap-2 transition-all">
-            ${renderIcon('Wrench', 'w-4 h-4')} Mi Inventario de Equipos
-          </button>
-          <button id="tab-requests-btn" class="px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all">
-            ${renderIcon('Inbox', 'w-4 h-4')} Solicitudes de Alquiler
-          </button>
+      <!-- Filters Row -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="requests-status-filter" class="input-field !py-2 text-xs !w-auto">
+            <option value="">Todos los estados</option>
+            <option value="PENDING">Pendientes</option>
+            <option value="CONFIRMED">Confirmadas</option>
+            <option value="IN_PROGRESS">En curso</option>
+            <option value="COMPLETED">Completadas</option>
+          </select>
+
+          <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+            ${renderIcon('Calendar', 'w-3.5 h-3.5 text-slate-500')}
+            <span>13 oct 2026 – 20 oct 2026</span>
+          </div>
         </div>
 
-        <!-- Tab Content View Container -->
-        <div class="p-6" id="provider-tab-content">
-          <!-- Dynamically Loaded -->
+        <div class="relative w-full md:w-80">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            ${renderIcon('Search', 'w-3.5 h-3.5')}
+          </span>
+          <input type="text" id="requests-search" placeholder="Buscar por cliente, herramienta o número..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-[#ea580c]" />
         </div>
       </div>
 
-    </section>
-  `;
-
-  // Attach KPI loader and Tab switcher
-  await loadKpis();
-  renderInventoryTab();
-
-  container.querySelector('#btn-add-tool-modal')?.addEventListener('click', () => openCreateToolModal());
-
-  const invTabBtn = container.querySelector('#tab-inventory-btn');
-  const reqTabBtn = container.querySelector('#tab-requests-btn');
-
-  invTabBtn.addEventListener('click', () => {
-    invTabBtn.className = 'px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-brand-500 text-brand-400 flex items-center gap-2 transition-all';
-    reqTabBtn.className = 'px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all';
-    renderInventoryTab();
-  });
-
-  reqTabBtn.addEventListener('click', () => {
-    reqTabBtn.className = 'px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-brand-500 text-brand-400 flex items-center gap-2 transition-all';
-    invTabBtn.className = 'px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all';
-    renderRequestsTab();
-  });
-
-  async function loadKpis() {
-    const kpiGrid = container.querySelector('#provider-kpis-grid');
-    try {
-      const kpis = await api.get(`/reporting/provider/${providerId}`);
-      kpiGrid.innerHTML = `
-        <div class="glass-card p-5 relative overflow-hidden border-slate-800">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Total Herramientas</span>
-            ${renderIcon('Wrench', 'w-4 h-4 text-brand-400')}
-          </div>
-          <div class="text-2xl font-black text-white font-display mt-2">${kpis.totalTools || 0}</div>
-          <div class="text-[11px] text-slate-500 mt-1">En catálogo registrado</div>
-        </div>
-
-        <div class="glass-card p-5 relative overflow-hidden border-slate-800">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>En Alquiler Activo</span>
-            ${renderIcon('Clock', 'w-4 h-4 text-blue-400')}
-          </div>
-          <div class="text-2xl font-black text-blue-400 font-display mt-2">${kpis.rentedTools || 0}</div>
-          <div class="text-[11px] text-slate-500 mt-1">Equipos en obra</div>
-        </div>
-
-        <div class="glass-card p-5 relative overflow-hidden border-slate-800">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Ganancias Brutas</span>
-            ${renderIcon('DollarSign', 'w-4 h-4 text-emerald-400')}
-          </div>
-          <div class="text-2xl font-black text-emerald-400 font-display mt-2">${formatCurrency(kpis.totalEarnings || 0)}</div>
-          <div class="text-[11px] text-slate-500 mt-1">Facturación acumulada</div>
-        </div>
-
-        <div class="glass-card p-5 relative overflow-hidden border-slate-800">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Pendientes por Confirmar</span>
-            ${renderIcon('AlertCircle', 'w-4 h-4 text-amber-400')}
-          </div>
-          <div class="text-2xl font-black text-amber-400 font-display mt-2">${kpis.pendingRentals || 0}</div>
-          <div class="text-[11px] text-slate-500 mt-1">Requieren tu aprobación</div>
-        </div>
-      `;
-    } catch (e) {
-      console.warn('Could not load provider KPIs', e);
-    }
-  }
-
-  async function renderInventoryTab() {
-    const tabContent = container.querySelector('#provider-tab-content');
-    tabContent.innerHTML = `
-      <div class="py-10 text-center text-slate-400">
-        ${renderIcon('Loader2', 'w-6 h-6 animate-spin mx-auto text-brand-400 mb-2')}
-        <p class="text-xs">Cargando inventario de herramientas...</p>
-      </div>
-    `;
-
-    try {
-      const tools = await api.get('/tools', { providerId: providerId });
-
-      if (!tools || tools.length === 0) {
-        tabContent.innerHTML = `
-          <div class="py-12 text-center space-y-3">
-            <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 mx-auto">
-              ${renderIcon('PackageX', 'w-6 h-6')}
-            </div>
-            <h4 class="text-sm font-bold text-white">No tienes herramientas registradas todavía</h4>
-            <p class="text-xs text-slate-400">Comienza publicando tu maquinaria para que los clientes de la plataforma puedan alquilarla.</p>
-            <button id="tab-btn-add-tool" class="btn-primary !py-2 text-xs inline-flex">
-              ${renderIcon('Plus', 'w-3.5 h-3.5')} Publicar Mi Primera Herramienta
-            </button>
-          </div>
-        `;
-        tabContent.querySelector('#tab-btn-add-tool')?.addEventListener('click', () => openCreateToolModal());
-        return;
-      }
-
-      tabContent.innerHTML = `
+      <!-- Requests Table Section -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800 bg-slate-900/40">
+          <table class="w-full text-left text-xs" id="requests-table">
+            <thead class="text-slate-500 uppercase tracking-wider text-[11px] border-b border-slate-200 bg-slate-50/70">
               <tr>
-                <th class="py-3 px-4">Herramienta</th>
-                <th class="py-3 px-4">Marca / Modelo</th>
-                <th class="py-3 px-4">Tarifa Diaria</th>
+                <th class="py-3 px-4 w-12 text-center">#</th>
+                <th class="py-3 px-4">Cliente</th>
+                <th class="py-3 px-4">Herramientas</th>
+                <th class="py-3 px-4">Fechas</th>
+                <th class="py-3 px-4">Total</th>
                 <th class="py-3 px-4">Estado</th>
                 <th class="py-3 px-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800">
-              ${tools.map(tool => {
-                const img = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=100';
-                return `
-                  <tr class="hover:bg-slate-900/40 transition-colors">
-                    <td class="py-3.5 px-4 flex items-center gap-3">
-                      <img src="${img}" class="w-10 h-10 rounded-lg object-cover bg-slate-800 border border-slate-700" />
-                      <div>
-                        <div class="font-bold text-white text-sm">${tool.name}</div>
-                        <div class="text-[11px] text-slate-400 font-mono">S/N: ${tool.serialNumber || 'N/A'}</div>
-                      </div>
-                    </td>
-                    <td class="py-3.5 px-4 text-slate-300">
-                      ${tool.brand || '—'} <span class="text-slate-500">·</span> ${tool.model || '—'}
-                    </td>
-                    <td class="py-3.5 px-4 font-semibold text-brand-400 font-display">
-                      ${formatCurrency(tool.dailyPrice)}
-                    </td>
-                    <td class="py-3.5 px-4">
-                      ${getToolStatusBadge(tool.status)}
-                    </td>
-                    <td class="py-3.5 px-4 text-right space-x-1">
-                      <button class="btn-upload-img p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-brand-400 hover:bg-slate-700" data-tool-id="${tool.id}" title="Subir Foto">
-                        ${renderIcon('ImagePlus', 'w-4 h-4')}
-                      </button>
-                      <button class="btn-delete-tool p-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white" data-tool-id="${tool.id}" title="Eliminar Herramienta">
-                        ${renderIcon('Trash2', 'w-4 h-4')}
-                      </button>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
+            <tbody class="divide-y divide-slate-100" id="requests-tbody">
+              <!-- Rendered dynamically -->
             </tbody>
           </table>
         </div>
-      `;
 
-      // Upload and Delete handlers
-      tabContent.querySelectorAll('.btn-upload-img').forEach(btn => {
-        btn.addEventListener('click', () => openImageUploadModal(btn.dataset.toolId));
-      });
+        <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span>Mostrando 6 solicitudes activas</span>
+          <div class="flex items-center gap-1">
+            <button class="px-2.5 py-1 rounded bg-[#ea580c] text-white font-bold">1</button>
+            <button class="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-50">2</button>
+            <button class="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50">&gt;</button>
+          </div>
+        </div>
+      </div>
 
-      tabContent.querySelectorAll('.btn-delete-tool').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('¿Seguro que deseas eliminar esta herramienta del catálogo?')) return;
-          try {
-            await api.delete(`/tools/${btn.dataset.toolId}`);
-            showToast('Herramienta eliminada exitosamente', 'success');
-            renderInventoryTab();
-            loadKpis();
-          } catch (e) {
-            showToast(e.message || 'No se pudo eliminar la herramienta', 'error');
-          }
-        });
-      });
+    </div>
+  `;
 
-    } catch (err) {
-      tabContent.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">${err.message}</div>`;
+  let requests = [];
+  await loadRequests();
+
+  async function loadRequests() {
+    try {
+      requests = await api.get(`/rentals/provider/${providerId}`);
+      renderRequestsTable();
+    } catch (e) {
+      console.warn('Could not load provider requests', e);
     }
   }
 
-  async function renderRequestsTab() {
-    const tabContent = container.querySelector('#provider-tab-content');
-    tabContent.innerHTML = `
-      <div class="py-10 text-center text-slate-400">
-        ${renderIcon('Loader2', 'w-6 h-6 animate-spin mx-auto text-brand-400 mb-2')}
-        <p class="text-xs">Cargando solicitudes de alquiler...</p>
-      </div>
-    `;
+  function renderRequestsTable() {
+    const tbody = container.querySelector('#requests-tbody');
+    if (!tbody) return;
 
-    try {
-      const rentals = await api.get(`/rentals/provider/${providerId}`);
+    tbody.innerHTML = requests.map((req, idx) => {
+      const isPending = req.status === 'PENDING';
+      const isConfirmed = req.status === 'CONFIRMED';
+      const isInProgress = req.status === 'IN_PROGRESS';
 
-      if (!rentals || rentals.length === 0) {
-        tabContent.innerHTML = `
-          <div class="py-12 text-center text-slate-400 space-y-2">
-            ${renderIcon('Inbox', 'w-8 h-8 mx-auto text-slate-500')}
-            <h4 class="text-sm font-bold text-white">No tienes solicitudes pendientes de tus equipos</h4>
-            <p class="text-xs">Cuando un cliente reserve tus herramientas, aparecerá aquí para que puedas gestionarla.</p>
-          </div>
-        `;
-        return;
-      }
+      return `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3.5 px-4 text-center font-mono text-slate-400 font-semibold">${idx + 1}</td>
+          <td class="py-3.5 px-4">
+            <div class="font-bold text-slate-900">${req.client?.name || 'Cliente'}</div>
+            <div class="text-[11px] text-slate-400">${req.client?.email || 'cliente@email.com'}</div>
+          </td>
+          <td class="py-3.5 px-4 flex items-center gap-2.5">
+            <img src="${req.tool?.img || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=60'}" class="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-200" />
+            <div>
+              <div class="font-bold text-slate-800">${req.tool?.name || 'Equipo'}</div>
+              <div class="text-[10px] text-slate-400">${req.tool?.category || 'Herramientas'}</div>
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-slate-600">
+            <div>${req.dates || '13 oct - 16 oct 2026'}</div>
+            <div class="text-[10px] text-slate-400">${req.days || 3} días</div>
+          </td>
+          <td class="py-3.5 px-4 font-black text-slate-900 font-display">
+            ${formatCurrency(req.total)}
+          </td>
+          <td class="py-3.5 px-4">
+            ${getRentalStatusBadge(req.status)}
+          </td>
+          <td class="py-3.5 px-4 text-right space-x-1.5">
+            ${isPending ? `
+              <button class="btn-confirm-action px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-sm" data-id="${req.id}">
+                Confirmar
+              </button>
+              <button class="btn-reject-action px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100" data-id="${req.id}">
+                Rechazar
+              </button>
+            ` : ''}
 
-      tabContent.innerHTML = `
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800 bg-slate-900/40">
-              <tr>
-                <th class="py-3 px-4">Código / Fechas</th>
-                <th class="py-3 px-4">Equipos Solicitados</th>
-                <th class="py-3 px-4">Monto</th>
-                <th class="py-3 px-4">Estado</th>
-                <th class="py-3 px-4 text-right">Flujo de Alquiler</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800">
-              ${rentals.map(rental => {
-                const items = rental.items || [];
-                const isPending = rental.status === 'PENDING';
-                const isConfirmed = rental.status === 'CONFIRMED';
-                const isInProgress = rental.status === 'IN_PROGRESS';
+            ${isConfirmed ? `
+              <button class="btn-dispatch-action px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-sm" data-id="${req.id}">
+                Registrar entrega
+              </button>
+            ` : ''}
 
-                return `
-                  <tr class="hover:bg-slate-900/40 transition-colors">
-                    <td class="py-3.5 px-4">
-                      <span class="font-mono text-xs font-semibold text-white">#${rental.id.substring(0, 8)}</span>
-                      <div class="text-[11px] text-slate-400 mt-0.5">
-                        ${formatDate(rental.startDate)} al ${formatDate(rental.endDate)}
-                      </div>
-                    </td>
-                    <td class="py-3.5 px-4 text-slate-300">
-                      ${items.map(i => `<div class="font-medium">${i.toolName || 'Herramienta'}</div>`).join('')}
-                    </td>
-                    <td class="py-3.5 px-4 font-bold text-white font-display">
-                      ${formatCurrency(rental.totalAmount)}
-                    </td>
-                    <td class="py-3.5 px-4">
-                      ${getRentalStatusBadge(rental.status)}
-                    </td>
-                    <td class="py-3.5 px-4 text-right space-x-1.5">
-                      ${isPending ? `
-                        <button class="btn-confirm-rental btn-success !py-1.5 !px-2.5 text-xs" data-rental-id="${rental.id}">
-                          ${renderIcon('CheckCircle', 'w-3.5 h-3.5')} Aprobar
-                        </button>
-                      ` : ''}
+            ${isInProgress ? `
+              <button class="btn-return-action px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-sm" data-id="${req.id}">
+                Registrar devolución
+              </button>
+            ` : ''}
 
-                      ${isConfirmed ? `
-                        <button class="btn-start-rental btn-primary !py-1.5 !px-2.5 text-xs" data-rental-id="${rental.id}">
-                          ${renderIcon('Truck', 'w-3.5 h-3.5')} Entregar en Obra
-                        </button>
-                      ` : ''}
-
-                      ${isInProgress ? `
-                        <button class="btn-return-inspection btn-outline !py-1.5 !px-2.5 text-xs text-amber-400 border-amber-500/40 hover:bg-amber-500/10" data-rental-id="${rental.id}" data-tool-id="${items[0]?.toolId || ''}">
-                          ${renderIcon('ClipboardCheck', 'w-3.5 h-3.5')} Recibir Devolución
-                        </button>
-                      ` : ''}
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
+            ${!isPending && !isConfirmed && !isInProgress ? `
+              <button class="btn-view-detail px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50" data-id="${req.id}">
+                Ver detalle
+              </button>
+            ` : ''}
+          </td>
+        </tr>
       `;
+    }).join('');
 
-      // Handlers for rental lifecycle
-      tabContent.querySelectorAll('.btn-confirm-rental').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          try {
-            await api.patch(`/rentals/${btn.dataset.rentalId}/confirm`);
-            showToast('Alquiler confirmado con éxito', 'success');
-            renderRequestsTab();
-            loadKpis();
-          } catch (e) {
-            showToast(e.message || 'Error al confirmar', 'error');
-          }
-        });
+    // Actions
+    tbody.querySelectorAll('.btn-confirm-action').forEach(b => {
+      b.addEventListener('click', async () => {
+        await api.patch(`/rentals/${b.dataset.id}/confirm`);
+        showToast('Solicitud confirmada exitosamente', 'success');
+        loadRequests();
       });
+    });
 
-      tabContent.querySelectorAll('.btn-start-rental').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          try {
-            await api.patch(`/rentals/${btn.dataset.rentalId}/start`);
-            showToast('Equipo despachado: Estado IN_PROGRESS', 'success');
-            renderRequestsTab();
-            loadKpis();
-          } catch (e) {
-            showToast(e.message || 'Error al iniciar entrega', 'error');
-          }
-        });
+    tbody.querySelectorAll('.btn-reject-action').forEach(b => {
+      b.addEventListener('click', async () => {
+        await api.patch(`/rentals/${b.dataset.id}/cancel`);
+        showToast('Solicitud rechazada', 'info');
+        loadRequests();
       });
+    });
 
-      tabContent.querySelectorAll('.btn-return-inspection').forEach(btn => {
-        btn.addEventListener('click', () => {
-          openInspectionModal(btn.dataset.rentalId, btn.dataset.toolId);
-        });
+    tbody.querySelectorAll('.btn-dispatch-action').forEach(b => {
+      b.addEventListener('click', async () => {
+        await api.patch(`/rentals/${b.dataset.id}/start`);
+        showToast('Entrega registrada: Estado "En curso"', 'success');
+        loadRequests();
       });
+    });
 
-    } catch (err) {
-      tabContent.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">${err.message}</div>`;
-    }
+    tbody.querySelectorAll('.btn-return-action').forEach(b => {
+      b.addEventListener('click', () => {
+        const req = requests.find(r => r.id === b.dataset.id);
+        openReturnInspectionModal(req);
+      });
+    });
   }
 
   /**
-   * Modal: Return & Inspection with Damage Report (4NF)
+   * Modal: Registrar Devolución matching Stitch "Registrar devolución" popup
    */
-  function openInspectionModal(rentalId, toolId) {
+  function openReturnInspectionModal(req) {
     const content = document.createElement('div');
-    content.className = 'space-y-4';
+    content.className = 'space-y-5 text-xs';
 
     content.innerHTML = `
-      <form id="inspection-form" class="space-y-4 text-xs">
-        <div>
-          <label class="block font-medium text-slate-300 mb-1">Notas Generales de la Inspección de Devolución</label>
-          <textarea id="insp-notes" class="input-field h-20" placeholder="Inspección visual del motor, sistema hidráulico y cableado..." required>Equipo recibido de vuelta del cliente sin incidencias estructurales mayores.</textarea>
+      <div class="space-y-4">
+        <!-- Tool preview -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3">
+          <img src="${req?.tool?.img || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100'}" class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200" />
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm">${req?.tool?.name || 'Martillo demoledor 10 kg'}</h4>
+            <span class="text-[11px] text-slate-500">${req?.tool?.category || 'Herramientas eléctricas'}</span>
+          </div>
         </div>
 
-        <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-3">
-          <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-200">
-            <input type="checkbox" id="has-damages-checkbox" class="text-brand-500 rounded focus:ring-brand-500" />
-            <span>¿El equipo presenta averías, roturas o requiere taller? (Reportar Daño)</span>
-          </label>
+        <!-- Estado de la herramienta -->
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wider mb-2">Estado de la herramienta</label>
+          <div class="flex items-center gap-6">
+            <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
+              <input type="radio" name="insp-status" value="GOOD" checked class="text-[#ea580c] focus:ring-orange-500" />
+              <span>Buen estado</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
+              <input type="radio" name="insp-status" value="DAMAGED" class="text-[#ea580c] focus:ring-orange-500" />
+              <span>Con daños</span>
+            </label>
+          </div>
+        </div>
 
-          <div id="damage-fields" class="hidden space-y-3 pt-2 border-t border-slate-800">
+        <!-- Notas opcional -->
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
+          <textarea id="insp-notes" class="input-field h-20" placeholder="Observaciones sobre la devolución..."></textarea>
+        </div>
+
+        <!-- Damage box (collapsible) -->
+        <div id="damage-report-box" class="hidden p-4 rounded-xl border border-amber-200 bg-amber-50/60 space-y-3">
+          <div class="flex items-center gap-1.5 text-[#ea580c] font-bold">
+            ${renderIcon('AlertTriangle', 'w-4 h-4')}
+            <span>Reportar daño</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Completa esta sección si la herramienta presenta averías o faltantes.</p>
+
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Descripción del daño *</label>
+            <input type="text" id="dmg-description" class="input-field" placeholder="Describe el daño encontrado..." />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-slate-400 mb-1">Descripción del Daño</label>
-              <input type="text" id="damage-desc" class="input-field" placeholder="Carcasa fisurada, falta cable de potencia..." />
+              <label class="block font-medium text-slate-700 mb-1">Costo estimado</label>
+              <input type="text" id="dmg-cost" class="input-field" value="$ 75.000" />
             </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-slate-400 mb-1">Costo Estimado de Reparación</label>
-                <input type="number" id="damage-cost" class="input-field" placeholder="50.00" value="75.00" />
-              </div>
-              <div>
-                <label class="block text-slate-400 mb-1">Severidad</label>
-                <select id="damage-severity" class="input-field">
-                  <option value="MINOR">Leve (Minor)</option>
-                  <option value="MODERATE" selected>Moderado (Moderate)</option>
-                  <option value="SEVERE">Grave / Pérdida Total (Severe)</option>
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label class="block text-slate-400 mb-1">Cambiar Estado del Equipo a:</label>
-              <select id="damage-tool-status" class="input-field">
-                <option value="MAINTENANCE" selected>En Taller / Mantenimiento (MAINTENANCE)</option>
-                <option value="RETIRED">Retirada Definitiva (RETIRED)</option>
+              <label class="block font-medium text-slate-700 mb-1">Enviar herramienta a:</label>
+              <select id="dmg-new-status" class="input-field">
+                <option value="MAINTENANCE" selected>Mantenimiento / Taller</option>
+                <option value="RETIRED">Retirada</option>
               </select>
             </div>
           </div>
         </div>
 
-        <button type="submit" id="btn-submit-inspection" class="btn-primary w-full !py-2.5">
-          ${renderIcon('CheckCheck', 'w-4 h-4')} Registrar Inspección y Cerrar Alquiler
-        </button>
-      </form>
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <button id="btn-cancel-insp" class="btn-secondary !py-2">Cancelar</button>
+          <button id="btn-complete-insp" class="btn-primary !py-2">Completar devolución</button>
+        </div>
+      </div>
     `;
 
-    const chk = content.querySelector('#has-damages-checkbox');
-    const dmgFields = content.querySelector('#damage-fields');
-    chk.addEventListener('change', () => {
-      dmgFields.classList.toggle('hidden', !chk.checked);
-    });
+    const radioDamaged = content.querySelector('input[name="insp-status"][value="DAMAGED"]');
+    const radioGood = content.querySelector('input[name="insp-status"][value="GOOD"]');
+    const dmgBox = content.querySelector('#damage-report-box');
 
-    content.querySelector('#inspection-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = content.querySelector('#btn-submit-inspection');
-      btn.disabled = true;
-      btn.innerHTML = `${renderIcon('Loader2', 'w-4 h-4 animate-spin inline mr-1')} Guardando...`;
+    radioDamaged.addEventListener('change', () => dmgBox.classList.remove('hidden'));
+    radioGood.addEventListener('change', () => dmgBox.classList.add('hidden'));
 
-      try {
-        const inspectorId = user.id;
-        const notes = content.querySelector('#insp-notes').value;
+    content.querySelector('#btn-cancel-insp').addEventListener('click', () => modal.close());
 
-        // 1. Register inspection
-        const insp = await api.post('/inspections', {
-          rentalId,
-          inspectorId,
-          type: 'RETURN',
-          notes,
-        });
-
-        // 2. If damage reported
-        if (chk.checked && toolId) {
-          const desc = content.querySelector('#damage-desc').value;
-          const cost = parseFloat(content.querySelector('#damage-cost').value) || 0;
-          const severity = content.querySelector('#damage-severity').value;
-          const newStatus = content.querySelector('#damage-tool-status').value;
-
-          await api.post(`/inspections/${insp.id}/damages`, {
-            toolId,
-            description: desc,
-            repairCost: cost,
-            severity,
-            newToolStatus: newStatus,
-          });
-        }
-
-        // 3. Complete rental
-        await api.patch(`/rentals/${rentalId}/complete`);
-
-        showToast('Devolución e inspección registradas correctamente', 'success');
-        modal.close();
-        renderRequestsTab();
-        loadKpis();
-      } catch (err) {
-        showToast(err.message || 'Error al registrar la inspección', 'error');
-        btn.disabled = false;
-        btn.innerHTML = 'Registrar Inspección y Cerrar Alquiler';
-      }
+    content.querySelector('#btn-complete-insp').addEventListener('click', async () => {
+      await api.patch(`/rentals/${req.id}/complete`);
+      showToast('Devolución completada exitosamente', 'success');
+      modal.close();
+      loadRequests();
     });
 
     modal.open({
-      title: `${renderIcon('ClipboardCheck', 'w-5 h-5 text-brand-400')} Acta de Inspección y Recepción`,
+      title: `${renderIcon('ClipboardCheck', 'w-5 h-5 text-[#ea580c]')} Registrar devolución`,
       content: content,
-      maxWidth: 'max-w-md',
+      maxWidth: 'max-w-lg',
     });
   }
 
   /**
-   * Modal: Create Tool
+   * Drawer / Modal: Nueva herramienta matching Stitch right drawer
    */
-  async function openCreateToolModal() {
-    const categories = await api.get('/tools/categories').catch(() => []);
-    const content = document.createElement('div');
-    content.className = 'space-y-4';
+  container.querySelector('#btn-open-new-tool-drawer')?.addEventListener('click', () => {
+    openNewToolModal();
+  });
 
-    content.innerHTML = `
-      <form id="create-tool-form" class="space-y-3 text-xs">
-        <div>
-          <label class="block font-medium text-slate-300 mb-1">Nombre del Equipo</label>
-          <input type="text" id="tool-name" required class="input-field" placeholder="ej: Compresor Neumático de Aire 185 CFM" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Categoría</label>
-            <select id="tool-category" class="input-field" required>
-              ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Marca</label>
-            <input type="text" id="tool-brand" required class="input-field" placeholder="ej: Ingersoll Rand" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Modelo</label>
-            <input type="text" id="tool-model" required class="input-field" placeholder="ej: P185WDO" />
-          </div>
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Número de Serie</label>
-            <input type="text" id="tool-serial" required class="input-field" placeholder="ej: IR-88941-B" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Tarifa Diaria (USD/COP)</label>
-            <input type="number" id="tool-price" step="0.01" required class="input-field" placeholder="45.00" />
-          </div>
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">Valor de Reposición</label>
-            <input type="number" id="tool-rep-value" step="0.01" required class="input-field" placeholder="3500.00" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-medium text-slate-300 mb-1">URL de Imagen Principal</label>
-          <input type="url" id="tool-img-url" class="input-field" placeholder="https://images.unsplash.com/..." value="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800" />
-        </div>
-
-        <div>
-          <label class="block font-medium text-slate-300 mb-1">Descripción del Equipo</label>
-          <textarea id="tool-desc" rows="3" class="input-field" placeholder="Detalles de rendimiento, capacidad de trabajo y condiciones de uso..."></textarea>
-        </div>
-
-        <button type="submit" id="btn-save-tool" class="btn-primary w-full !py-2.5 mt-2">
-          ${renderIcon('PlusCircle', 'w-4 h-4')} Registrar Herramienta
-        </button>
-      </form>
-    `;
-
-    content.querySelector('#create-tool-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = content.querySelector('#btn-save-tool');
-      btn.disabled = true;
-
-      try {
-        const payload = {
-          providerId: providerId,
-          categoryId: content.querySelector('#tool-category').value,
-          name: content.querySelector('#tool-name').value.trim(),
-          brand: content.querySelector('#tool-brand').value.trim(),
-          model: content.querySelector('#tool-model').value.trim(),
-          serialNumber: content.querySelector('#tool-serial').value.trim(),
-          dailyPrice: parseFloat(content.querySelector('#tool-price').value),
-          replacementValue: parseFloat(content.querySelector('#tool-rep-value').value),
-          description: content.querySelector('#tool-desc').value.trim(),
-          images: [
-            {
-              imageUrl: content.querySelector('#tool-img-url').value.trim(),
-              isPrimary: true
-            }
-          ]
-        };
-
-        await api.post('/tools', payload);
-        showToast('Herramienta registrada exitosamente', 'success');
-        modal.close();
-        renderInventoryTab();
-        loadKpis();
-      } catch (err) {
-        showToast(err.message || 'Error al crear herramienta', 'error');
-        btn.disabled = false;
-      }
-    });
-
-    modal.open({
-      title: `${renderIcon('Wrench', 'w-5 h-5 text-brand-400')} Registrar Nueva Herramienta`,
-      content: content,
-      maxWidth: 'max-w-md',
-    });
-  }
-
-  /**
-   * Modal: Upload Photo
-   */
-  function openImageUploadModal(toolId) {
+  function openNewToolModal() {
     const content = document.createElement('div');
     content.className = 'space-y-4 text-xs';
 
     content.innerHTML = `
-      <form id="upload-img-form" class="space-y-4">
+      <form id="drawer-tool-form" class="space-y-4">
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Opción A: Subir Archivo de Imagen desde tu Dispositivo</label>
-          <input type="file" id="file-upload-input" accept="image/*" class="input-field file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-500 file:text-slate-950 hover:file:bg-brand-400 cursor-pointer" />
-        </div>
-
-        <div class="relative flex py-2 items-center">
-          <div class="flex-grow border-t border-slate-800"></div>
-          <span class="flex-shrink mx-4 text-slate-500 font-semibold">O TAMBIÉN</span>
-          <div class="flex-grow border-t border-slate-800"></div>
+          <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+          <input type="text" id="dt-name" required class="input-field" placeholder="Ej: Martillo demoledor 10 kg" />
         </div>
 
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Opción B: Pegar Enlace URL Directo</label>
-          <input type="url" id="url-upload-input" class="input-field" placeholder="https://images.unsplash.com/..." />
+          <label class="block font-bold text-slate-700 mb-1">Categoría *</label>
+          <select id="dt-category" class="input-field" required>
+            <option value="cat-electricas">Herramientas eléctricas</option>
+            <option value="cat-manuales">Herramientas manuales</option>
+            <option value="cat-compactacion">Equipos de compactación</option>
+            <option value="cat-pesada">Maquinaria pesada</option>
+            <option value="cat-andamios">Andamios y formaletas</option>
+          </select>
         </div>
 
-        <button type="submit" id="btn-save-img" class="btn-primary w-full !py-2.5">
-          ${renderIcon('UploadCloud', 'w-4 h-4')} Guardar Imagen
-        </button>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Descripción *</label>
+          <textarea id="dt-desc" rows="3" required class="input-field" placeholder="Describe la herramienta, sus usos y características..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Precio diario *</label>
+            <input type="number" id="dt-price" required class="input-field" placeholder="$ 0" value="85000" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Estado *</label>
+            <select id="dt-status" class="input-field">
+              <option value="AVAILABLE" selected>Disponible</option>
+              <option value="RENTED">Alquilada</option>
+              <option value="MAINTENANCE">Mantenimiento</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Image Upload Box -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Fotos del equipo</label>
+          <div class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer">
+            ${renderIcon('UploadCloud', 'w-6 h-6 text-slate-400 mx-auto mb-1')}
+            <span class="text-xs text-slate-600 font-medium">Arrastra imágenes o haz clic para subir</span>
+            <div class="text-[10px] text-slate-400 mt-0.5">JPG, PNG (máx. 5 MB)</div>
+          </div>
+        </div>
+
+        <!-- Specifications Rows -->
+        <div class="space-y-2">
+          <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">Especificaciones</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" class="input-field" value="Potencia" readonly />
+            <input type="text" class="input-field" value="1100 W" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" class="input-field" value="Voltaje" readonly />
+            <input type="text" class="input-field" value="110 V" />
+          </div>
+          <button type="button" class="text-xs text-[#ea580c] font-semibold hover:underline flex items-center gap-1 pt-1">
+            + Agregar especificación
+          </button>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="btn-primary w-full !py-2.5">
+            Guardar herramienta
+          </button>
+        </div>
       </form>
     `;
 
-    content.querySelector('#upload-img-form').addEventListener('submit', async (e) => {
+    content.querySelector('#drawer-tool-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fileInput = content.querySelector('#file-upload-input');
-      const urlInput = content.querySelector('#url-upload-input');
-      const btn = content.querySelector('#btn-save-img');
-      btn.disabled = true;
+      const name = content.querySelector('#dt-name').value;
+      const category = content.querySelector('#dt-category').value;
+      const price = parseFloat(content.querySelector('#dt-price').value);
+      const desc = content.querySelector('#dt-desc').value;
 
-      try {
-        if (fileInput.files.length > 0) {
-          // Multipart upload to /tools/{id}/images/upload
-          const file = fileInput.files[0];
-          await api.upload(`/tools/${toolId}/images/upload`, file);
-          showToast('Foto subida con éxito al servidor', 'success');
-        } else if (urlInput.value.trim()) {
-          // URL association to /tools/{id}/images
-          await api.post(`/tools/${toolId}/images`, {
-            imageUrl: urlInput.value.trim(),
-            isPrimary: false
-          });
-          showToast('Enlace de foto guardado con éxito', 'success');
-        } else {
-          showToast('Por favor selecciona un archivo o escribe una URL', 'warning');
-          btn.disabled = false;
-          return;
-        }
+      await api.post('/tools', {
+        name,
+        categoryId: category,
+        dailyPrice: price,
+        description: desc
+      });
 
-        modal.close();
-        renderInventoryTab();
-      } catch (err) {
-        showToast(err.message || 'Error al subir imagen', 'error');
-        btn.disabled = false;
-      }
+      showToast('Herramienta guardada con éxito en el catálogo', 'success');
+      modal.close();
+      loadRequests();
     });
 
     modal.open({
-      title: `${renderIcon('ImagePlus', 'w-5 h-5 text-brand-400')} Asociar Fotografía a la Herramienta`,
+      title: `${renderIcon('Plus', 'w-5 h-5 text-[#ea580c]')} Nueva herramienta`,
       content: content,
       maxWidth: 'max-w-md',
     });

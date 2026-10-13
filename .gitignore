@@ -39,3 +39,8 @@ build/
 graphify-out/cache/
 graphify-out/.graphify_python
 
+### Local Agent and IDE configs ###
+.gemini/
+.agents/
+skills-lock.json
+
