@@ -1,4 +1,4 @@
-import prelinePlugin from 'preline/plugin';
+import prelinePlugin from './node_modules/preline/plugin.js';
 
 /** @type {import('tailwindcss').Config} */
 export default {
