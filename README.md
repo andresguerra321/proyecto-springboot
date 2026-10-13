@@ -2,11 +2,11 @@
 
 ![ToolRent Banner](img/banner%20github.png)
 
-> **ToolRent** es una plataforma integral de renta de maquinaria pesada, herramientas industriales y equipos de construcción para Colombia. Implementa **Arquitectura Hexagonal**, **Domain-Driven Design (DDD)** con 8 módulos Maven desacoplados, **Spring Boot 3.3 (Java 21)**, **PostgreSQL 16**, base de datos relacional auditada y normalizada en **Cuarta Forma Normal (4FN)**, seguridad JWT con control de acceso basado en roles (RBAC), documentación interactiva OpenAPI/Swagger y un frontend SPA con **Vite + Tailwind CSS v3** moldeado según el sistema de diseño oficial de ToolRent.
+> **ToolRent** es una plataforma integral de renta de maquinaria pesada, herramientas industriales y equipos de construcción para Colombia. Implementa **Arquitectura Hexagonal**, **Domain-Driven Design (DDD)** con 8 módulos Maven desacoplados, **Spring Boot 3.3 (Java 17)**, **PostgreSQL 16**, base de datos relacional auditada y normalizada en **Cuarta Forma Normal (4FN)**, seguridad JWT con control de acceso basado en roles (RBAC), documentación interactiva OpenAPI/Swagger y un frontend SPA con **Vite + Tailwind CSS v3** moldeado según el sistema de diseño oficial de ToolRent.
 
 ## 🚀 Tecnologías Principales
-- **Java 21 LTS**
-- **Spring Boot 3.3.x**
+- **Java 17 LTS (Eclipse Temurin)**
+- **Spring Boot 3.4.x / 3.3.x**
   - Spring Web MVC
   - Spring Data JPA / Hibernate
   - Spring Security 6 (Autenticación JWT Stateless)
@@ -50,7 +50,7 @@ erDiagram
 ## Cómo Clonar y Ejecutar
 ### Pre-requisitos
 - Docker y Docker Compose instalados.
-- JDK 21 (si deseas compilar localmente fuera de Docker).
+- JDK 17 (Java 17 LTS - Eclipse Temurin recomendado para compilar localmente fuera de Docker).
 - Maven 3.9+ (opcional, el contenedor usa multistage con Maven).
 
 ### Pasos

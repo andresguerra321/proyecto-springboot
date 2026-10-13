@@ -3,7 +3,7 @@
 Este documento contiene las instrucciones exactas para levantar el sistema "Renta Equipos" desde cero, usando contenedores Docker.
 
 ## Estrategia de Despliegue (Contenedores)
-El sistema se empaqueta en imágenes Docker mediante un *Multistage Build*. Esto significa que el código fuente se compila y empaqueta **dentro del proceso de construcción de Docker** usando Maven, y posteriormente solo se traslada el archivo `.jar` resultante a la imagen de ejecución, garantizando una imagen ligera de Java 21 Alpine.
+El sistema se empaqueta en imágenes Docker mediante un *Multistage Build*. Esto significa que el código fuente se compila y empaqueta **dentro del proceso de construcción de Docker** usando Maven, y posteriormente solo se traslada el archivo `.jar` resultante a la imagen de ejecución, garantizando una imagen ligera de Java 17 Alpine (Eclipse Temurin 17 JRE).
 
 El `docker-compose.yml` orquesta dos servicios principales:
 1. **postgres:** Base de datos PostgreSQL.

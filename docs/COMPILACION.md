@@ -20,7 +20,7 @@ El proyecto está estructurado alrededor de un archivo `pom.xml` padre que agreg
 Si deseas compilar la aplicación para verificar los errores, o para correr los test unitarios localmente fuera de Docker, sigue estos pasos:
 
 ### 1. Pre-requisitos
-- **Java JDK 21**
+- **Java JDK 17 (Java 17 LTS)**
 - **Maven 3.9+** (Opcional, el proyecto incluye Maven Wrapper `mvnw`).
 
 ### 2. Ejecutar la compilación
