@@ -5,57 +5,77 @@ export function renderFooter() {
   if (!container) return;
 
   container.innerHTML = `
-    <footer class="border-t border-slate-800/80 bg-surface-950/90 backdrop-blur-md text-slate-400 py-12 mt-auto">
+    <footer class="border-t border-slate-200/90 bg-white text-slate-600 py-10 mt-auto">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           
+          <!-- Brand & Description -->
           <div class="space-y-3 md:col-span-1">
             <div class="flex items-center gap-2.5">
               ${renderToolRentMark('w-8 h-8', '#FF5A1F')}
-              <span class="font-display font-extrabold text-xl text-white">ToolRent</span>
+              <span class="font-display font-extrabold text-xl text-slate-900 tracking-tight">ToolRent</span>
             </div>
-            <p class="text-xs text-slate-400 leading-relaxed">
-              Herramientas y maquinaria para construir grandes proyectos en toda Colombia.
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Herramientas y maquinaria de alta calidad para construir, remodelar y hacer realidad tus proyectos en toda Colombia.
             </p>
+            <div class="flex items-center gap-2 pt-1 text-xs text-slate-600 font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
+              <span>Disponibilidad inmediata en obra</span>
+            </div>
           </div>
 
+          <!-- Navegación de Plataforma -->
           <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Roles de Plataforma</h4>
-            <ul class="space-y-2 text-xs">
-              <li><a href="#/catalog" class="hover:text-brand-400 transition-colors">Catálogo Público</a></li>
-              <li><a href="#/client" class="hover:text-brand-400 transition-colors">Portal Cliente Particular / Obra</a></li>
-              <li><a href="#/provider" class="hover:text-brand-400 transition-colors">Portal de Proveedores Afiliados</a></li>
-              <li><a href="#/admin" class="hover:text-brand-400 transition-colors">Supervisión y Control Admin</a></li>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 font-display">Plataforma</h4>
+            <ul class="space-y-2.5 text-xs">
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Catálogo de Equipos</a></li>
+              <li><a href="#/client" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Mis Alquileres</a></li>
+              <li><a href="#/provider" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Para Proveedores</a></li>
+              <li><a href="#/admin" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Panel Administrativo</a></li>
             </ul>
           </div>
 
+          <!-- Categorías Principales -->
           <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Arquitectura y Estándares</h4>
-            <ul class="space-y-2 text-xs">
-              <li><span class="text-slate-300">Backend:</span> Spring Boot 3 + Java 21</li>
-              <li><span class="text-slate-300">Base de Datos:</span> PostgreSQL 16 (4FN estricta)</li>
-              <li><span class="text-slate-300">Seguridad:</span> JWT Stateless + RBAC</li>
-              <li><span class="text-slate-300">Frontend:</span> Vite + Tailwind CSS v3</li>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 font-display">Categorías</h4>
+            <ul class="space-y-2.5 text-xs">
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Herramientas Eléctricas</a></li>
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Equipos de Compactación</a></li>
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Maquinaria Pesada</a></li>
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Andamios y Formaletas</a></li>
             </ul>
           </div>
 
+          <!-- Atención y Contacto -->
           <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Documentación API</h4>
-            <p class="text-xs text-slate-400 mb-3">
-              Explora los endpoints con contratos interactivos en Swagger UI:
-            </p>
-            <a href="http://localhost:8085/swagger-ui.html" target="_blank" rel="noopener noreferrer" class="btn-outline !py-2 text-xs inline-flex items-center gap-1.5 w-full justify-center">
-              ${renderIcon('ExternalLink', 'w-3.5 h-3.5')} Abrir Swagger UI
-            </a>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 font-display">Atención y Soporte</h4>
+            <ul class="space-y-2.5 text-xs text-slate-600">
+              <li class="flex items-center gap-2">
+                ${renderIcon('Phone', 'w-3.5 h-3.5 text-[#FF5A1F] flex-shrink-0')}
+                <span>+57 (601) 745-9000</span>
+              </li>
+              <li class="flex items-center gap-2">
+                ${renderIcon('Mail', 'w-3.5 h-3.5 text-[#FF5A1F] flex-shrink-0')}
+                <span>soporte@toolrent.co</span>
+              </li>
+              <li class="flex items-center gap-2">
+                ${renderIcon('MapPin', 'w-3.5 h-3.5 text-[#FF5A1F] flex-shrink-0')}
+                <span>Cobertura en toda Colombia</span>
+              </li>
+              <li class="text-[11px] text-slate-400 pt-1">
+                Lunes a Sábado: 7:00 AM – 6:00 PM
+              </li>
+            </ul>
           </div>
 
         </div>
 
-        <div class="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-          <p>© 2026 RentaMaq. Todos los derechos reservados. Proyecto Académico CAMPUS.</p>
-          <div class="flex items-center gap-4">
-            <span class="flex items-center gap-1.5 text-slate-400">
-              ${renderIcon('ShieldCheck', 'w-4 h-4 text-brand-400')} Cumple 4FN & Seguridad IDOR
+        <!-- Línea inferior institucional -->
+        <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <p>© 2026 ToolRent S.A.S. Todos los derechos reservados.</p>
+          <div class="flex items-center gap-4 text-[11px]">
+            <span class="flex items-center gap-1.5 text-slate-600 font-medium">
+              ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-500')} Alquiler Seguro y Pagos Protegidos
             </span>
           </div>
         </div>
