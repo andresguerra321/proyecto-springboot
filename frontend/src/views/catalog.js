@@ -15,6 +15,7 @@ export async function renderCatalogView() {
   let maxPrice = 500000;
   let sortBy = 'relevant';
   let viewMode = 'normal'; // normal, skeleton, empty, error
+  let categoryScrollLeft = 0;
 
   let allTools = [];
   let categories = [];
@@ -84,24 +85,50 @@ export async function renderCatalogView() {
             </div>
           </div>
 
-          <!-- Horizontal Category Pills Bar matching mockup -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar" id="category-pills-row">
-            ${categories.map(cat => {
-              const isActive = selectedCategory === cat.id;
-              return `
-                <button 
-                  class="cat-pill-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                    isActive 
-                      ? 'bg-orange-50/70 border-brand-500 text-brand-600 shadow-xs' 
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                  }"
-                  data-cat-id="${cat.id}"
-                >
-                  ${renderIcon(cat.icon || 'Wrench', `w-3.5 h-3.5 ${isActive ? 'text-brand-600' : 'text-slate-500'}`)}
-                  <span>${cat.name}</span>
-                </button>
-              `;
-            }).join('')}
+          <!-- Horizontal Category Pills Bar with Navigation Arrows matching page styling -->
+          <div class="relative flex items-center group/pills mb-2">
+            <!-- Left Arrow Button -->
+            <button 
+              id="cat-scroll-left" 
+              class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 shadow-sm transition-all z-10 flex-shrink-0 mr-1.5 sm:mr-2 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-white"
+              aria-label="Desplazar categorías hacia la izquierda"
+              title="Anterior"
+            >
+              ${renderIcon('ChevronLeft', 'w-4 h-4')}
+            </button>
+
+            <!-- Scrollable Track with no scrollbar -->
+            <div 
+              class="flex-1 flex items-center gap-2 overflow-x-auto scroll-smooth py-1 no-scrollbar select-none" 
+              id="category-pills-row"
+            >
+              ${categories.map(cat => {
+                const isActive = selectedCategory === cat.id;
+                return `
+                  <button 
+                    class="cat-pill-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border flex-shrink-0 cursor-pointer ${
+                      isActive 
+                        ? 'bg-orange-50/80 border-[#ea580c] text-[#ea580c] shadow-xs' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                    }"
+                    data-cat-id="${cat.id}"
+                  >
+                    ${renderIcon(cat.icon || 'Wrench', `w-3.5 h-3.5 ${isActive ? 'text-[#ea580c]' : 'text-slate-500'}`)}
+                    <span>${cat.name}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Right Arrow Button -->
+            <button 
+              id="cat-scroll-right" 
+              class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 shadow-sm transition-all z-10 flex-shrink-0 ml-1.5 sm:ml-2 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-white"
+              aria-label="Desplazar categorías hacia la derecha"
+              title="Siguiente"
+            >
+              ${renderIcon('ChevronRight', 'w-4 h-4')}
+            </button>
           </div>
 
           <!-- Main Marketplace Layout: Sidebar Filters + Products Grid -->
@@ -412,6 +439,42 @@ export async function renderCatalogView() {
         render();
       });
     });
+
+    // Category pills arrow navigation & scroll preservation
+    const catRow = container.querySelector('#category-pills-row');
+    const btnLeft = container.querySelector('#cat-scroll-left');
+    const btnRight = container.querySelector('#cat-scroll-right');
+
+    const updateArrowStates = () => {
+      if (!catRow || !btnLeft || !btnRight) return;
+      btnLeft.disabled = catRow.scrollLeft <= 5;
+      btnRight.disabled = Math.ceil(catRow.scrollLeft + catRow.clientWidth) >= catRow.scrollWidth - 5;
+    };
+
+    if (btnLeft && catRow) {
+      btnLeft.addEventListener('click', () => {
+        catRow.scrollBy({ left: -260, behavior: 'smooth' });
+        setTimeout(updateArrowStates, 320);
+      });
+    }
+
+    if (btnRight && catRow) {
+      btnRight.addEventListener('click', () => {
+        catRow.scrollBy({ left: 260, behavior: 'smooth' });
+        setTimeout(updateArrowStates, 320);
+      });
+    }
+
+    if (catRow) {
+      if (categoryScrollLeft > 0) {
+        catRow.scrollLeft = categoryScrollLeft;
+      }
+      catRow.addEventListener('scroll', () => {
+        categoryScrollLeft = catRow.scrollLeft;
+        updateArrowStates();
+      }, { passive: true });
+      setTimeout(updateArrowStates, 50);
+    }
 
     // Checkbox category events
     container.querySelectorAll('input[name="cat-cb"]').forEach(cb => {
