@@ -17,13 +17,25 @@ export async function renderAdminDashboard() {
             ${renderIcon('ShieldAlert', 'w-7 h-7')}
           </div>
           <h2 class="text-xl font-bold text-slate-900 font-display">Área Restringida a Administradores</h2>
-          <p class="text-xs text-slate-500">Debes autenticarte con una cuenta que posea el rol ROLE_ADMIN para acceder a este módulo.</p>
-          <button id="btn-login-admin" class="btn-primary w-full !py-2.5 text-xs">
-            ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Admin
-          </button>
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            <button id="btn-demo-admin-login" class="btn-primary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm">
+              ${renderIcon('ShieldCheck', 'w-4 h-4')} Entrar como Admin (Demo)
+            </button>
+            <button id="btn-login-admin" class="btn-secondary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5">
+              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión
+            </button>
+          </div>
         </div>
       </section>
     `;
+    container.querySelector('#btn-demo-admin-login')?.addEventListener('click', () => {
+      auth.setSession({
+        token: 'demo-admin-jwt',
+        user: { username: 'admin', role: 'ROLE_ADMIN', profile: { name: 'Admin General', id: 'admin-001' } }
+      });
+      showToast('Sesión iniciada como Administrador', 'success');
+      renderAdminDashboard();
+    });
     container.querySelector('#btn-login-admin')?.addEventListener('click', () => openAuthModal('login'));
     return;
   }

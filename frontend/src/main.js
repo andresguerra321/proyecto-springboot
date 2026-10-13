@@ -5,6 +5,7 @@ import { renderCatalogView } from './views/catalog.js';
 import { renderClientDashboard } from './views/client-dashboard.js';
 import { renderProviderDashboard } from './views/provider-dashboard.js';
 import { renderAdminDashboard } from './views/admin-dashboard.js';
+import { renderProductPageView } from './views/product-detail.js';
 import showToast from './components/toast.js';
 
 // Router mapping
@@ -18,6 +19,18 @@ const routes = {
 function router() {
   const hash = window.location.hash || '#/catalog';
   const cleanRoute = hash.split('?')[0];
+  
+  // Handle dynamic product detail route: #/product/:id
+  if (cleanRoute.startsWith('#/product/')) {
+    const parts = cleanRoute.split('/');
+    const rawId = parts[2];
+    const toolId = rawId && !isNaN(Number(rawId)) ? Number(rawId) : rawId;
+    renderNavbar('catalog');
+    renderProductPageView(toolId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
   const routeKey = cleanRoute in routes ? cleanRoute : '#/catalog';
   
   const activeRouteName = routeKey.replace('#/', '');

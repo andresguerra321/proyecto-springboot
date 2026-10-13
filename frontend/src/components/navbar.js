@@ -46,29 +46,23 @@ export function renderNavbar(activeRoute = 'catalog') {
                 Catálogo
               </a>
 
-              ${isClient || !isAuth ? `
-                <a href="#/client" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  activeRoute === 'client' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }">
-                  Mis Alquileres
-                </a>
-              ` : ''}
+              <a href="#/client" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                activeRoute === 'client' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }">
+                Mis Alquileres
+              </a>
 
-              ${isProvider || isAdmin ? `
-                <a href="#/provider" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  activeRoute === 'provider' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }">
-                  Panel Proveedor
-                </a>
-              ` : ''}
+              <a href="#/provider" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                activeRoute === 'provider' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }">
+                Panel Proveedor
+              </a>
 
-              ${isAdmin ? `
-                <a href="#/admin" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  activeRoute === 'admin' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }">
-                  Panel Admin
-                </a>
-              ` : ''}
+              <a href="#/admin" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                activeRoute === 'admin' ? 'text-[#ea580c] bg-orange-50 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }">
+                Panel Admin
+              </a>
             </div>
 
             <!-- Mode Tag -->
@@ -122,8 +116,8 @@ export function renderNavbar(activeRoute = 'catalog') {
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
         <a href="#/catalog" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Catálogo</a>
         <a href="#/client" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Mis Alquileres</a>
-        ${isProvider || isAdmin ? `<a href="#/provider" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Panel Proveedor</a>` : ''}
-        ${isAdmin ? `<a href="#/admin" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Panel Administrador</a>` : ''}
+        <a href="#/provider" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Panel Proveedor</a>
+        <a href="#/admin" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Panel Administrador</a>
         <div class="pt-2 border-t border-slate-200 mt-2">
           ${isAuth ? `
             <button id="mobile-btn-logout" class="w-full text-left px-3 py-2 text-sm text-rose-600 font-medium">Cerrar Sesión</button>
