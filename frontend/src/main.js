@@ -9,6 +9,7 @@ import { renderAdminDashboard } from './views/admin-dashboard.js';
 import { renderProductPageView } from './views/product-detail.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
+import { renderAllSystemStatesShowcase } from './components/system-states.js';
 
 export function render404View() {
   renderNavbar('catalog');
@@ -76,6 +77,8 @@ const routes = {
   '#/provider': renderProviderDashboard,
   '#/admin': renderAdminDashboard,
   '#/404': render404View,
+  '#/system-states': renderAllSystemStatesShowcase,
+  '#/states': renderAllSystemStatesShowcase,
 };
 
 function router() {

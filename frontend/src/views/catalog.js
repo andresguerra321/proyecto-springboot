@@ -2,6 +2,7 @@ import api from '../api/client.js';
 import bannerWebImg from '../assets/banner-web.png';
 import { formatCurrency } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
+import { renderCardGridSkeleton } from '../components/system-states.js';
 
 export async function renderCatalogView() {
   const container = document.getElementById('app-content');
@@ -275,7 +276,7 @@ export async function renderCatalogView() {
 
             <!-- Reactive Product Cards Grid Container -->
             <div id="catalog-products-container" class="min-h-[400px]">
-              <!-- Dynamically populated without tearing down page inputs -->
+              ${renderCardGridSkeleton(6)}
             </div>
 
           </main>

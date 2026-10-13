@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, getRentalStatusBadge } from '../utils/forma
 import { renderIcon } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 import { openInvoiceViewer } from './rental-modal.js';
+import { renderTableSkeleton } from '../components/system-states.js';
 
 export async function renderClientDashboard() {
   const container = document.getElementById('app-content');
@@ -79,10 +80,7 @@ export async function renderClientDashboard() {
           </div>
 
           <div id="client-rentals-container" class="divide-y divide-slate-100">
-            <div class="py-16 text-center text-slate-400">
-              ${renderIcon('Loader2', 'w-6 h-6 animate-spin mx-auto text-brand-600 mb-2')}
-              <p class="text-xs">Cargando tus solicitudes de alquiler...</p>
-            </div>
+            ${renderTableSkeleton(4)}
           </div>
         </div>
 
