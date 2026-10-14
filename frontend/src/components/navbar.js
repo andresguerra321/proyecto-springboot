@@ -13,7 +13,7 @@ export function renderNavbar(activeRoute = 'catalog') {
   const isAdmin = auth.isAdmin();
   const isProvider = auth.isProvider();
   const isClient = auth.isClient();
-  const unreadCount = notificationsStore.getUnreadCount();
+  const unreadCount = isAuth ? notificationsStore.getUnreadCount() : 0;
 
   container.innerHTML = `
     <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
