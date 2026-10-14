@@ -4,9 +4,9 @@ import showToast from './toast.js';
 import loginImg from '../assets/login.png';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
-export function openAuthModal(initialTab = 'login') {
+export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE') {
   let currentTab = initialTab; // 'login' or 'register'
-  let selectedRole = 'ROLE_CLIENTE'; // ROLE_CLIENTE or ROLE_PROVEEDOR
+  let selectedRole = initialRole; // ROLE_CLIENTE or ROLE_PROVEEDOR
 
   const content = document.createElement('div');
   content.className = 'w-full';
@@ -216,11 +216,11 @@ export function openAuthModal(initialTab = 'login') {
 
         // Redirect based on role
         if (result.roles?.includes('ROLE_ADMIN')) {
-          window.location.hash = '#admin';
+          window.location.hash = '#/admin';
         } else if (result.roles?.includes('ROLE_PROVEEDOR')) {
-          window.location.hash = '#provider';
+          window.location.hash = '#/provider';
         } else {
-          window.location.hash = '#catalog';
+          window.location.hash = '#/catalog';
         }
       } else {
         const fullName = content.querySelector('#reg-name')?.value.trim();
