@@ -17,25 +17,15 @@ export async function renderAdminDashboard() {
             ${renderIcon('ShieldAlert', 'w-7 h-7')}
           </div>
           <h2 class="text-xl font-bold text-slate-900 font-display">Área Restringida a Administradores</h2>
-          <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button id="btn-demo-admin-login" class="btn-primary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm">
-              ${renderIcon('ShieldCheck', 'w-4 h-4')} Entrar como Admin (Demo)
-            </button>
-            <button id="btn-login-admin" class="btn-secondary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5">
-              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión
+          <p class="text-xs text-slate-500">Inicia sesión con credenciales de Administrador para acceder a métricas, inventario global y usuarios.</p>
+          <div class="flex justify-center pt-2">
+            <button id="btn-login-admin" class="btn-primary !py-2.5 !px-8 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
+              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Administrador
             </button>
           </div>
         </div>
       </section>
     `;
-    container.querySelector('#btn-demo-admin-login')?.addEventListener('click', () => {
-      auth.setSession({
-        token: 'demo-admin-jwt',
-        user: { username: 'admin', role: 'ROLE_ADMIN', profile: { name: 'Admin General', id: 'admin-001' } }
-      });
-      showToast('Sesión iniciada como Administrador', 'success');
-      renderAdminDashboard();
-    });
     container.querySelector('#btn-login-admin')?.addEventListener('click', () => openAuthModal('login'));
     return;
   }
@@ -44,9 +34,28 @@ export async function renderAdminDashboard() {
   let currentTab = 'all'; // all, client, provider, admin
   let searchQuery = '';
   let usersList = [];
+  let incomeReport = null;
+  let toolAvail = null;
+  let topTools = [];
+  let topClients = [];
+  let allTools = [];
 
   try {
-    const rawUsers = await api.get('/users');
+    const [rawUsers, rawIncome, rawAvail, rawTopTools, rawTopClients, rawTools] = await Promise.all([
+      api.get('/users').catch(() => []),
+      api.get('/reporting/income').catch(() => null),
+      api.get('/reporting/tool-availability').catch(() => null),
+      api.get('/reporting/most-rented-tools', { limit: 5 }).catch(() => []),
+      api.get('/reporting/frequent-clients', { limit: 5 }).catch(() => []),
+      api.get('/tools').catch(() => [])
+    ]);
+
+    incomeReport = rawIncome;
+    toolAvail = rawAvail;
+    topTools = Array.isArray(rawTopTools) ? rawTopTools : [];
+    topClients = Array.isArray(rawTopClients) ? rawTopClients : [];
+    allTools = Array.isArray(rawTools) ? rawTools : [];
+
     if (Array.isArray(rawUsers) && rawUsers.length > 0) {
       usersList = rawUsers.map(u => {
         const isClient = u.roles?.some(r => r.includes('CLIENTE'));
@@ -65,19 +74,25 @@ export async function renderAdminDashboard() {
       });
     }
   } catch (err) {
-    console.warn('Could not fetch real users from backend, fallback to default', err);
+    console.warn('Error loading admin dashboard real metrics', err);
   }
 
-  if (usersList.length === 0) {
-    usersList = [
-      { id: 'usr-01', name: 'Juan Pérez García', email: 'juan.perez@ejemplo.com', role: 'Cliente', date: '13 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' },
-      { id: 'usr-02', name: 'Carlos Rodríguez', email: 'carlos.rodriguez@ejemplo.com', role: 'Proveedor', date: '11 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
-      { id: 'usr-03', name: 'Laura Gómez', email: 'laura.gomez@ejemplo.com', role: 'Cliente', date: '09 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
-      { id: 'usr-04', name: 'Diego Torres', email: 'diego.torres@ejemplo.com', role: 'Proveedor', date: '07 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
-      { id: 'usr-05', name: 'Ana Martínez', email: 'ana.martinez@ejemplo.com', role: 'Cliente', date: '05 oct 2026', active: false, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100' },
-      { id: 'usr-06', name: 'Admin General', email: 'admin@toolrent.co', role: 'Administrador', date: '01 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' }
-    ];
-  }
+  // Compute inventory distribution metrics
+  const totalT = toolAvail?.totalTools ?? allTools.length ?? 0;
+  const availT = toolAvail?.availableTools ?? allTools.filter(t => t.status === 'AVAILABLE').length ?? 0;
+  const rentT = toolAvail?.rentedTools ?? allTools.filter(t => t.status === 'RENTED').length ?? 0;
+  const maintT = toolAvail?.maintenanceTools ?? allTools.filter(t => t.status === 'MAINTENANCE').length ?? 0;
+
+  const availPct = totalT > 0 ? Math.round((availT / totalT) * 100) : 0;
+  const rentPct = totalT > 0 ? Math.round((rentT / totalT) * 100) : 0;
+  const maintPct = totalT > 0 ? Math.round((maintT / totalT) * 100) : 0;
+
+  const circ = 238.76;
+  const dashAvail = totalT > 0 ? (availT / totalT) * circ : circ;
+  const dashRent = totalT > 0 ? (rentT / totalT) * circ : 0;
+  const dashMaint = totalT > 0 ? (maintT / totalT) * circ : 0;
+  const offsetRent = -dashAvail;
+  const offsetMaint = -(dashAvail + dashRent);
 
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800">
@@ -107,170 +122,104 @@ export async function renderAdminDashboard() {
           <!-- Ingresos Totales -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-500">Ingresos totales</span>
+              <span class="text-xs font-medium text-slate-500">Ingresos facturados</span>
               <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 ${renderIcon('DollarSign', 'w-4 h-4')}
               </div>
             </div>
-            <div class="text-2xl font-bold text-slate-900 mt-2">$ 12.450.000</div>
+            <div class="text-2xl font-bold text-slate-900 mt-2">${formatCurrency(incomeReport?.totalIncome || 0)}</div>
             <div class="flex items-center gap-1 text-[11px] text-emerald-600 font-medium mt-1">
-              <span>↑ 12%</span>
-              <span class="text-slate-400 font-normal">vs. mes anterior</span>
+              <span>${incomeReport?.totalPayments || 0} transacciones</span>
+              <span class="text-slate-400 font-normal">en PostgreSQL</span>
             </div>
           </div>
 
-          <!-- Alquileres Activos -->
+          <!-- Alquileres Totales -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-500">Alquileres activos</span>
+              <span class="text-xs font-medium text-slate-500">Alquileres registrados</span>
               <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                 ${renderIcon('CalendarCheck', 'w-4 h-4')}
               </div>
             </div>
-            <div class="text-2xl font-bold text-slate-900 mt-2">18</div>
-            <div class="flex items-center gap-1 text-[11px] text-emerald-600 font-medium mt-1">
-              <span>↑ 5%</span>
-              <span class="text-slate-400 font-normal">vs. mes anterior</span>
+            <div class="text-2xl font-bold text-slate-900 mt-2">${incomeReport?.totalRentals || 0}</div>
+            <div class="flex items-center gap-1 text-[11px] text-blue-600 font-medium mt-1">
+              <span>Historial consolidado</span>
             </div>
           </div>
 
-          <!-- Usuarios -->
+          <!-- Usuarios Registrados -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-500">Usuarios</span>
+              <span class="text-xs font-medium text-slate-500">Usuarios registrados</span>
               <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
                 ${renderIcon('Users', 'w-4 h-4')}
               </div>
             </div>
-            <div class="text-2xl font-bold text-slate-900 mt-2">42</div>
-            <div class="flex items-center gap-1 text-[11px] text-emerald-600 font-medium mt-1">
-              <span>↑ 8%</span>
-              <span class="text-slate-400 font-normal">vs. mes anterior</span>
+            <div class="text-2xl font-bold text-slate-900 mt-2">${usersList.length}</div>
+            <div class="flex items-center gap-1 text-[11px] text-purple-600 font-medium mt-1">
+              <span>Clientes y proveedores</span>
             </div>
           </div>
 
           <!-- Herramientas disponibles -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-500">Herramientas disponibles</span>
+              <span class="text-xs font-medium text-slate-500">Herramientas en catálogo</span>
               <div class="w-8 h-8 rounded-lg bg-orange-50 text-brand-600 flex items-center justify-center">
                 ${renderIcon('Wrench', 'w-4 h-4')}
               </div>
             </div>
-            <div class="text-2xl font-bold text-slate-900 mt-2">56</div>
-            <div class="text-[11px] text-slate-400 font-normal mt-1">de 78 en total</div>
+            <div class="text-2xl font-bold text-slate-900 mt-2">${availT}</div>
+            <div class="text-[11px] text-slate-400 font-normal mt-1">de ${totalT} disponibles</div>
           </div>
         </div>
 
         <!-- 3 Middle Analytics Cards -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <!-- Herramientas más alquiladas -->
+          <!-- Herramientas más alquiladas (Real Backend) -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between">
             <div>
               <h2 class="text-sm font-bold text-slate-900">Herramientas más alquiladas</h2>
-              <p class="text-[11px] text-slate-400 mt-0.5">Top 5 por número de alquileres.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Métricas en tiempo real desde la base de datos.</p>
               
               <div class="space-y-3.5 mt-5">
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-700 font-medium">Excavadora hidráulica</span>
-                    <span class="text-slate-900 font-bold">24</span>
+                ${topTools.length > 0 ? topTools.slice(0, 5).map(tool => `
+                  <div>
+                    <div class="flex justify-between text-xs mb-1">
+                      <span class="text-slate-700 font-medium truncate max-w-[200px]" title="${tool.toolName}">${tool.toolName}</span>
+                      <span class="text-slate-900 font-bold">${tool.timesRented}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                      <div class="bg-brand-500 h-2 rounded-full" style="width: ${Math.min(100, (tool.timesRented / 3) * 100)}%"></div>
+                    </div>
                   </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2">
-                    <div class="bg-brand-500 h-2 rounded-full" style="width: 80%"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-700 font-medium">Taladro percutor</span>
-                    <span class="text-slate-900 font-bold">18</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2">
-                    <div class="bg-brand-500 h-2 rounded-full" style="width: 60%"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-700 font-medium">Compresor de aire</span>
-                    <span class="text-slate-900 font-bold">15</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2">
-                    <div class="bg-brand-500 h-2 rounded-full" style="width: 50%"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-700 font-medium">Martillo demoledor</span>
-                    <span class="text-slate-900 font-bold">12</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2">
-                    <div class="bg-brand-500 h-2 rounded-full" style="width: 40%"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-700 font-medium">Andamio multidireccional</span>
-                    <span class="text-slate-900 font-bold">10</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2">
-                    <div class="bg-brand-500 h-2 rounded-full" style="width: 33%"></div>
-                  </div>
-                </div>
+                `).join('') : `
+                  <div class="py-6 text-center text-xs text-slate-400">Sin datos de rotación aún</div>
+                `}
               </div>
             </div>
           </div>
 
-          <!-- Clientes frecuentes -->
+          <!-- Clientes frecuentes (Real Backend) -->
           <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between">
             <div>
               <h2 class="text-sm font-bold text-slate-900">Clientes frecuentes</h2>
-              <p class="text-[11px] text-slate-400 mt-0.5">Top 5 por número de alquileres.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Top clientes con reservas registradas.</p>
 
               <div class="divide-y divide-slate-100 mt-3">
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-3">
-                    <span class="w-5 text-slate-400 font-bold text-[11px]">1</span>
-                    <span class="text-slate-800 font-medium">Constructora del Norte S.A.S.</span>
+                ${topClients.length > 0 ? topClients.slice(0, 5).map((client, idx) => `
+                  <div class="py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-3">
+                      <span class="w-5 text-slate-400 font-bold text-[11px]">${idx + 1}</span>
+                      <span class="text-slate-800 font-medium truncate max-w-[170px]" title="${client.clientEmail}">${client.clientEmail}</span>
+                    </div>
+                    <span class="text-slate-500 font-semibold text-[11px]">${client.totalRentals} alquiler${client.totalRentals === 1 ? '' : 'es'}</span>
                   </div>
-                  <span class="text-slate-500 font-semibold text-[11px]">12 alquileres</span>
-                </div>
-
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-3">
-                    <span class="w-5 text-slate-400 font-bold text-[11px]">2</span>
-                    <span class="text-slate-800 font-medium">Juan Carlos Ramírez</span>
-                  </div>
-                  <span class="text-slate-500 font-semibold text-[11px]">9 alquileres</span>
-                </div>
-
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-3">
-                    <span class="w-5 text-slate-400 font-bold text-[11px]">3</span>
-                    <span class="text-slate-800 font-medium">Obras y Diseños S.A.S</span>
-                  </div>
-                  <span class="text-slate-500 font-semibold text-[11px]">7 alquileres</span>
-                </div>
-
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-3">
-                    <span class="w-5 text-slate-400 font-bold text-[11px]">4</span>
-                    <span class="text-slate-800 font-medium">Alianza Constructores</span>
-                  </div>
-                  <span class="text-slate-500 font-semibold text-[11px]">6 alquileres</span>
-                </div>
-
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-3">
-                    <span class="w-5 text-slate-400 font-bold text-[11px]">5</span>
-                    <span class="text-slate-800 font-medium">Proyectos del Valle</span>
-                  </div>
-                  <span class="text-slate-500 font-semibold text-[11px]">5 alquileres</span>
-                </div>
+                `).join('') : `
+                  <div class="py-6 text-center text-xs text-slate-400">Sin clientes registrados aún</div>
+                `}
               </div>
             </div>
           </div>
@@ -286,15 +235,15 @@ export async function renderAdminDashboard() {
                 <div class="relative w-32 h-32 flex items-center justify-center">
                   <svg class="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="38" stroke="#f1f5f9" stroke-width="12" fill="none" />
-                    <!-- Green Disponible 72% -->
-                    <circle cx="50" cy="50" r="38" stroke="#22c55e" stroke-width="12" stroke-dasharray="172 238" stroke-dashoffset="0" fill="none" stroke-linecap="round" />
-                    <!-- Blue Alquilada 21% -->
-                    <circle cx="50" cy="50" r="38" stroke="#3b82f6" stroke-width="12" stroke-dasharray="50 238" stroke-dashoffset="-176" fill="none" stroke-linecap="round" />
-                    <!-- Amber Mantenimiento 8% -->
-                    <circle cx="50" cy="50" r="38" stroke="#f59e0b" stroke-width="12" stroke-dasharray="19 238" stroke-dashoffset="-228" fill="none" stroke-linecap="round" />
+                    <!-- Green Disponible -->
+                    <circle cx="50" cy="50" r="38" stroke="#22c55e" stroke-width="12" stroke-dasharray="${dashAvail} ${circ}" stroke-dashoffset="0" fill="none" stroke-linecap="round" />
+                    <!-- Blue Alquilada -->
+                    <circle cx="50" cy="50" r="38" stroke="#3b82f6" stroke-width="12" stroke-dasharray="${dashRent} ${circ}" stroke-dashoffset="${offsetRent}" fill="none" stroke-linecap="round" />
+                    <!-- Amber Mantenimiento -->
+                    <circle cx="50" cy="50" r="38" stroke="#f59e0b" stroke-width="12" stroke-dasharray="${dashMaint} ${circ}" stroke-dashoffset="${offsetMaint}" fill="none" stroke-linecap="round" />
                   </svg>
                   <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span class="text-xl font-bold text-slate-900">78</span>
+                    <span class="text-xl font-bold text-slate-900">${totalT}</span>
                     <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Total</span>
                   </div>
                 </div>
@@ -305,21 +254,21 @@ export async function renderAdminDashboard() {
                     <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
                     <div>
                       <div class="font-medium text-slate-700">Disponible</div>
-                      <div class="text-[11px] text-slate-400">56 (72%)</div>
+                      <div class="text-[11px] text-slate-400">${availT} (${availPct}%)</div>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
                     <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
                     <div>
                       <div class="font-medium text-slate-700">Alquilada</div>
-                      <div class="text-[11px] text-slate-400">16 (21%)</div>
+                      <div class="text-[11px] text-slate-400">${rentT} (${rentPct}%)</div>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
                     <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
                     <div>
                       <div class="font-medium text-slate-700">Mantenimiento</div>
-                      <div class="text-[11px] text-slate-400">6 (8%)</div>
+                      <div class="text-[11px] text-slate-400">${maintT} (${maintPct}%)</div>
                     </div>
                   </div>
                 </div>
@@ -352,16 +301,16 @@ export async function renderAdminDashboard() {
           <!-- Tabs -->
           <div class="flex border-b border-slate-100 px-6 gap-6 text-xs font-medium text-slate-500">
             <button class="admin-tab-btn py-3 border-b-2 border-brand-500 text-brand-600 font-semibold" data-tab="all">
-              Todos (<span id="count-all">42</span>)
+              Todos (<span id="count-all">${usersList.length}</span>)
             </button>
             <button class="admin-tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900" data-tab="client">
-              Clientes (<span id="count-clients">31</span>)
+              Clientes (<span id="count-clients">${usersList.filter(u => u.role === 'Cliente').length}</span>)
             </button>
             <button class="admin-tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900" data-tab="provider">
-              Proveedores (<span id="count-providers">10</span>)
+              Proveedores (<span id="count-providers">${usersList.filter(u => u.role === 'Proveedor').length}</span>)
             </button>
             <button class="admin-tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900" data-tab="admin">
-              Administradores (<span id="count-admins">1</span>)
+              Administradores (<span id="count-admins">${usersList.filter(u => u.role === 'Administrador').length}</span>)
             </button>
           </div>
 
@@ -393,7 +342,7 @@ export async function renderAdminDashboard() {
           <div class="p-6 border-b border-slate-100 flex items-center justify-between cursor-pointer select-none" id="tools-accordion-toggle">
             <div>
               <h2 class="text-base font-bold text-slate-900">Herramientas</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Gestiona el inventario global de herramientas.</p>
+              <p class="text-xs text-slate-500 mt-0.5">Gestiona el inventario global de herramientas (${allTools.length} registradas).</p>
             </div>
             <div class="text-slate-400 hover:text-slate-600">
               ${renderIcon('ChevronDown', 'w-5 h-5 transition-transform', 'id="tools-accordion-chevron"')}
@@ -414,74 +363,48 @@ export async function renderAdminDashboard() {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-slate-700">
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                  <td class="py-3 px-6">
-                    <img src="https://images.unsplash.com/photo-1504148455328-c376907d081c?w=120" class="w-12 h-10 object-cover rounded-md border border-slate-200" />
-                  </td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">Martillo demoledor 10 kg</td>
-                  <td class="py-3 px-4 text-slate-500">Construcciones del Norte S.A.S.</td>
-                  <td class="py-3 px-4 text-slate-500">Demolición</td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">$ 85.000</td>
-                  <td class="py-3 px-4">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Disponible
-                    </span>
-                  </td>
-                  <td class="py-3 px-6 text-right">
-                    <button class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors mr-1">
-                      ${renderIcon('Edit', 'w-4 h-4')}
-                    </button>
-                    <button class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors">
-                      ${renderIcon('Trash2', 'w-4 h-4')}
-                    </button>
-                  </td>
-                </tr>
-
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                  <td class="py-3 px-6">
-                    <img src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=120" class="w-12 h-10 object-cover rounded-md border border-slate-200" />
-                  </td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">Excavadora hidráulica 20 ton</td>
-                  <td class="py-3 px-4 text-slate-500">Juan Carlos Ramírez</td>
-                  <td class="py-3 px-4 text-slate-500">Movimiento de tierras</td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">$ 1.200.000</td>
-                  <td class="py-3 px-4">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Alquilada
-                    </span>
-                  </td>
-                  <td class="py-3 px-6 text-right">
-                    <button class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors mr-1">
-                      ${renderIcon('Edit', 'w-4 h-4')}
-                    </button>
-                    <button class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors">
-                      ${renderIcon('Trash2', 'w-4 h-4')}
-                    </button>
-                  </td>
-                </tr>
-
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                  <td class="py-3 px-6">
-                    <img src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=120" class="w-12 h-10 object-cover rounded-md border border-slate-200" />
-                  </td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">Mezcladora de concreto 400 L</td>
-                  <td class="py-3 px-4 text-slate-500">Obras y Diseños S.A.S</td>
-                  <td class="py-3 px-4 text-slate-500">Concretos</td>
-                  <td class="py-3 px-4 font-semibold text-slate-900">$ 120.000</td>
-                  <td class="py-3 px-4">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Disponible
-                    </span>
-                  </td>
-                  <td class="py-3 px-6 text-right">
-                    <button class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors mr-1">
-                      ${renderIcon('Edit', 'w-4 h-4')}
-                    </button>
-                    <button class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors">
-                      ${renderIcon('Trash2', 'w-4 h-4')}
-                    </button>
-                  </td>
-                </tr>
+                ${allTools.length > 0 ? allTools.map(t => {
+                  const isAvail = t.status === 'AVAILABLE';
+                  const isRent = t.status === 'RENTED';
+                  const img = t.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=120';
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="py-3 px-6">
+                        <img src="${img}" class="w-12 h-10 object-contain bg-slate-50 rounded-md border border-slate-200" onerror="window.ToolRentCacheShield?.handleImageError(this, '${img}', '${t.categoryName || ''}', '${t.name?.replace(/'/g, "\\'")}')" />
+                      </td>
+                      <td class="py-3 px-4 font-semibold text-slate-900">${t.name}</td>
+                      <td class="py-3 px-4 text-slate-500">${t.provider?.name || 'Proveedor Registrado'}</td>
+                      <td class="py-3 px-4 text-slate-500">${t.categoryName || 'Construcción'}</td>
+                      <td class="py-3 px-4 font-semibold text-slate-900">${formatCurrency(t.dailyPrice)}</td>
+                      <td class="py-3 px-4">
+                        ${isAvail ? `
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Disponible
+                          </span>
+                        ` : isRent ? `
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Alquilada
+                          </span>
+                        ` : `
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En mantenimiento
+                          </span>
+                        `}
+                      </td>
+                      <td class="py-3 px-6 text-right">
+                        <a href="#/product/${t.id}" class="inline-flex p-1.5 text-slate-400 hover:text-brand-600 rounded-lg transition-colors mr-1" title="Ver detalle">
+                          ${renderIcon('ExternalLink', 'w-4 h-4')}
+                        </a>
+                      </td>
+                    </tr>
+                  `;
+                }).join('') : `
+                  <tr>
+                    <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                      No hay herramientas registradas en el catálogo.
+                    </td>
+                  </tr>
+                `}
               </tbody>
             </table>
           </div>
@@ -652,6 +575,16 @@ export async function renderAdminDashboard() {
   function renderUsersTable() {
     const tbody = container.querySelector('#users-table-body');
     if (!tbody) return;
+
+    // Dynamically update tab badges
+    const countAll = container.querySelector('#count-all');
+    const countClients = container.querySelector('#count-clients');
+    const countProviders = container.querySelector('#count-providers');
+    const countAdmins = container.querySelector('#count-admins');
+    if (countAll) countAll.textContent = usersList.length;
+    if (countClients) countClients.textContent = usersList.filter(u => u.role === 'Cliente').length;
+    if (countProviders) countProviders.textContent = usersList.filter(u => u.role === 'Proveedor').length;
+    if (countAdmins) countAdmins.textContent = usersList.filter(u => u.role === 'Administrador').length;
 
     let filtered = [...usersList];
 

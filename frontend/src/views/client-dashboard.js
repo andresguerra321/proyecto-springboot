@@ -5,8 +5,6 @@ import { formatCurrency, formatDate, getRentalStatusBadge } from '../utils/forma
 import { renderIcon } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 import { openInvoiceViewer } from './rental-modal.js';
-import { renderTableSkeleton } from '../components/system-states.js';
-
 export async function renderClientDashboard() {
   const container = document.getElementById('app-content');
   if (!container) return;
@@ -20,25 +18,14 @@ export async function renderClientDashboard() {
           </div>
           <h2 class="text-xl font-bold text-slate-900 font-display">Inicia Sesión para ver tus Alquileres</h2>
           <p class="text-xs text-slate-500">Accede a tu historial de reservas, comprobantes de pago y facturas oficiales con IVA.</p>
-          <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button id="btn-demo-client-login" class="btn-primary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm">
-              ${renderIcon('UserCheck', 'w-4 h-4')} Entrar como Cliente (Demo)
-            </button>
-            <button id="btn-login-prompt" class="btn-secondary flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5">
-              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión
+          <div class="flex justify-center pt-2">
+            <button id="btn-login-prompt" class="btn-primary !py-2.5 !px-8 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
+              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión con tu Cuenta
             </button>
           </div>
         </div>
       </section>
     `;
-    container.querySelector('#btn-demo-client-login')?.addEventListener('click', () => {
-      auth.setSession({
-        token: 'demo-client-jwt',
-        user: { username: 'juanperez', role: 'ROLE_CLIENTE', profile: { name: 'Juan Pérez García', id: 'client-001' } }
-      });
-      showToast('Sesión iniciada como Cliente', 'success');
-      renderClientDashboard();
-    });
     container.querySelector('#btn-login-prompt')?.addEventListener('click', () => openAuthModal('login'));
     return;
   }
@@ -80,7 +67,10 @@ export async function renderClientDashboard() {
           </div>
 
           <div id="client-rentals-container" class="divide-y divide-slate-100">
-            ${renderTableSkeleton(4)}
+            <div class="py-12 flex justify-center items-center text-slate-400 gap-2.5">
+              ${renderIcon('Loader2', 'w-5 h-5 animate-spin text-[#FF5A1F]')}
+              <span class="text-xs font-medium">Cargando tus alquileres...</span>
+            </div>
           </div>
         </div>
 

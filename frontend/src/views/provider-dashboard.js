@@ -41,11 +41,16 @@ export async function renderProviderDashboard() {
 
   function render() {
     // Calculate KPIs
-    const totalTools = toolsList.length || 32;
-    const availableTools = toolsList.filter(t => t.status === 'AVAILABLE').length || 24;
-    const rentedTools = toolsList.filter(t => t.status === 'RENTED').length || 6;
-    const maintenanceTools = toolsList.filter(t => t.status === 'MAINTENANCE').length || 2;
-    const pendingRequests = requestsList.filter(r => r.status === 'PENDING').length || 3;
+    const totalTools = toolsList.length;
+    const availableTools = toolsList.filter(t => t.status === 'AVAILABLE').length;
+    const rentedTools = toolsList.filter(t => t.status === 'RENTED').length;
+    const maintenanceTools = toolsList.filter(t => t.status === 'MAINTENANCE').length;
+    const pendingRequests = requestsList.filter(r => r.status === 'PENDING').length;
+    const activeClientsCount = new Set(
+      requestsList
+        .filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED' || r.status === 'RENTED')
+        .map(r => r.client?.id || r.client?.email || r.clientId)
+    ).size;
 
     // Filter tools for inventory tab
     const filteredTools = toolsList.filter(t => {
@@ -112,7 +117,7 @@ export async function renderProviderDashboard() {
             </div>
             <div class="text-3xl font-black text-slate-900 font-display">${rentedTools}</div>
             <div class="text-[11px] text-slate-500">
-              en <span class="text-blue-600 font-semibold">5</span> clientes activos
+              en <span class="text-blue-600 font-semibold">${activeClientsCount}</span> clientes activos
             </div>
           </div>
 
@@ -623,8 +628,8 @@ export async function renderProviderDashboard() {
         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3">
           <img src="${req?.tool?.img || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100'}" class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200" />
           <div>
-            <h4 class="font-bold text-slate-900 text-sm">${req?.tool?.name || 'Martillo demoledor 10 kg'}</h4>
-            <span class="text-[11px] text-slate-500">${req?.tool?.category || 'Herramientas eléctricas'}</span>
+            <h4 class="font-bold text-slate-900 text-sm">${req?.tool?.name || req?.toolName || 'Equipo en devolución'}</h4>
+            <span class="text-[11px] text-slate-500">${req?.tool?.category || req?.categoryName || 'Herramientas'}</span>
           </div>
         </div>
 
@@ -728,7 +733,7 @@ export async function renderProviderDashboard() {
       <form id="drawer-tool-form" class="space-y-4">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
-          <input type="text" id="dt-name" required class="input-field" value="${existingTool?.name || ''}" placeholder="Ej: Martillo demoledor 10 kg" />
+          <input type="text" id="dt-name" required class="input-field" value="${existingTool?.name || ''}" placeholder="Ej: Taladro percutor industrial" />
         </div>
 
         <div>
