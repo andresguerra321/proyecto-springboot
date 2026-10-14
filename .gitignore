@@ -35,12 +35,12 @@ build/
 ### VS Code ###
 .vscode/
 
-### Graphify local cache & interpreter ###
-graphify-out/cache/
-graphify-out/.graphify_python
+### Graphify ###
+graphify-out/
 
 ### Local Agent and IDE configs ###
 .gemini/
 .agents/
+.impeccable/
 skills-lock.json
 
