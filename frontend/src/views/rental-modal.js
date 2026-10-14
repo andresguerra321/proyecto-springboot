@@ -831,7 +831,10 @@ export function openInvoiceViewer(invoice) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
           <!-- Datos del cliente -->
           <div class="space-y-2">
-            <h4 class="font-bold text-slate-900 text-sm mb-3">Datos del cliente</h4>
+            <div class="flex items-center gap-2 mb-3">
+              <h4 class="font-bold text-slate-900 text-sm">Datos del cliente</h4>
+              <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Arrendatario</span>
+            </div>
             <div class="grid grid-cols-3 gap-2">
               <span class="text-slate-400">Nombre:</span>
               <span class="col-span-2 font-semibold text-slate-800">${invoice.client.name}</span>
@@ -856,7 +859,10 @@ export function openInvoiceViewer(invoice) {
 
           <!-- Datos del proveedor -->
           <div class="space-y-2">
-            <h4 class="font-bold text-slate-900 text-sm mb-3">Datos del proveedor</h4>
+            <div class="flex items-center gap-2 mb-3">
+              <h4 class="font-bold text-slate-900 text-sm">Datos del proveedor</h4>
+              <span class="text-[10px] font-semibold text-[#ea580c] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">Dueño del Equipo</span>
+            </div>
             <div class="grid grid-cols-3 gap-2">
               <span class="text-slate-400">Nombre:</span>
               <span class="col-span-2 font-semibold text-slate-800">${invoice.provider.name}</span>

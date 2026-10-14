@@ -30,7 +30,7 @@ export function renderNavbar(activeRoute = 'catalog') {
         <div class="flex items-center justify-between h-20 py-3 gap-4 lg:gap-8">
           
           <!-- 1. Logo & Brand Mark -->
-          <a href="#/catalog" class="flex items-center gap-3 group select-none flex-shrink-0" title="ToolRent - Inicio">
+          <a href="#/" class="flex items-center gap-3 group select-none flex-shrink-0" title="ToolRent - Inicio">
             ${renderToolRentMark('w-9 h-9 transition-transform duration-200 group-hover:scale-105', '#FF5A1F')}
             <span class="text-2xl font-black font-display tracking-tight text-slate-900 leading-none">
               ToolRent
@@ -39,13 +39,22 @@ export function renderNavbar(activeRoute = 'catalog') {
 
           <!-- 2. Dynamic, Role-Aware Navigation Links -->
           <nav class="hidden md:flex items-center gap-1 lg:gap-2">
-            <!-- Inicio / Catálogo (Visible for everyone) -->
+            <!-- Inicio (Landing Page) -->
+            <a href="#/" class="relative px-3.5 py-2 text-sm font-semibold transition-all ${
+              activeRoute === 'home'
+                ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
+            }">
+              Inicio
+            </a>
+
+            <!-- Catálogo de Equipos -->
             <a href="#/catalog" class="relative px-3.5 py-2 text-sm font-semibold transition-all ${
               activeRoute === 'catalog'
                 ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
             }">
-              Inicio
+              Catálogo
             </a>
 
             ${!isAuth ? `
@@ -201,7 +210,14 @@ export function renderNavbar(activeRoute = 'catalog') {
                         ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
                         <span>Panel de Proveedor</span>
                       </a>
-                    ` : ''}
+                    ` : `
+                      ${!isAdmin ? `
+                        <button id="btn-dropdown-become-provider" type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-orange-700 hover:text-orange-900 hover:bg-orange-50 font-semibold transition-colors text-left cursor-pointer">
+                          ${renderIcon('Building2', 'w-4 h-4 text-[#ea580c]')}
+                          <span>Activar Perfil de Proveedor</span>
+                        </button>
+                      ` : ''}
+                    `}
 
                     ${isAdmin ? `
                       <a href="#/admin" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-900 bg-amber-50/70 hover:bg-amber-100 font-semibold transition-colors">
@@ -260,9 +276,14 @@ export function renderNavbar(activeRoute = 'catalog') {
           />
         </div>
 
+        <a href="#/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'home' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
+          ${renderIcon('Home', 'w-4 h-4')}
+          <span>Inicio</span>
+        </a>
+
         <a href="#/catalog" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'catalog' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
           ${renderIcon('Store', 'w-4 h-4')}
-          <span>Inicio / Catálogo</span>
+          <span>Catálogo de Equipos</span>
         </a>
 
         ${!isAuth ? `

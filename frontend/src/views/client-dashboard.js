@@ -50,9 +50,20 @@ export async function renderClientDashboard() {
             </p>
           </div>
 
-          <a href="#/catalog" class="btn-primary !py-2.5 text-xs font-semibold shadow-sm flex items-center gap-1.5">
-            ${renderIcon('PlusCircle', 'w-4 h-4')} Nuevo Alquiler
-          </a>
+          <div class="flex flex-wrap items-center gap-2.5">
+            ${auth.isProvider() ? `
+              <a href="#/provider" class="px-3.5 py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-[#ea580c] hover:bg-orange-100/70 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                ${renderIcon('Building2', 'w-4 h-4')} Panel de Proveedor
+              </a>
+            ` : `
+              <a href="#/provider" class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 text-slate-700 hover:text-[#ea580c] text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                ${renderIcon('Building2', 'w-4 h-4 text-slate-400')} Publicar Equipos como Proveedor
+              </a>
+            `}
+            <a href="#/catalog" class="btn-primary !py-2.5 text-xs font-semibold shadow-sm flex items-center gap-1.5">
+              ${renderIcon('PlusCircle', 'w-4 h-4')} Nuevo Alquiler
+            </a>
+          </div>
         </div>
 
         <!-- Rentals List / Table -->

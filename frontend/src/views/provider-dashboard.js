@@ -37,7 +37,20 @@ export async function renderProviderDashboard() {
   // 2. Guard: Check role (must be PROVEEDOR or ADMIN)
   const user = auth.getUser();
   const isAdmin = auth.isAdmin();
-  const isProvider = auth.isProvider();
+  let isProvider = auth.isProvider();
+
+  // If user doesn't appear as provider locally, check backend /users/me in case role was updated
+  if (!isProvider && !isAdmin) {
+    try {
+      const me = await api.get('/users/me');
+      if (me.roles?.some(r => r.includes('PROVEEDOR'))) {
+        user.roles = me.roles;
+        try { user.profile = await api.get('/providers/me'); } catch (e) {}
+        localStorage.setItem('user', JSON.stringify(user));
+        isProvider = true;
+      }
+    } catch (e) {}
+  }
 
   if (!isProvider && !isAdmin) {
     container.innerHTML = `
@@ -53,7 +66,7 @@ export async function renderProviderDashboard() {
               Ir a Mis Alquileres
             </a>
             <button id="btn-switch-provider-account" class="btn-primary !py-2.5 !px-6 text-xs font-semibold flex items-center gap-2 shadow-sm cursor-pointer">
-              ${renderIcon('LogIn', 'w-4 h-4')} Cambiar a Cuenta Proveedor
+              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión con otra cuenta
             </button>
           </div>
         </div>
