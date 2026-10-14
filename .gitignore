@@ -44,3 +44,7 @@ graphify-out/
 .impeccable/
 skills-lock.json
 
+# Archive files
+*.zip
+
+

@@ -320,6 +320,31 @@ export async function renderProductPageView(toolId) {
 
               </div>
 
+              <!-- Respaldo del servicio ToolRent -->
+              <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 text-xs">
+                <div class="font-bold text-slate-900 text-xs flex items-center gap-2">
+                  ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600')} Respaldo y Garantías ToolRent
+                </div>
+                <div class="space-y-2 text-[11px] text-slate-600">
+                  <div class="flex items-start gap-2">
+                    ${renderIcon('CheckCircle2', 'w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5')}
+                    <span><strong>Calibración Certificada:</strong> Mantenimiento y pruebas operativas antes de cada entrega.</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    ${renderIcon('CheckCircle2', 'w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5')}
+                    <span><strong>Sustitución en 24h:</strong> Cambio exprés en obra sin costo si surge falla técnica fortuita.</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    ${renderIcon('CheckCircle2', 'w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5')}
+                    <span><strong>Depósito Reintegrable:</strong> Devolución al 100% tras el retorno del equipo en buen estado.</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    ${renderIcon('CheckCircle2', 'w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5')}
+                    <span><strong>Facturación DIAN:</strong> Factura electrónica con IVA desglosado para deducción tributaria.</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
           </div>
