@@ -80,9 +80,6 @@ public class RentalUseCase {
                     RentalItemStatus.RESERVED
             );
             items.add(item);
-            
-            tool.updateStatus(ToolStatus.RENTED);
-            toolRepository.save(tool);
         }
 
         Money totalAmount = subtotal.add(deposit);
@@ -208,8 +205,10 @@ public class RentalUseCase {
 
         for (RentalItem item : rental.getItems()) {
             toolRepository.findById(item.getToolId()).ifPresent(tool -> {
-                tool.updateStatus(ToolStatus.AVAILABLE);
-                toolRepository.save(tool);
+                if (tool.getStatus() == ToolStatus.RENTED) {
+                    tool.updateStatus(ToolStatus.AVAILABLE);
+                    toolRepository.save(tool);
+                }
             });
         }
 
@@ -222,6 +221,14 @@ public class RentalUseCase {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
         rental.start();
+
+        for (RentalItem item : rental.getItems()) {
+            toolRepository.findById(item.getToolId()).ifPresent(tool -> {
+                tool.updateStatus(ToolStatus.RENTED);
+                toolRepository.save(tool);
+            });
+        }
+
         Rental saved = rentalRepository.save(rental);
         return mapToResponse(saved);
     }
@@ -234,8 +241,12 @@ public class RentalUseCase {
 
         for (RentalItem item : rental.getItems()) {
             toolRepository.findById(item.getToolId()).ifPresent(tool -> {
-                tool.updateStatus(ToolStatus.AVAILABLE);
-                toolRepository.save(tool);
+                // Solo restaurar a AVAILABLE si la herramienta estaba RENTED.
+                // Si la inspección previa detectó daños y la envió a MAINTENANCE o RETIRED, se respeta ese estado.
+                if (tool.getStatus() == ToolStatus.RENTED) {
+                    tool.updateStatus(ToolStatus.AVAILABLE);
+                    toolRepository.save(tool);
+                }
             });
         }
 

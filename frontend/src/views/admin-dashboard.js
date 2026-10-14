@@ -617,9 +617,16 @@ export async function renderAdminDashboard() {
         ? 'bg-blue-50 text-blue-700 border-blue-200'
         : 'bg-purple-50 text-purple-700 border-purple-200';
 
-      const statusBadge = u.active
-        ? `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo</span>`
-        : `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Inactivo</span>`;
+      const statusBadge = `
+        <button type="button" class="btn-toggle-user-status inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors ${
+          u.active
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+            : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+        }" data-id="${u.id}" data-active="${u.active}" title="Haz clic para alternar activación del usuario">
+          <span class="w-1.5 h-1.5 rounded-full ${u.active ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+          ${u.active ? 'Activo' : 'Inactivo'}
+        </button>
+      `;
 
       return `
         <tr class="hover:bg-slate-50/50 transition-colors">
@@ -651,6 +658,26 @@ export async function renderAdminDashboard() {
         </tr>
       `;
     }).join('');
+
+    // Wire status toggle buttons to backend
+    tbody.querySelectorAll('.btn-toggle-user-status').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const currentActive = btn.dataset.active === 'true';
+        const newStatus = !currentActive;
+        try {
+          btn.disabled = true;
+          await api.patch(`/users/${id}/status`, { enabled: newStatus });
+          const u = usersList.find(x => x.id === id);
+          if (u) u.active = newStatus;
+          renderUsersTable();
+          showToast(`Usuario ${newStatus ? 'habilitado' : 'desactivado'} con éxito en PostgreSQL`, 'success');
+        } catch (err) {
+          showToast(err.message || 'No se pudo alternar el estado del usuario', 'error');
+          btn.disabled = false;
+        }
+      });
+    });
 
     // Wire edit buttons
     tbody.querySelectorAll('.btn-edit-user').forEach(btn => {
@@ -734,27 +761,54 @@ export async function renderAdminDashboard() {
   });
 
   // Form submit: Nuevo Usuario
-  container.querySelector('#form-new-user')?.addEventListener('submit', (e) => {
+  container.querySelector('#form-new-user')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = container.querySelector('#nu-name')?.value;
-    const email = container.querySelector('#nu-email')?.value;
-    const role = container.querySelector('input[name="nu-role"]:checked')?.value || 'Cliente';
+    const fullName = container.querySelector('#nu-name')?.value.trim();
+    const email = container.querySelector('#nu-email')?.value.trim();
+    const password = container.querySelector('#nu-password')?.value || 'ToolRent2026*';
+    const roleRadio = container.querySelector('input[name="nu-role"]:checked')?.value || 'Cliente';
+    const roleCode = roleRadio === 'Proveedor' ? 'ROLE_PROVEEDOR' : 'ROLE_CLIENTE';
 
-    const newUser = {
-      id: `usr-${Date.now().toString().slice(-4)}`,
-      name,
-      email,
-      role,
-      date: '13 oct 2026',
-      active: true,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'
-    };
+    // Generar un username limpio a partir del nombre o email
+    const baseUsername = email ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : fullName.toLowerCase().replace(/\s+/g, '_');
+    const username = `${baseUsername}_${Date.now().toString().slice(-4)}`;
 
-    usersList.unshift(newUser);
-    renderUsersTable();
-    closeDrawer();
-    e.target.reset();
-    showToast(`Usuario ${name} creado con éxito`, 'success');
+    try {
+      await api.post('/auth/register', {
+        username,
+        email,
+        password,
+        roles: [roleCode],
+        fullName
+      });
+
+      // Recargar lista completa de usuarios desde backend
+      const rawUsers = await api.get('/users').catch(() => []);
+      if (Array.isArray(rawUsers) && rawUsers.length > 0) {
+        usersList = rawUsers.map(u => {
+          const isClient = u.roles?.some(r => r.includes('CLIENTE'));
+          const isProvider = u.roles?.some(r => r.includes('PROVEEDOR'));
+          const isAdmin = u.roles?.some(r => r.includes('ADMIN'));
+          const roleLabel = isAdmin ? 'Administrador' : isProvider ? 'Proveedor' : 'Cliente';
+          return {
+            id: u.id,
+            name: u.username,
+            email: u.email,
+            role: roleLabel,
+            date: '14 oct 2026',
+            active: u.enabled !== false,
+            avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.username)}`
+          };
+        });
+      }
+
+      renderUsersTable();
+      closeDrawer();
+      e.target.reset();
+      showToast(`Usuario ${username} creado con éxito en PostgreSQL`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al crear usuario en el servidor', 'error');
+    }
   });
 
   // Modal: Editar Usuario
@@ -779,21 +833,38 @@ export async function renderAdminDashboard() {
   btnCancelEdit?.addEventListener('click', closeEditModal);
   backdropEdit?.addEventListener('click', closeEditModal);
 
-  container.querySelector('#form-edit-user')?.addEventListener('submit', (e) => {
+  container.querySelector('#form-edit-user')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = container.querySelector('#eu-id').value;
-    const u = usersList.find(x => x.id === id);
-    if (u) {
-      u.name = container.querySelector('#eu-name').value;
-      u.email = container.querySelector('#eu-email').value;
-      u.role = container.querySelector('#eu-role').value;
+    const email = container.querySelector('#eu-email').value.trim();
+    const roleVal = container.querySelector('#eu-role').value;
+    const roleMap = {
+      'Administrador': 'ROLE_ADMIN',
+      'Proveedor': 'ROLE_PROVEEDOR',
+      'Cliente': 'ROLE_CLIENTE'
+    };
+    const roleCode = roleMap[roleVal] || 'ROLE_CLIENTE';
+
+    try {
+      await api.put(`/users/${id}`, {
+        email,
+        roles: [roleCode]
+      });
+
+      const u = usersList.find(x => x.id === id);
+      if (u) {
+        u.email = email;
+        u.role = roleVal;
+      }
       renderUsersTable();
       closeEditModal();
-      showToast(`Usuario ${u.name} actualizado`, 'success');
+      showToast('Usuario actualizado exitosamente en PostgreSQL', 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al actualizar usuario', 'error');
     }
   });
 
-  // Modal: Eliminar Usuario
+  // Modal: Eliminar / Desactivar Usuario
   let userToDelete = null;
   const modalDelete = container.querySelector('#modal-delete-user');
   const btnCloseDelete = container.querySelector('#btn-close-delete-user-modal');
@@ -818,12 +889,18 @@ export async function renderAdminDashboard() {
   btnCancelDelete?.addEventListener('click', closeDeleteModal);
   backdropDelete?.addEventListener('click', closeDeleteModal);
 
-  btnConfirmDelete?.addEventListener('click', () => {
+  btnConfirmDelete?.addEventListener('click', async () => {
     if (userToDelete) {
-      usersList = usersList.filter(x => x.id !== userToDelete.id);
-      renderUsersTable();
-      closeDeleteModal();
-      showToast('Usuario eliminado del sistema', 'success');
+      try {
+        await api.patch(`/users/${userToDelete.id}/status`, { enabled: false });
+        userToDelete.active = false;
+        renderUsersTable();
+        closeDeleteModal();
+        showToast(`Acceso del usuario ${userToDelete.name} revocado (desactivado en PostgreSQL)`, 'success');
+      } catch (err) {
+        showToast(err.message || 'Error al desactivar el usuario', 'error');
+      }
     }
   });
 }
+

@@ -72,10 +72,26 @@ public class ProfileUseCase {
         return mapToClientResponse(profile);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ClientProfileResponse getClientProfileByUserId(UUID userId) {
         ClientProfile profile = clientProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException("ClientProfile for userId", userId));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new EntityNotFoundException("User", userId));
+                    ClientProfile auto = new ClientProfile(
+                            UUID.randomUUID(),
+                            user.getId(),
+                            user.getUsername(),
+                            "CC",
+                            "CLI-" + (1000000000L + Math.abs(user.getId().getLeastSignificantBits() % 9000000000L)),
+                            "3001234567",
+                            "Bogotá D.C.",
+                            "Bogotá",
+                            LocalDateTime.now(),
+                            LocalDateTime.now()
+                    );
+                    return clientProfileRepository.save(auto);
+                });
         return mapToClientResponse(profile);
     }
 
@@ -148,10 +164,26 @@ public class ProfileUseCase {
         return mapToProviderResponse(profile);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ProviderProfileResponse getProviderProfileByUserId(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException("ProviderProfile for userId", userId));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new EntityNotFoundException("User", userId));
+                    ProviderProfile auto = new ProviderProfile(
+                            UUID.randomUUID(),
+                            user.getId(),
+                            user.getUsername() + " Equipos",
+                            "NIT-" + (100000000L + Math.abs(user.getId().getLeastSignificantBits() % 900000000L)) + "-1",
+                            "3001234567",
+                            "Bogotá D.C.",
+                            "Bogotá",
+                            false,
+                            LocalDateTime.now(),
+                            LocalDateTime.now()
+                    );
+                    return providerProfileRepository.save(auto);
+                });
         return mapToProviderResponse(profile);
     }
 
@@ -229,5 +261,12 @@ public class ProfileUseCase {
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public UUID getUserIdByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(User::getId)
+                .orElseThrow(() -> new EntityNotFoundException("User", username));
     }
 }

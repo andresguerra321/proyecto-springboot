@@ -30,8 +30,16 @@ public class ProviderProfileController {
 
     @PostMapping
     @Operation(summary = "Crear perfil de proveedor", description = "Registra los datos comerciales de una empresa proveedora de equipos")
-    public ResponseEntity<ProviderProfileResponse> createProviderProfile(@RequestBody ProviderProfileRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(profileUseCase.createProviderProfile(request));
+    public ResponseEntity<ProviderProfileResponse> createProviderProfile(
+            @RequestBody ProviderProfileRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        ProviderProfileRequest effective = request;
+        if (!isAdmin && userDetails != null) {
+            UUID ownUserId = profileUseCase.getUserIdByUsername(userDetails.getUsername());
+            effective = new ProviderProfileRequest(ownUserId, request.companyName(), request.taxId(), request.phone(), request.address(), request.city());
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(profileUseCase.createProviderProfile(effective));
     }
 
     @GetMapping("/me")
@@ -59,9 +67,18 @@ public class ProviderProfileController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar perfil de proveedor", description = "Modifica los datos comerciales o de contacto del proveedor")
+    @Operation(summary = "Actualizar perfil de proveedor", description = "Modifica los datos comerciales o de contacto del proveedor (Solo el propio proveedor o ADMIN)")
     public ResponseEntity<ProviderProfileResponse> updateProviderProfile(@PathVariable UUID id,
-                                                                         @RequestBody ProviderProfileRequest request) {
+                                                                         @RequestBody ProviderProfileRequest request,
+                                                                         @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && userDetails != null) {
+            ProviderProfileResponse existing = profileUseCase.getProviderProfileById(id);
+            UUID ownUserId = profileUseCase.getUserIdByUsername(userDetails.getUsername());
+            if (!existing.userId().equals(ownUserId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no puede modificar el perfil de otro proveedor");
+            }
+        }
         return ResponseEntity.ok(profileUseCase.updateProviderProfile(id, request));
     }
 

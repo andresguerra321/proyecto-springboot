@@ -20,6 +20,22 @@ public class User {
         this.roles = roles;
     }
 
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public void changeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("El correo electrónico no puede estar vacío");
+        }
+        this.email = email.trim().toLowerCase();
+    }
+
+    public void changeRoles(Set<Role> roles) {
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("El usuario debe tener al menos un rol");
+        }
+        this.roles = roles;
+    }
+
     public UUID getId() { return id; }
     public String getUsername() { return username; }
     public String getEmail() { return email; }

@@ -2,6 +2,7 @@ import api from '../api/client.js';
 import bannerWebImg from '../assets/banner-web.png';
 import { formatCurrency } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
+import { animateStaggerIn } from '../utils/animations.js';
 
 export async function renderCatalogView() {
   const container = document.getElementById('app-content');
@@ -392,7 +393,7 @@ export async function renderCatalogView() {
                </span>`;
 
           return `
-            <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs card-lift animate-scale-in flex flex-col justify-between group">
+            <div class="tool-card-item bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs card-lift flex flex-col justify-between group">
               
               <div>
                 <!-- Tool Image Canvas with Status Badge -->
@@ -446,6 +447,9 @@ export async function renderCatalogView() {
         }).join('')}
       </div>
     `;
+
+    // Stagger in cards smoothly using Anime.js
+    animateStaggerIn(productsContainer.querySelectorAll('.tool-card-item'), { stagger: 40, duration: 400 });
 
     // Click events to open product detail view
     productsContainer.querySelectorAll('.btn-tool-details, .tool-card-trigger').forEach(el => {

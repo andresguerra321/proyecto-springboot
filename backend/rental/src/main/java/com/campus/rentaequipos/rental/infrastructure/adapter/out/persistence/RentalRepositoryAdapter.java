@@ -11,6 +11,7 @@ import com.campus.rentaequipos.rental.infrastructure.adapter.out.persistence.rep
 import com.campus.rentaequipos.shared.domain.valueobject.DateRange;
 import com.campus.rentaequipos.shared.domain.valueobject.Money;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@Transactional
 public class RentalRepositoryAdapter implements RentalRepository {
 
     private final SpringDataRentalRepository repository;

@@ -30,8 +30,16 @@ public class ClientProfileController {
 
     @PostMapping
     @Operation(summary = "Crear perfil de cliente", description = "Registra los datos comerciales o personales de un cliente")
-    public ResponseEntity<ClientProfileResponse> createClientProfile(@RequestBody ClientProfileRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(profileUseCase.createClientProfile(request));
+    public ResponseEntity<ClientProfileResponse> createClientProfile(
+            @RequestBody ClientProfileRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        ClientProfileRequest effective = request;
+        if (!isAdmin && userDetails != null) {
+            UUID ownUserId = profileUseCase.getUserIdByUsername(userDetails.getUsername());
+            effective = new ClientProfileRequest(ownUserId, request.fullName(), request.documentType(), request.documentNumber(), request.phone(), request.address(), request.city());
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(profileUseCase.createClientProfile(effective));
     }
 
     @GetMapping("/me")
@@ -60,9 +68,18 @@ public class ClientProfileController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar perfil de cliente", description = "Modifica los datos de contacto o dirección del cliente")
+    @Operation(summary = "Actualizar perfil de cliente", description = "Modifica los datos de contacto o dirección del cliente (Solo el propio cliente o ADMIN)")
     public ResponseEntity<ClientProfileResponse> updateClientProfile(@PathVariable UUID id,
-                                                                     @RequestBody ClientProfileRequest request) {
+                                                                     @RequestBody ClientProfileRequest request,
+                                                                     @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && userDetails != null) {
+            ClientProfileResponse existing = profileUseCase.getClientProfileById(id);
+            UUID ownUserId = profileUseCase.getUserIdByUsername(userDetails.getUsername());
+            if (!existing.userId().equals(ownUserId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no puede modificar el perfil de otro cliente");
+            }
+        }
         return ResponseEntity.ok(profileUseCase.updateClientProfile(id, request));
     }
 

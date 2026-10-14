@@ -1,5 +1,6 @@
 import './style.css';
 import 'preline/preline';
+import anime, { animateViewEntrance } from './utils/animations.js';
 import { renderNavbar } from './components/navbar.js';
 import { renderFooter } from './components/footer.js';
 import { renderCatalogView } from './views/catalog.js';
@@ -10,6 +11,9 @@ import { renderProductPageView } from './views/product-detail.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
 import { initImageCacheShield } from './utils/image-cache.js';
+
+// Expose anime globally for custom scripts, devtools, and view modules
+window.anime = anime;
 
 export function render404View() {
   renderNavbar('catalog');
@@ -90,6 +94,7 @@ function router() {
     const toolId = rawId && !isNaN(Number(rawId)) ? Number(rawId) : rawId;
     renderNavbar('catalog');
     renderProductPageView(toolId);
+    animateViewEntrance('#app-content');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
     return;
@@ -98,6 +103,7 @@ function router() {
   // 404 Handler for unknown routes
   if (hash && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
     render404View();
+    animateViewEntrance('#app-content');
     return;
   }
 
@@ -108,6 +114,7 @@ function router() {
 
   const viewHandler = routes[routeKey] || renderCatalogView;
   viewHandler();
+  animateViewEntrance('#app-content');
 
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });

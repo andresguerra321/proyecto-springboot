@@ -50,4 +50,24 @@ public class UserController {
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(authUseCase.getAllUsers());
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user", description = "Actualiza correo y roles de un usuario (Requiere ADMIN)")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable UUID id,
+            @jakarta.validation.Valid @RequestBody com.campus.rentaequipos.identity.application.dto.UpdateUserRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(authUseCase.updateUser(id, request, userDetails.getUsername()));
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Enable / disable user", description = "Activa o desactiva el acceso de un usuario (borrado lógico, Requiere ADMIN)")
+    public ResponseEntity<UserResponse> updateUserStatus(
+            @PathVariable UUID id,
+            @jakarta.validation.Valid @RequestBody com.campus.rentaequipos.identity.application.dto.UpdateUserStatusRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(authUseCase.setUserEnabled(id, request.enabled(), userDetails.getUsername()));
+    }
 }
