@@ -157,7 +157,9 @@ public class AuthUseCase {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.username())
+        String identifier = request.username() != null ? request.username().trim() : "";
+        User user = userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
                 .orElseThrow(() -> new BusinessRuleViolationException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -173,7 +175,9 @@ public class AuthUseCase {
 
     @Transactional(readOnly = true)
     public com.campus.rentaequipos.identity.application.dto.UserResponse getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
+        String identifier = username != null ? username.trim() : "";
+        User user = userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
                 .orElseThrow(() -> new EntityNotFoundException("User", username));
         return mapToUserResponse(user);
     }

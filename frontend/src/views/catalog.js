@@ -385,7 +385,7 @@ export async function renderCatalogView() {
 
     // Render cards matching img/ToolRent Equipment Marketplace Interface.png
     productsContainer.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in" id="tools-cards-grid">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="tools-cards-grid">
         ${filtered.map(tool => {
           const isAvailable = tool.status === 'AVAILABLE';
           const isRented = tool.status === 'RENTED';
