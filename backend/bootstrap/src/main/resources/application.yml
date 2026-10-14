@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}
+  port: ${SERVER_PORT:${PORT:8085}}
 
 spring:
   application:
@@ -11,21 +11,22 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration
-
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
-    show-sql: true
+      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    validate-on-migrate: false
 
 # JWT Configuration
 jwt:
@@ -38,5 +39,5 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    operations-sorter: method
     tags-sorter: alpha
-    operations-sorter: alpha
