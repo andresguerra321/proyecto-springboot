@@ -12,8 +12,70 @@ export async function renderProviderDashboard() {
   const container = document.getElementById('app-content');
   if (!container) return;
 
+  // 1. Guard: Check if user is authenticated
+  if (!auth.isAuthenticated()) {
+    container.innerHTML = `
+      <section class="max-w-4xl mx-auto px-4 py-20 text-center">
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-10 max-w-lg mx-auto shadow-sm space-y-4">
+          <div class="w-14 h-14 rounded-full bg-orange-50 text-[#ea580c] border border-orange-200 flex items-center justify-center mx-auto">
+            ${renderIcon('Lock', 'w-7 h-7')}
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 font-display">Portal para Proveedores de Maquinaria</h2>
+          <p class="text-xs text-slate-500">Inicia sesión con tu cuenta comercial para gestionar tu catálogo de herramientas, tarifas diarias y solicitudes de alquiler en tiempo real.</p>
+          <div class="flex justify-center pt-2">
+            <button id="btn-login-provider-prompt" class="btn-primary !py-2.5 !px-8 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Proveedor
+            </button>
+          </div>
+        </div>
+      </section>
+    `;
+    container.querySelector('#btn-login-provider-prompt')?.addEventListener('click', () => openAuthModal('login'));
+    return;
+  }
+
+  // 2. Guard: Check role (must be PROVEEDOR or ADMIN)
   const user = auth.getUser();
-  const providerId = user?.profile?.id || user?.id || 'prov-001';
+  const isAdmin = auth.isAdmin();
+  const isProvider = auth.isProvider();
+
+  if (!isProvider && !isAdmin) {
+    container.innerHTML = `
+      <section class="max-w-4xl mx-auto px-4 py-20 text-center">
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-10 max-w-lg mx-auto shadow-sm space-y-4">
+          <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mx-auto">
+            ${renderIcon('Truck', 'w-7 h-7')}
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 font-display">Portal Exclusivo para Proveedores</h2>
+          <p class="text-xs text-slate-500">Tu cuenta actual (<strong>${user?.username || 'usuario'}</strong>) tiene perfil de <strong>Cliente</strong>. Esta sección es para empresas arrendadoras que ofrecen maquinaria y herramientas en alquiler.</p>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <a href="#/client" class="btn-secondary !py-2.5 !px-6 text-xs font-semibold">
+              Ir a Mis Alquileres
+            </a>
+            <button id="btn-switch-provider-account" class="btn-primary !py-2.5 !px-6 text-xs font-semibold flex items-center gap-2 shadow-sm cursor-pointer">
+              ${renderIcon('LogIn', 'w-4 h-4')} Cambiar a Cuenta Proveedor
+            </button>
+          </div>
+        </div>
+      </section>
+    `;
+    container.querySelector('#btn-switch-provider-account')?.addEventListener('click', () => openAuthModal('login'));
+    return;
+  }
+
+  // 3. Resolve Provider Profile ID
+  let providerProfile = user?.profile;
+  if (!providerProfile?.id && isProvider) {
+    try {
+      providerProfile = await api.get('/providers/me');
+      user.profile = providerProfile;
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (e) {
+      console.warn('Could not fetch provider profile from /providers/me', e);
+    }
+  }
+
+  const providerId = providerProfile?.id || (isAdmin ? null : user?.id);
 
   // Local state for tabs and filtering
   let activeTab = 'inventory'; // 'inventory' | 'requests'
@@ -26,18 +88,38 @@ export async function renderProviderDashboard() {
 
   let toolsList = [];
   let requestsList = [];
+  let categoriesList = [];
+  let clientsList = [];
 
-  // Fetch initial data
+  // Show loading indicator
+  container.innerHTML = `
+    <div class="min-h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-3">
+      ${renderIcon('Loader2', 'w-8 h-8 animate-spin text-[#FF5A1F]')}
+      <span class="text-xs font-medium">Cargando panel de gestión de alquileres...</span>
+    </div>
+  `;
+
+  // Fetch real data from backend
   try {
-    const [fetchedTools, fetchedRequests] = await Promise.all([
-      api.get('/tools'),
-      api.get(`/rentals/provider/${providerId}`).catch(() => [])
-    ]);
+    const promises = [
+      providerId ? api.get('/tools', { providerId }) : api.get('/tools'),
+      providerId ? api.get(`/rentals/provider/${providerId}`).catch(() => []) : (isAdmin ? api.get('/rentals').catch(() => []) : Promise.resolve([])),
+      api.get('/tools/categories').catch(() => []),
+      api.get('/clients').catch(() => [])
+    ];
+
+    const [fetchedTools, fetchedRequests, fetchedCats, fetchedClients] = await Promise.all(promises);
+
     toolsList = Array.isArray(fetchedTools) ? fetchedTools : [];
     requestsList = Array.isArray(fetchedRequests) ? fetchedRequests : [];
+    categoriesList = Array.isArray(fetchedCats) ? fetchedCats : [];
+    clientsList = Array.isArray(fetchedClients) ? fetchedClients : [];
   } catch (err) {
     console.warn('Error loading provider dashboard data', err);
   }
+
+  const clientsMap = new Map(clientsList.map(c => [c.id, c]));
+  const toolsMap = new Map(toolsList.map(t => [t.id, t]));
 
   function render() {
     // Calculate KPIs
@@ -49,25 +131,33 @@ export async function renderProviderDashboard() {
     const activeClientsCount = new Set(
       requestsList
         .filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED' || r.status === 'RENTED')
-        .map(r => r.client?.id || r.client?.email || r.clientId)
+        .map(r => r.clientId)
     ).size;
 
     // Filter tools for inventory tab
     const filteredTools = toolsList.filter(t => {
+      const catName = t.category?.name || t.categoryName || '';
+      const catId = t.category?.id || t.categoryId || '';
       const matchSearch = !inventorySearch || 
         t.name?.toLowerCase().includes(inventorySearch.toLowerCase()) ||
-        t.categoryName?.toLowerCase().includes(inventorySearch.toLowerCase());
-      const matchCat = inventoryCategory === 'ALL' || t.categoryId === inventoryCategory || t.categoryName === inventoryCategory;
+        (t.brand && t.brand.toLowerCase().includes(inventorySearch.toLowerCase())) ||
+        catName.toLowerCase().includes(inventorySearch.toLowerCase());
+      const matchCat = inventoryCategory === 'ALL' || catId === inventoryCategory || catName === inventoryCategory;
       const matchStatus = inventoryStatus === 'ALL' || t.status === inventoryStatus;
       return matchSearch && matchCat && matchStatus;
     });
 
     // Filter requests for requests tab
     const filteredRequests = requestsList.filter(r => {
+      const client = clientsMap.get(r.clientId);
+      const clientName = client?.fullName || r.client?.name || '';
+      const clientEmail = client?.email || r.client?.email || '';
+      const rentalCode = r.rentalCode || r.id?.toString() || '';
+
       const matchSearch = !requestsSearch ||
-        r.client?.name?.toLowerCase().includes(requestsSearch.toLowerCase()) ||
-        r.tool?.name?.toLowerCase().includes(requestsSearch.toLowerCase()) ||
-        (r.id && r.id.toString().includes(requestsSearch));
+        clientName.toLowerCase().includes(requestsSearch.toLowerCase()) ||
+        clientEmail.toLowerCase().includes(requestsSearch.toLowerCase()) ||
+        rentalCode.toLowerCase().includes(requestsSearch.toLowerCase());
       const matchStatus = requestsStatus === 'ALL' || r.status === requestsStatus;
       return matchSearch && matchStatus;
     });
@@ -78,12 +168,15 @@ export async function renderProviderDashboard() {
         <!-- Top Header & Actions -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 text-[#ea580c] text-xs font-bold mb-2 border border-orange-200">
+              ${renderIcon('Building2', 'w-3.5 h-3.5')} ${providerProfile?.companyName || user?.username || 'Proveedor'}
+            </div>
             <h1 class="text-2xl sm:text-3xl font-black text-slate-900 font-display">Gestión de Alquileres</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1">Gestiona tu catálogo de herramientas, disponibilidad y solicitudes de alquiler.</p>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Supervisa tu catálogo de maquinaria, disponibilidad y confirma solicitudes de clientes.</p>
           </div>
 
           <div class="flex items-center gap-3">
-            <button id="btn-open-new-tool-drawer" class="btn-primary !py-2.5 !px-4 text-xs font-bold flex items-center gap-2 shadow-sm">
+            <button id="btn-open-new-tool-drawer" class="btn-primary !py-2.5 !px-4 text-xs font-bold flex items-center gap-2 shadow-sm cursor-pointer">
               ${renderIcon('Plus', 'w-4 h-4')}
               <span>Nueva herramienta</span>
             </button>
@@ -103,7 +196,7 @@ export async function renderProviderDashboard() {
             </div>
             <div class="text-3xl font-black text-slate-900 font-display">${availableTools}</div>
             <div class="text-[11px] text-slate-500">
-              de ${totalTools} registradas (<span class="text-emerald-600 font-bold">${Math.round((availableTools / (totalTools || 1)) * 100)}%</span>)
+              de ${totalTools} registradas (<span class="text-emerald-600 font-bold">${totalTools > 0 ? Math.round((availableTools / totalTools) * 100) : 0}%</span>)
             </div>
           </div>
 
@@ -157,7 +250,7 @@ export async function renderProviderDashboard() {
           <nav class="flex space-x-8" aria-label="Tabs">
             <button 
               id="tab-btn-inventory" 
-              class="py-3 px-1 border-b-2 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'inventory' ? 'border-[#ea580c] text-[#ea580c]' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}"
+              class="py-3 px-1 border-b-2 font-bold text-sm flex items-center gap-2 transition-colors cursor-pointer ${activeTab === 'inventory' ? 'border-[#ea580c] text-[#ea580c]' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}"
             >
               ${renderIcon('Package', 'w-4 h-4')}
               <span>Inventario</span>
@@ -168,11 +261,11 @@ export async function renderProviderDashboard() {
 
             <button 
               id="tab-btn-requests" 
-              class="py-3 px-1 border-b-2 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'requests' ? 'border-[#ea580c] text-[#ea580c]' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}"
+              class="py-3 px-1 border-b-2 font-bold text-sm flex items-center gap-2 transition-colors cursor-pointer ${activeTab === 'requests' ? 'border-[#ea580c] text-[#ea580c]' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}"
             >
               ${renderIcon('FileText', 'w-4 h-4')}
               <span>Solicitudes</span>
-              <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${pendingRequests > 0 ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${pendingRequests > 0 ? 'bg-[#FF5A1F] text-white' : 'bg-slate-100 text-slate-600'}">
                 ${requestsList.length}
               </span>
             </button>
@@ -183,7 +276,7 @@ export async function renderProviderDashboard() {
         ${activeTab === 'inventory' ? `
           <div class="space-y-6">
             
-            <!-- Filters Bar with spacious layout -->
+            <!-- Filters Bar with Category & Status selection -->
             <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
               <div class="relative flex-1 max-w-lg">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -193,12 +286,19 @@ export async function renderProviderDashboard() {
                   type="text" 
                   id="inv-search-input" 
                   value="${inventorySearch}" 
-                  placeholder="Buscar herramienta por nombre, modelo o categoría..." 
+                  placeholder="Buscar herramienta por nombre, marca o modelo..." 
                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs" 
                 />
               </div>
 
               <div class="flex flex-wrap items-center gap-3">
+                <select id="inv-category-filter" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#FF5A1F] cursor-pointer shadow-2xs">
+                  <option value="ALL" ${inventoryCategory === 'ALL' ? 'selected' : ''}>Todas las categorías</option>
+                  ${categoriesList.map(c => `
+                    <option value="${c.id}" ${inventoryCategory === c.id ? 'selected' : ''}>${c.name}</option>
+                  `).join('')}
+                </select>
+
                 <select id="inv-status-filter" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#FF5A1F] cursor-pointer shadow-2xs">
                   <option value="ALL" ${inventoryStatus === 'ALL' ? 'selected' : ''}>Todos los estados</option>
                   <option value="AVAILABLE" ${inventoryStatus === 'AVAILABLE' ? 'selected' : ''}>Disponible</option>
@@ -220,16 +320,18 @@ export async function renderProviderDashboard() {
                       <th class="py-3.5 px-6 min-w-[320px]">Herramienta</th>
                       <th class="py-3.5 px-6 whitespace-nowrap">Tarifa Diaria</th>
                       <th class="py-3.5 px-6 whitespace-nowrap">Estado</th>
-                      <th class="py-3.5 px-6 whitespace-nowrap">Último alquiler</th>
+                      <th class="py-3.5 px-6 whitespace-nowrap">Código / Serie</th>
                       <th class="py-3.5 px-6 text-right whitespace-nowrap w-36">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100">
-                    ${filteredTools.map(tool => {
+                    ${filteredTools.length > 0 ? filteredTools.map(tool => {
                       const isAvail = tool.status === 'AVAILABLE';
                       const isRent = tool.status === 'RENTED';
                       const isMaint = tool.status === 'MAINTENANCE';
                       const img = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100';
+                      const catName = tool.category?.name || tool.categoryName || 'Construcción';
+                      const sku = tool.serialNumber || (tool.id ? `SKU-${tool.id.toString().slice(0, 8).toUpperCase()}` : 'SKU-0000');
 
                       return `
                         <tr class="hover:bg-slate-50/70 transition-colors group">
@@ -241,7 +343,7 @@ export async function renderProviderDashboard() {
                               <img 
                                 src="${img}" 
                                 class="w-12 h-12 rounded-xl object-contain bg-slate-50/80 border border-slate-200/80 p-1.5 flex-shrink-0 shadow-2xs" 
-                                onerror="window.ToolRentCacheShield?.handleImageError(this, '${img}', '${tool.categoryName || ''}', '${tool.name?.replace(/'/g, "\\'")}')"
+                                onerror="window.ToolRentCacheShield?.handleImageError(this, '${img}', '${catName}', '${tool.name?.replace(/'/g, "\\'")}')" 
                               />
                               <div class="min-w-0">
                                 <a href="#/product/${tool.id}" class="font-bold text-sm text-slate-900 group-hover:text-[#FF5A1F] transition-colors leading-tight truncate block">
@@ -249,11 +351,9 @@ export async function renderProviderDashboard() {
                                 </a>
                                 <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
                                   <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium">
-                                    ${tool.categoryName || 'Construcción'}
+                                    ${catName}
                                   </span>
-                                  <span class="font-mono text-slate-400">
-                                    SKU-${tool.id.toString().padStart(4, '0')}
-                                  </span>
+                                  ${tool.brand ? `<span class="text-slate-400 font-medium">${tool.brand}</span>` : ''}
                                 </div>
                               </div>
                             </div>
@@ -277,8 +377,9 @@ export async function renderProviderDashboard() {
                             `}
                           </td>
                           <td class="py-4 px-6 whitespace-nowrap text-slate-600">
-                            <div class="font-medium text-xs text-slate-800">${isRent ? 'Activo (En obra)' : '10 oct 2026'}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">${isRent ? 'Retorna 16 oct' : 'Finalizado'}</div>
+                            <span class="font-mono text-xs text-slate-500 font-semibold bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
+                              ${sku}
+                            </span>
                           </td>
                           <td class="py-4 px-6 text-right whitespace-nowrap">
                             <div class="inline-flex items-center justify-end gap-1.5">
@@ -301,7 +402,17 @@ export async function renderProviderDashboard() {
                           </td>
                         </tr>
                       `;
-                    }).join('')}
+                    }).join('') : `
+                      <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-400">
+                          <div class="flex flex-col items-center justify-center gap-2">
+                            ${renderIcon('PackageX', 'w-8 h-8 text-slate-300')}
+                            <p class="font-bold text-slate-700 text-sm">No se encontraron herramientas</p>
+                            <p class="text-xs text-slate-400">No hay equipos registrados que coincidan con los filtros seleccionados.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    `}
                   </tbody>
                 </table>
               </div>
@@ -310,9 +421,7 @@ export async function renderProviderDashboard() {
               <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
                 <span>Mostrando <strong class="text-slate-800 font-semibold">${filteredTools.length}</strong> de ${toolsList.length} herramientas</span>
                 <div class="flex items-center gap-1">
-                  <button class="px-3 py-1.5 rounded-lg bg-[#FF5A1F] text-white font-bold text-xs shadow-xs cursor-pointer">1</button>
-                  <button class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer">2</button>
-                  <button class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer">&gt;</button>
+                  <span class="px-3 py-1.5 rounded-lg bg-[#FF5A1F] text-white font-bold text-xs shadow-xs">1</span>
                 </div>
               </div>
             </div>
@@ -322,10 +431,10 @@ export async function renderProviderDashboard() {
           <!-- TAB CONTENT: SOLICITUDES -->
           <div class="space-y-6">
 
-            <!-- Filters Row -->
+            <!-- Filters Row: PROPERLY CLOSED CONTAINER -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               <div class="flex flex-wrap items-center gap-3">
-                <select id="requests-status-filter" class="input-field !py-2 text-xs !w-auto">
+                <select id="requests-status-filter" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#FF5A1F] cursor-pointer shadow-2xs">
                   <option value="ALL" ${requestsStatus === 'ALL' ? 'selected' : ''}>Todos los estados</option>
                   <option value="PENDING" ${requestsStatus === 'PENDING' ? 'selected' : ''}>Pendientes</option>
                   <option value="CONFIRMED" ${requestsStatus === 'CONFIRMED' ? 'selected' : ''}>Confirmadas</option>
@@ -333,25 +442,27 @@ export async function renderProviderDashboard() {
                   <option value="COMPLETED" ${requestsStatus === 'COMPLETED' ? 'selected' : ''}>Completadas</option>
                 </select>
 
-                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-medium">
                   ${renderIcon('Calendar', 'w-3.5 h-3.5 text-slate-500')}
-                  <span>13 oct 2026 – 20 oct 2026</span>
+                  <span>Historial activo</span>
                 </div>
               </div>
 
               <div class="relative w-full md:w-80">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   ${renderIcon('Search', 'w-3.5 h-3.5')}
                 </span>
                 <input 
                   type="text" 
                   id="requests-search" 
                   value="${requestsSearch}" 
-                  placeholder="Buscar por cliente, herramienta o número..." 
-                  class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-[#ea580c]" 
+                  placeholder="Buscar por cliente, código o teléfono..." 
+                  class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all" 
                 />
               </div>
-                        <!-- Requests Table Section -->
+            </div>
+
+            <!-- Requests Table Section: SIBLING OF THE FILTERS ROW -->
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs" id="requests-table">
@@ -359,42 +470,56 @@ export async function renderProviderDashboard() {
                     <tr>
                       <th class="py-3.5 px-6 w-12 text-center">#</th>
                       <th class="py-3.5 px-6">Cliente</th>
-                      <th class="py-3.5 px-6 min-w-[200px]">Herramienta</th>
-                      <th class="py-3.5 px-6 whitespace-nowrap">Fechas</th>
+                      <th class="py-3.5 px-6 min-w-[200px]">Equipos Alquilados</th>
+                      <th class="py-3.5 px-6 whitespace-nowrap">Vigencia</th>
                       <th class="py-3.5 px-6 whitespace-nowrap">Total</th>
                       <th class="py-3.5 px-6 whitespace-nowrap">Estado</th>
                       <th class="py-3.5 px-6 text-right whitespace-nowrap">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100" id="requests-tbody">
-                    ${filteredRequests.map((req, idx) => {
+                    ${filteredRequests.length > 0 ? filteredRequests.map((req, idx) => {
                       const isPending = req.status === 'PENDING';
                       const isConfirmed = req.status === 'CONFIRMED';
                       const isInProgress = req.status === 'IN_PROGRESS';
                       const isCompleted = req.status === 'COMPLETED';
 
+                      const client = clientsMap.get(req.clientId);
+                      const clientName = client?.fullName || 'Constructora Cliente';
+                      const clientContact = client?.phone || client?.email || 'cliente@toolrent.co';
+
+                      const firstItem = req.items?.[0];
+                      const tool = firstItem ? toolsMap.get(firstItem.toolId) : null;
+                      const toolName = tool?.name || 'Equipo de Construcción';
+                      const toolCat = tool?.category?.name || 'Herramientas';
+                      const toolImg = tool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100';
+
+                      const datesLabel = req.startDate && req.endDate ? `${formatDate(req.startDate)} - ${formatDate(req.endDate)}` : 'Fecha acordada';
+                      const daysCount = req.totalDays || 1;
+                      const totalFormatted = formatCurrency(req.totalAmount || (req.subtotal ? req.subtotal + (req.deposit || 0) : 0));
+
                       return `
                         <tr class="hover:bg-slate-50/70 transition-colors">
                           <td class="py-4 px-6 text-center font-mono text-slate-400 font-semibold">${idx + 1}</td>
                           <td class="py-4 px-6">
-                            <div class="font-bold text-slate-900">${req.client?.name || 'Cliente'}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">${req.client?.email || 'cliente@email.com'}</div>
+                            <div class="font-bold text-slate-900">${clientName}</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">${clientContact}</div>
                           </td>
                           <td class="py-4 px-6">
                             <div class="flex items-center gap-3">
-                              <img src="${req.tool?.img || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=60'}" class="w-10 h-10 rounded-xl object-contain bg-slate-50 border border-slate-200/80 p-1 flex-shrink-0" />
+                              <img src="${toolImg}" class="w-10 h-10 rounded-xl object-contain bg-slate-50 border border-slate-200/80 p-1 flex-shrink-0" />
                               <div>
-                                <div class="font-bold text-slate-900">${req.tool?.name || 'Equipo'}</div>
-                                <div class="text-[11px] text-slate-400 mt-0.5">${req.tool?.category || 'Herramientas'}</div>
+                                <div class="font-bold text-slate-900">${toolName}</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">${toolCat} ${req.items?.length > 1 ? `(+${req.items.length - 1} más)` : ''}</div>
                               </div>
                             </div>
                           </td>
                           <td class="py-4 px-6 whitespace-nowrap text-slate-600">
-                            <div class="font-medium text-slate-800">${req.dates || '13 oct - 16 oct 2026'}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">${req.days || 3} días</div>
+                            <div class="font-medium text-slate-800">${datesLabel}</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">${daysCount} día${daysCount === 1 ? '' : 's'}</div>
                           </td>
                           <td class="py-4 px-6 whitespace-nowrap font-bold text-sm text-slate-900 font-display">
-                            ${formatCurrency(req.total)}
+                            ${totalFormatted}
                           </td>
                           <td class="py-4 px-6 whitespace-nowrap">
                             ${getRentalStatusBadge(req.status)}
@@ -429,7 +554,17 @@ export async function renderProviderDashboard() {
                           </td>
                         </tr>
                       `;
-                    }).join('')}
+                    }).join('') : `
+                      <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                          <div class="flex flex-col items-center justify-center gap-2">
+                            ${renderIcon('Inbox', 'w-8 h-8 text-slate-300')}
+                            <p class="font-bold text-slate-700 text-sm">No tienes solicitudes pendientes</p>
+                            <p class="text-xs text-slate-400">Cuando los clientes reserven tus herramientas, aparecerán aquí para tu confirmación y despacho.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    `}
                   </tbody>
                 </table>
               </div>
@@ -437,12 +572,10 @@ export async function renderProviderDashboard() {
               <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
                 <span>Mostrando <strong class="text-slate-800 font-semibold">${filteredRequests.length}</strong> solicitudes</span>
                 <div class="flex items-center gap-1">
-                  <button class="px-3 py-1.5 rounded-lg bg-[#FF5A1F] text-white font-bold text-xs shadow-xs cursor-pointer">1</button>
-                  <button class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer">2</button>
-                  <button class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer">&gt;</button>
+                  <span class="px-3 py-1.5 rounded-lg bg-[#FF5A1F] text-white font-bold text-xs shadow-xs">1</span>
                 </div>
               </div>
-            </div>      </div>
+            </div>
 
           </div>
         `}
@@ -465,12 +598,12 @@ export async function renderProviderDashboard() {
       render();
     });
 
-    // Top action
+    // Top action: Nueva herramienta
     container.querySelector('#btn-open-new-tool-drawer')?.addEventListener('click', () => {
       openNewToolModal();
     });
 
-    // Inventory search & filter (preserving focus & cursor)
+    // Inventory search & filters
     container.querySelector('#inv-search-input')?.addEventListener('input', (e) => {
       inventorySearch = e.target.value;
       const cursorPos = e.target.selectionStart;
@@ -480,6 +613,11 @@ export async function renderProviderDashboard() {
         reInp.focus();
         try { reInp.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
       }
+    });
+
+    container.querySelector('#inv-category-filter')?.addEventListener('change', (e) => {
+      inventoryCategory = e.target.value;
+      render();
     });
 
     container.querySelector('#inv-status-filter')?.addEventListener('change', (e) => {
@@ -517,55 +655,74 @@ export async function renderProviderDashboard() {
       render();
     });
 
-    // Requests actions
+    // Requests actions: Confirm
     container.querySelectorAll('.btn-confirm-action').forEach(b => {
       b.addEventListener('click', async () => {
-        await api.patch(`/rentals/${b.dataset.id}/confirm`);
-        const req = requestsList.find(r => r.id === b.dataset.id);
-        if (req) req.status = 'CONFIRMED';
-        notificationsStore.add({
-          category: 'RENTAL',
-          type: 'success',
-          title: 'Solicitud Confirmada',
-          message: `Has confirmado el alquiler #${b.dataset.id} para ${req?.client?.name || 'el cliente'}. Equipo listo para despacho.`,
-          link: '#/provider'
-        });
-        render();
+        try {
+          await api.patch(`/rentals/${b.dataset.id}/confirm`);
+          const req = requestsList.find(r => r.id === b.dataset.id);
+          if (req) req.status = 'CONFIRMED';
+          notificationsStore.add({
+            category: 'RENTAL',
+            type: 'success',
+            title: 'Solicitud Confirmada',
+            message: `Has confirmado el alquiler #${b.dataset.id}. Equipo listo para despacho.`,
+            link: '#/provider'
+          });
+          showToast('Solicitud confirmada exitosamente', 'success');
+          render();
+        } catch (err) {
+          showToast(err.message || 'Error al confirmar la solicitud', 'error');
+        }
       });
     });
 
+    // Requests actions: Reject / Cancel
     container.querySelectorAll('.btn-reject-action').forEach(b => {
       b.addEventListener('click', async () => {
-        await api.patch(`/rentals/${b.dataset.id}/cancel`);
-        const req = requestsList.find(r => r.id === b.dataset.id);
-        if (req) req.status = 'CANCELLED';
-        notificationsStore.add({
-          category: 'RENTAL',
-          type: 'warning',
-          title: 'Solicitud Rechazada',
-          message: `Se ha cancelado la solicitud #${b.dataset.id}.`,
-          link: '#/provider'
-        });
-        render();
+        if (!confirm('¿Deseas rechazar esta solicitud de alquiler?')) return;
+        try {
+          await api.patch(`/rentals/${b.dataset.id}/cancel`);
+          const req = requestsList.find(r => r.id === b.dataset.id);
+          if (req) req.status = 'CANCELLED';
+          notificationsStore.add({
+            category: 'RENTAL',
+            type: 'warning',
+            title: 'Solicitud Rechazada',
+            message: `Se canceló la solicitud #${b.dataset.id}.`,
+            link: '#/provider'
+          });
+          showToast('Solicitud rechazada', 'info');
+          render();
+        } catch (err) {
+          showToast(err.message || 'Error al rechazar la solicitud', 'error');
+        }
       });
     });
 
+    // Requests actions: Dispatch
     container.querySelectorAll('.btn-dispatch-action').forEach(b => {
       b.addEventListener('click', async () => {
-        await api.patch(`/rentals/${b.dataset.id}/start`);
-        const req = requestsList.find(r => r.id === b.dataset.id);
-        if (req) req.status = 'IN_PROGRESS';
-        notificationsStore.add({
-          category: 'ALERT',
-          type: 'info',
-          title: 'Entrega de Equipo Registrada',
-          message: `El equipo del alquiler #${b.dataset.id} fue entregado al cliente. Estado: En curso.`,
-          link: '#/provider'
-        });
-        render();
+        try {
+          await api.patch(`/rentals/${b.dataset.id}/start`);
+          const req = requestsList.find(r => r.id === b.dataset.id);
+          if (req) req.status = 'IN_PROGRESS';
+          notificationsStore.add({
+            category: 'ALERT',
+            type: 'info',
+            title: 'Entrega de Equipo Registrada',
+            message: `El equipo del alquiler #${b.dataset.id} fue entregado al cliente. Estado: En curso.`,
+            link: '#/provider'
+          });
+          showToast('Entrega registrada correctamente. Estado: En curso', 'success');
+          render();
+        } catch (err) {
+          showToast(err.message || 'Error al registrar entrega', 'error');
+        }
       });
     });
 
+    // Requests actions: Return
     container.querySelectorAll('.btn-return-action').forEach(b => {
       b.addEventListener('click', () => {
         const req = requestsList.find(r => r.id === b.dataset.id);
@@ -573,52 +730,65 @@ export async function renderProviderDashboard() {
       });
     });
 
+    // Requests actions: View Invoice
     container.querySelectorAll('.btn-view-invoice').forEach(b => {
       b.addEventListener('click', () => {
         const req = requestsList.find(r => r.id === b.dataset.id) || requestsList[0];
+        const client = clientsMap.get(req.clientId);
+        const firstItem = req.items?.[0];
+        const tool = firstItem ? toolsMap.get(firstItem.toolId) : null;
+
+        const totalAmount = req.totalAmount || 255000;
+        const subtotal = Math.round(totalAmount / 1.19);
+        const tax = totalAmount - subtotal;
+
         openInvoiceViewer({
-          invoiceNumber: 'TR-000' + (req.id || '4587'),
-          issueDate: '13 oct 2026',
+          invoiceNumber: req.rentalCode || 'TR-000' + (req.id?.slice(0, 4) || '4587'),
+          issueDate: formatDate(req.startDate || '2026-10-13'),
           client: {
-            name: req.client?.name || 'Constructora Bolívar S.A.S.',
-            taxId: '900.342.112-4',
-            address: 'Calle 100 # 19-61, Of. 402, Bogotá',
-            email: req.client?.email || 'compras@constructorabolivar.com',
-            phone: '+57 (1) 745-8900'
+            name: client?.fullName || 'Constructora Bolívar S.A.S.',
+            taxId: client?.documentNumber || '900.342.112-4',
+            address: client?.address || 'Calle 100 # 19-61, Of. 402, Bogotá',
+            email: client?.email || 'compras@cliente.com',
+            phone: client?.phone || '+57 (1) 745-8900'
           },
           provider: {
-            name: 'Constructoras del Norte S.A.S.',
-            taxId: '901.458.789-1',
-            address: 'Cra. 43A # 18 Sur-135, Medellín',
-            email: 'contacto@constructornorte.com',
-            phone: '+57 (4) 448-9000'
+            name: providerProfile?.companyName || 'ToolRent Equipos Pro S.A.S.',
+            taxId: providerProfile?.taxId || '901.458.789-1',
+            address: providerProfile?.address || 'Cra. 43A # 18 Sur-135',
+            email: user?.email || 'contacto@proveedor.com',
+            phone: providerProfile?.phone || '+57 (4) 448-9000'
           },
           tool: {
-            name: req.tool?.name || 'Taladro percutor 1" 1100W',
-            sku: 'D25033K-B3'
+            name: tool?.name || 'Equipo de Construcción',
+            sku: tool?.serialNumber || 'SKU-001'
           },
           rentalPeriod: {
-            startDate: '13 oct 2026',
-            endDate: '16 oct 2026',
-            days: req.days || 3
+            startDate: formatDate(req.startDate || '2026-10-13'),
+            endDate: formatDate(req.endDate || '2026-10-16'),
+            days: req.totalDays || 3
           },
-          dailyRate: req.total ? Math.round(req.total / (req.days || 3)) : 85000,
-          subtotal: req.total || 255000,
-          tax: Math.round((req.total || 255000) * 0.19),
-          total: Math.round((req.total || 255000) * 1.19),
-          paymentMethod: 'Transferencia bancaria',
+          dailyRate: firstItem?.dailyPrice || Math.round(subtotal / (req.totalDays || 1)),
+          subtotal: subtotal,
+          tax: tax,
+          total: totalAmount,
+          paymentMethod: 'Transferencia electrónica',
           bank: 'Bancolombia',
-          reference: 'TR-0004587',
-          paymentDate: '13 oct 2026'
+          reference: req.rentalCode || 'TR-REF-001',
+          paymentDate: formatDate(req.startDate || '2026-10-13')
         });
       });
     });
   }
 
   /**
-   * Modal: Registrar Devolución matching Stitch "Registrar devolución" popup
+   * Modal: Registrar Devolución con inspección técnica
    */
   function openReturnInspectionModal(req) {
+    const firstItem = req?.items?.[0];
+    const tool = firstItem ? toolsMap.get(firstItem.toolId) : null;
+    const toolImg = tool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100';
+
     const content = document.createElement('div');
     content.className = 'space-y-5 text-xs';
 
@@ -626,10 +796,10 @@ export async function renderProviderDashboard() {
       <div class="space-y-4">
         <!-- Tool preview -->
         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3">
-          <img src="${req?.tool?.img || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100'}" class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200" />
+          <img src="${toolImg}" class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200" />
           <div>
-            <h4 class="font-bold text-slate-900 text-sm">${req?.tool?.name || req?.toolName || 'Equipo en devolución'}</h4>
-            <span class="text-[11px] text-slate-500">${req?.tool?.category || req?.categoryName || 'Herramientas'}</span>
+            <h4 class="font-bold text-slate-900 text-sm">${tool?.name || 'Equipo en devolución'}</h4>
+            <span class="text-[11px] text-slate-500">${tool?.category?.name || 'Herramientas de construcción'}</span>
           </div>
         </div>
 
@@ -639,28 +809,28 @@ export async function renderProviderDashboard() {
           <div class="flex items-center gap-6">
             <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
               <input type="radio" name="insp-status" value="GOOD" checked class="text-[#ea580c] focus:ring-orange-500" />
-              <span>Buen estado</span>
+              <span>Buen estado / Conforme</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
               <input type="radio" name="insp-status" value="DAMAGED" class="text-[#ea580c] focus:ring-orange-500" />
-              <span>Con daños</span>
+              <span>Con averías o daños</span>
             </label>
           </div>
         </div>
 
-        <!-- Notas opcional -->
+        <!-- Observaciones -->
         <div>
-          <label class="block font-medium text-slate-700 mb-1">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
-          <textarea id="insp-notes" class="input-field h-20" placeholder="Observaciones sobre la devolución..."></textarea>
+          <label class="block font-medium text-slate-700 mb-1">Notas técnicas <span class="text-slate-400 font-normal">(opcional)</span></label>
+          <textarea id="insp-notes" class="input-field h-20" placeholder="Observaciones de la devolución..."></textarea>
         </div>
 
         <!-- Damage box (collapsible) -->
         <div id="damage-report-box" class="hidden p-4 rounded-xl border border-amber-200 bg-amber-50/60 space-y-3">
           <div class="flex items-center gap-1.5 text-[#ea580c] font-bold">
             ${renderIcon('AlertTriangle', 'w-4 h-4')}
-            <span>Reportar daño</span>
+            <span>Reportar daño o avería</span>
           </div>
-          <p class="text-[11px] text-slate-500">Completa esta sección si la herramienta presenta averías o faltantes.</p>
+          <p class="text-[11px] text-slate-500">Registra el costo estimado y envía la herramienta a mantenimiento.</p>
 
           <div>
             <label class="block font-medium text-slate-700 mb-1">Descripción del daño *</label>
@@ -669,14 +839,14 @@ export async function renderProviderDashboard() {
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block font-medium text-slate-700 mb-1">Costo estimado</label>
+              <label class="block font-medium text-slate-700 mb-1">Costo estimado reparación</label>
               <input type="text" id="dmg-cost" class="input-field" value="$ 75.000" />
             </div>
             <div>
               <label class="block font-medium text-slate-700 mb-1">Enviar herramienta a:</label>
               <select id="dmg-new-status" class="input-field">
                 <option value="MAINTENANCE" selected>Mantenimiento / Taller</option>
-                <option value="RETIRED">Retirada</option>
+                <option value="RETIRED">Retirada de catálogo</option>
               </select>
             </div>
           </div>
@@ -684,8 +854,8 @@ export async function renderProviderDashboard() {
 
         <!-- Footer Actions -->
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-          <button id="btn-cancel-insp" class="btn-secondary !py-2">Cancelar</button>
-          <button id="btn-complete-insp" class="btn-primary !py-2">Completar devolución</button>
+          <button id="btn-cancel-insp" class="btn-secondary !py-2 cursor-pointer">Cancelar</button>
+          <button id="btn-complete-insp" class="btn-primary !py-2 cursor-pointer">Completar devolución</button>
         </div>
       </div>
     `;
@@ -700,18 +870,23 @@ export async function renderProviderDashboard() {
     content.querySelector('#btn-cancel-insp').addEventListener('click', () => modal.close());
 
     content.querySelector('#btn-complete-insp').addEventListener('click', async () => {
-      await api.patch(`/rentals/${req.id}/complete`);
-      const isDamaged = content.querySelector('input[name="insp-status"]:checked')?.value === 'DAMAGED';
-      notificationsStore.add({
-        category: isDamaged ? 'DAMAGE' : 'INSPECTION',
-        type: isDamaged ? 'warning' : 'success',
-        title: isDamaged ? 'Devolución con Avería Registrada' : 'Devolución Conforme Registrada',
-        message: `Inspección para alquiler #${req.id} completada.${isDamaged ? ' Se registró reporte de avería.' : ' Depósito listo para liberación.'}`,
-        link: '#/provider'
-      });
-      if (req) req.status = 'COMPLETED';
-      modal.close();
-      render();
+      try {
+        await api.patch(`/rentals/${req.id}/complete`);
+        const isDamaged = content.querySelector('input[name="insp-status"]:checked')?.value === 'DAMAGED';
+        notificationsStore.add({
+          category: isDamaged ? 'DAMAGE' : 'INSPECTION',
+          type: isDamaged ? 'warning' : 'success',
+          title: isDamaged ? 'Devolución con Avería Registrada' : 'Devolución Conforme Registrada',
+          message: `Inspección de alquiler #${req.id} completada.${isDamaged ? ' Se envió reporte a mantenimiento.' : ' Depósito listo para liberación.'}`,
+          link: '#/provider'
+        });
+        if (req) req.status = 'COMPLETED';
+        showToast('Devolución completada exitosamente', 'success');
+        modal.close();
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error al completar devolución', 'error');
+      }
     });
 
     modal.open({
@@ -722,77 +897,61 @@ export async function renderProviderDashboard() {
   }
 
   /**
-   * Drawer / Modal: Nueva herramienta matching Stitch right drawer
+   * Drawer / Modal: Nueva herramienta / Editar herramienta
    */
   function openNewToolModal(existingTool = null) {
     const isEdit = !!existingTool;
     const content = document.createElement('div');
     content.className = 'space-y-4 text-xs';
 
+    const currentCatId = existingTool?.category?.id || existingTool?.categoryId || categoriesList[0]?.id;
+
     content.innerHTML = `
       <form id="drawer-tool-form" class="space-y-4">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
-          <input type="text" id="dt-name" required class="input-field" value="${existingTool?.name || ''}" placeholder="Ej: Taladro percutor industrial" />
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Categoría *</label>
-          <select id="dt-category" class="input-field" required>
-            <option value="cat-electricas" ${existingTool?.categoryId === 'cat-electricas' ? 'selected' : ''}>Herramientas eléctricas</option>
-            <option value="cat-manuales" ${existingTool?.categoryId === 'cat-manuales' ? 'selected' : ''}>Herramientas manuales</option>
-            <option value="cat-compactacion" ${existingTool?.categoryId === 'cat-compactacion' ? 'selected' : ''}>Equipos de compactación</option>
-            <option value="cat-pesada" ${existingTool?.categoryId === 'cat-pesada' ? 'selected' : ''}>Maquinaria pesada</option>
-            <option value="cat-andamios" ${existingTool?.categoryId === 'cat-andamios' ? 'selected' : ''}>Andamios y formaletas</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Descripción *</label>
-          <textarea id="dt-desc" rows="3" required class="input-field" placeholder="Describe la herramienta, sus usos y características...">${existingTool?.description || ''}</textarea>
+          <label class="block font-bold text-slate-700 mb-1">Nombre de la herramienta *</label>
+          <input type="text" id="dt-name" required class="input-field" value="${existingTool?.name || ''}" placeholder="Ej: Martillo Demoledor Hexagonal 30kg" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Precio diario *</label>
-            <input type="number" id="dt-price" required class="input-field" placeholder="$ 0" value="${existingTool?.dailyPrice || 85000}" />
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Estado *</label>
-            <select id="dt-status" class="input-field">
-              <option value="AVAILABLE" ${existingTool?.status === 'AVAILABLE' ? 'selected' : ''}>Disponible</option>
-              <option value="RENTED" ${existingTool?.status === 'RENTED' ? 'selected' : ''}>Alquilada</option>
-              <option value="MAINTENANCE" ${existingTool?.status === 'MAINTENANCE' ? 'selected' : ''}>Mantenimiento</option>
+            <label class="block font-bold text-slate-700 mb-1">Categoría *</label>
+            <select id="dt-category" class="input-field cursor-pointer" required>
+              ${categoriesList.map(c => `
+                <option value="${c.id}" ${currentCatId === c.id ? 'selected' : ''}>${c.name}</option>
+              `).join('')}
             </select>
           </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Marca</label>
+            <input type="text" id="dt-brand" class="input-field" value="${existingTool?.brand || 'Bosch'}" placeholder="Ej: DeWalt, Bosch, Layher" />
+          </div>
         </div>
 
-        <!-- Image Upload Box -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Fotos del equipo</label>
-          <div class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer">
-            ${renderIcon('UploadCloud', 'w-6 h-6 text-slate-400 mx-auto mb-1')}
-            <span class="text-xs text-slate-600 font-medium">Arrastra imágenes o haz clic para subir</span>
-            <div class="text-[10px] text-slate-400 mt-0.5">JPG, PNG (máx. 5 MB)</div>
+          <label class="block font-bold text-slate-700 mb-1">Descripción técnica *</label>
+          <textarea id="dt-desc" rows="3" required class="input-field" placeholder="Describe la herramienta, características y potencia...">${existingTool?.description || ''}</textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tarifa diaria ($ COP) *</label>
+            <input type="number" id="dt-price" required min="1000" step="1000" class="input-field" placeholder="85000" value="${existingTool?.dailyPrice || 85000}" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Valor de reposición ($ COP) *</label>
+            <input type="number" id="dt-replacement" required min="10000" step="10000" class="input-field" placeholder="3000000" value="${existingTool?.replacementValue || (existingTool?.dailyPrice ? existingTool.dailyPrice * 35 : 3000000)}" />
           </div>
         </div>
 
-        <!-- Specifications Rows -->
-        <div class="space-y-2">
-          <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">Especificaciones</label>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" class="input-field" value="Potencia" readonly />
-            <input type="text" class="input-field" value="1100 W" />
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" class="input-field" value="Voltaje" readonly />
-            <input type="text" class="input-field" value="110 V" />
-          </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">URL de Imagen del equipo</label>
+          <input type="url" id="dt-image" class="input-field" placeholder="https://..." value="${existingTool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000'}" />
         </div>
 
         <div class="pt-2">
-          <button type="submit" class="btn-primary w-full !py-2.5">
-            ${isEdit ? 'Guardar cambios' : 'Guardar herramienta'}
+          <button type="submit" class="btn-primary w-full !py-2.5 cursor-pointer font-bold">
+            ${isEdit ? 'Guardar cambios' : 'Publicar en catálogo'}
           </button>
         </div>
       </form>
@@ -800,47 +959,82 @@ export async function renderProviderDashboard() {
 
     content.querySelector('#drawer-tool-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = content.querySelector('#dt-name').value;
-      const category = content.querySelector('#dt-category').value;
+      const name = content.querySelector('#dt-name').value.trim();
+      const categoryId = content.querySelector('#dt-category').value;
+      const brand = content.querySelector('#dt-brand').value.trim();
       const price = parseFloat(content.querySelector('#dt-price').value);
-      const desc = content.querySelector('#dt-desc').value;
-      const status = content.querySelector('#dt-status').value;
+      const replacement = parseFloat(content.querySelector('#dt-replacement').value);
+      const desc = content.querySelector('#dt-desc').value.trim();
+      const imageUrl = content.querySelector('#dt-image').value.trim();
 
-      if (isEdit) {
-        existingTool.name = name;
-        existingTool.dailyPrice = price;
-        existingTool.description = desc;
-        existingTool.status = status;
-        notificationsStore.add({
-          category: 'RENTAL',
-          type: 'info',
-          title: 'Herramienta Actualizada',
-          message: `Se actualizaron las especificaciones de "${name}".`,
-          link: '#/provider'
-        });
-      } else {
-        const newTool = {
-          id: toolsList.length + 1,
-          name,
-          categoryId: category,
-          dailyPrice: price,
-          description: desc,
-          status,
-          images: [{ imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600' }]
-        };
-        toolsList.unshift(newTool);
-        await api.post('/tools', newTool).catch(() => {});
-        notificationsStore.add({
-          category: 'RENTAL',
-          type: 'success',
-          title: 'Equipo Agregado al Inventario',
-          message: `Has publicado "${name}" en tu catálogo a ${formatCurrency(price)}/día.`,
-          link: '#/provider'
-        });
+      const selectedCat = categoriesList.find(c => c.id === categoryId);
+
+      const payload = {
+        providerId: providerId || 'd0000000-0000-0000-0000-000000000001',
+        categoryId: categoryId,
+        name: name,
+        brand: brand || 'ToolRent Pro',
+        model: existingTool?.model || 'Modelo 2026',
+        serialNumber: existingTool?.serialNumber || `SN-${Date.now().toString().slice(-6)}`,
+        description: desc,
+        dailyPrice: price,
+        replacementValue: replacement || price * 35,
+        images: [{ imageUrl: imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000', isPrimary: true }],
+        specifications: [
+          { specName: 'Potencia', specValue: '1200 W' },
+          { specName: 'Voltaje', specValue: '110 V' }
+        ]
+      };
+
+      try {
+        if (isEdit) {
+          const updated = await api.put(`/tools/${existingTool.id}`, payload);
+          existingTool.name = name;
+          existingTool.brand = brand;
+          existingTool.dailyPrice = price;
+          existingTool.description = desc;
+          existingTool.category = selectedCat || existingTool.category;
+          if (imageUrl) {
+            existingTool.images = [{ imageUrl, isPrimary: true }];
+          }
+          notificationsStore.add({
+            category: 'RENTAL',
+            type: 'info',
+            title: 'Herramienta Actualizada',
+            message: `Se actualizaron las especificaciones de "${name}".`,
+            link: '#/provider'
+          });
+          showToast(`"${name}" actualizado con éxito`, 'success');
+        } else {
+          const created = await api.post('/tools', payload);
+          const newTool = {
+            id: created?.id || `tool-${Date.now()}`,
+            name,
+            brand: brand || 'ToolRent Pro',
+            category: selectedCat || { id: categoryId, name: 'Construcción' },
+            dailyPrice: price,
+            description: desc,
+            status: 'AVAILABLE',
+            serialNumber: payload.serialNumber,
+            images: [{ imageUrl: imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000', isPrimary: true }]
+          };
+          toolsList.unshift(newTool);
+          toolsMap.set(newTool.id, newTool);
+          notificationsStore.add({
+            category: 'RENTAL',
+            type: 'success',
+            title: 'Equipo Agregado al Inventario',
+            message: `Has publicado "${name}" en tu catálogo a ${formatCurrency(price)}/día.`,
+            link: '#/provider'
+          });
+          showToast(`"${name}" publicado en el catálogo`, 'success');
+        }
+
+        modal.close();
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error al guardar la herramienta', 'error');
       }
-
-      modal.close();
-      render();
     });
 
     modal.open({
