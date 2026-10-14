@@ -25,16 +25,27 @@ export async function renderCatalogView() {
   let categories = [];
 
   try {
-    const [toolsData, catsData] = await Promise.all([
+    const [toolsData, catsData, providersData] = await Promise.all([
       api.get('/tools'),
-      api.get('/tools/categories')
+      api.get('/tools/categories'),
+      api.get('/providers').catch(() => [])
     ]);
+    const providersMap = new Map((providersData || []).map(p => [p.id, p]));
+
     const rawTools = toolsData || [];
-    allTools = rawTools.map(t => ({
-      ...t,
-      categoryId: t.categoryId || t.category?.id,
-      categoryName: t.categoryName || t.category?.name || 'Maquinaria',
-    }));
+    allTools = rawTools.map(t => {
+      const provider = providersMap.get(t.providerId) || null;
+      return {
+        ...t,
+        provider: provider,
+        providerName: provider?.companyName || 'Maquinaria y Equipos Certificados',
+        providerCity: provider?.city || 'Colombia',
+        providerPhone: provider?.phone || '+57 310 000 0000',
+        providerVerified: provider?.isVerified ?? true,
+        categoryId: t.categoryId || t.category?.id,
+        categoryName: t.categoryName || t.category?.name || 'Maquinaria',
+      };
+    });
 
     const rawCats = catsData || [];
     const hasAll = rawCats.some(c => c.id === 'cat-all');
@@ -67,7 +78,9 @@ export async function renderCatalogView() {
         t.name.toLowerCase().includes(q) || 
         t.categoryName?.toLowerCase().includes(q) ||
         t.brand?.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q)
+        t.description?.toLowerCase().includes(q) ||
+        t.providerName?.toLowerCase().includes(q) ||
+        t.providerCity?.toLowerCase().includes(q)
       );
     }
 
@@ -412,13 +425,32 @@ export async function renderCatalogView() {
                 </div>
 
                 <!-- Tool Card Info -->
-                <div class="p-4 space-y-1">
-                  <h3 class="font-bold text-slate-900 text-sm leading-snug cursor-pointer hover:text-[#FF5A1F] transition-colors tool-card-trigger" data-id="${tool.id}">
-                    ${tool.name}
-                  </h3>
-                  <p class="text-xs text-slate-400 font-medium">
-                    ${tool.categoryName || 'Construcción'}
-                  </p>
+                <div class="p-4 space-y-2">
+                  <div>
+                    <h3 class="font-bold text-slate-900 text-sm leading-snug cursor-pointer hover:text-[#FF5A1F] transition-colors tool-card-trigger line-clamp-2" data-id="${tool.id}">
+                      ${tool.name}
+                    </h3>
+                    <p class="text-[11px] text-slate-400 font-medium mt-0.5">
+                      ${tool.categoryName || 'Construcción'}
+                    </p>
+                  </div>
+
+                  <!-- Provider Info Badge -->
+                  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                    <div class="flex items-center gap-1.5 min-w-0" title="Proveedor: ${tool.providerName}">
+                      <span class="w-5 h-5 rounded-md bg-orange-50 border border-orange-200/80 text-brand-600 flex items-center justify-center flex-shrink-0">
+                        ${renderIcon('Building2', 'w-3 h-3 text-[#ea580c]')}
+                      </span>
+                      <span class="font-semibold text-slate-700 truncate max-w-[130px] sm:max-w-[145px]">
+                        ${tool.providerName}
+                      </span>
+                    </div>
+                    
+                    <span class="text-slate-500 text-[10px] font-medium flex items-center gap-0.5 flex-shrink-0 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-md">
+                      ${renderIcon('MapPin', 'w-2.5 h-2.5 text-slate-400')}
+                      ${tool.providerCity}
+                    </span>
+                  </div>
                 </div>
               </div>
 
