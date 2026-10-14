@@ -4,7 +4,7 @@ import showToast from '../components/toast.js';
 import { formatCurrency, formatDate, getRentalStatusBadge } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
-import { openInvoiceViewer } from './rental-modal.js';
+import { openInvoiceViewer, openCheckoutModal } from './rental-modal.js';
 export async function renderClientDashboard() {
   const container = document.getElementById('app-content');
   if (!container) return;
@@ -158,17 +158,19 @@ export async function renderClientDashboard() {
               </div>
 
               <div class="flex items-center gap-2">
-                <!-- Check Invoice Button -->
-                <button class="btn-check-invoice btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm" data-rental-id="${rental.id}">
-                  ${renderIcon('FileText', 'w-3.5 h-3.5 text-brand-600')} Ver Factura Oficial
-                </button>
-
-                <!-- Cancel Button if Pending -->
                 ${isPending ? `
+                  <button class="btn-pay-pending btn-primary !py-2 !px-3 text-xs flex items-center gap-1.5 shadow-sm" data-rental-id="${rental.id}">
+                    ${renderIcon('CreditCard', 'w-3.5 h-3.5')} Pagar Reserva
+                  </button>
                   <button class="btn-cancel-rental !py-2 !px-3 text-xs bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 rounded-lg font-semibold flex items-center gap-1 transition-colors" data-rental-id="${rental.id}">
                     ${renderIcon('XCircle', 'w-3.5 h-3.5')} Cancelar
                   </button>
-                ` : ''}
+                ` : `
+                  <!-- Check Invoice Button -->
+                  <button class="btn-check-invoice btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm" data-rental-id="${rental.id}">
+                    ${renderIcon('FileText', 'w-3.5 h-3.5 text-brand-600')} Ver Factura Oficial
+                  </button>
+                `}
               </div>
             </div>
 
@@ -177,38 +179,83 @@ export async function renderClientDashboard() {
       }).join('');
 
       // Attach Actions
-      rentalsContainer.querySelectorAll('.btn-check-invoice').forEach(btn => {
-        btn.addEventListener('click', () => {
-          openInvoiceViewer({
-            invoiceNumber: 'TR-0004587',
-            issueDate: '13 oct 2026',
-            client: {
-              name: user.profile?.fullName || user.username || 'Juan Pérez García',
-              taxId: '1.032.456.789',
-              email: user.email || 'juan.perez@email.com',
-              phone: '+57 300 123 4567',
-              address: 'Cra 45 # 12-34, Bucaramanga, Santander'
-            },
-            provider: {
-              name: 'Construcciones del Norte S.A.S.',
-              taxId: '901.234.567-8',
-              email: 'contacto@cnorte.com',
-              phone: '+57 317 654 3210',
-              address: 'Av. 27 # 45-12, Floridablanca, Santander'
-            },
-            items: [
-              { name: 'Taladro percutor 1"', days: 3, dailyPrice: 85000, subtotal: 255000 },
-              { name: 'Placa compactadora 90 kg', days: 3, dailyPrice: 150000, subtotal: 450000 },
-              { name: 'Andamio multidireccional', days: 2, dailyPrice: 28000, subtotal: 56000 }
-            ],
-            subtotal: 761000,
-            tax: 144590,
-            total: 905590,
-            paymentMethod: 'Transferencia bancaria',
-            bank: 'Bancolombia',
-            reference: 'TR-0004587',
-            paymentDate: '13 oct 2026'
+      rentalsContainer.querySelectorAll('.btn-pay-pending').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const rentalId = btn.dataset.rentalId;
+          const targetRental = rentals.find(r => r.id === rentalId);
+          if (!targetRental) return;
+
+          const firstItem = targetRental.items?.[0];
+          let selectedTool = tools.find(t => t.id === firstItem?.toolId);
+          if (!selectedTool) {
+            try {
+              selectedTool = await api.get(`/tools/${firstItem?.toolId}`);
+            } catch (_) {
+              selectedTool = { id: firstItem?.toolId, name: 'Herramienta Industrial', dailyPrice: firstItem?.dailyPrice || 85000 };
+            }
+          }
+
+          const subtotal = Number(targetRental.subtotal || (targetRental.totalDays * (selectedTool.dailyPrice || 85000)));
+          const total = Math.round(subtotal * 1.19);
+
+          openCheckoutModal(selectedTool, {
+            startDate: targetRental.startDate,
+            endDate: targetRental.endDate,
+            days: targetRental.totalDays,
+            subtotal: subtotal,
+            tax: Math.round(subtotal * 0.19),
+            total: total,
+            existingRental: targetRental
           });
+        });
+      });
+
+      rentalsContainer.querySelectorAll('.btn-check-invoice').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const rentalId = btn.dataset.rentalId;
+          const targetRental = rentals.find(r => r.id === rentalId);
+          
+          try {
+            const invoice = await api.get(`/billing/invoices/rental/${rentalId}`);
+            const firstItem = targetRental?.items?.[0];
+            const toolName = toolMap.get(firstItem?.toolId) || 'Equipo Industrial Certificado';
+
+            openInvoiceViewer({
+              invoiceNumber: invoice.invoiceNumber || `TR-${String(rentalId).slice(-6)}`,
+              issueDate: invoice.issueDate ? formatDate(invoice.issueDate.split('T')[0]) : '14 oct 2026',
+              client: {
+                name: user.profile?.fullName || user.username || 'Cliente ToolRent',
+                taxId: user.profile?.documentNumber || '1.032.456.789',
+                email: user.email || 'cliente@toolrent.com',
+                phone: user.profile?.phone || '+57 300 123 4567',
+                address: user.profile?.address || 'Bucaramanga, Santander'
+              },
+              provider: {
+                name: 'Construcciones del Norte S.A.S.',
+                taxId: '901.234.567-8',
+                email: 'contacto@cnorte.com',
+                phone: '+57 317 654 3210',
+                address: 'Av. 27 # 45-12, Floridablanca, Santander'
+              },
+              items: [
+                {
+                  name: toolName,
+                  days: targetRental?.totalDays || 1,
+                  dailyPrice: firstItem?.dailyPrice || invoice.subtotal,
+                  subtotal: invoice.subtotal
+                }
+              ],
+              subtotal: invoice.subtotal,
+              tax: invoice.taxAmount,
+              total: invoice.totalBilled,
+              paymentMethod: 'Tarjeta de Crédito / Pasarela Segura',
+              bank: 'Bancolombia S.A.',
+              reference: invoice.invoiceNumber,
+              paymentDate: formatDate(invoice.issueDate?.split('T')[0] || '2026-10-14')
+            });
+          } catch (e) {
+            showToast('No se encontró factura emitida para esta reserva aún.', 'error');
+          }
         });
       });
 

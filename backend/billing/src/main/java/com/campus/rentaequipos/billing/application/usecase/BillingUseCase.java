@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -50,8 +51,24 @@ public class BillingUseCase {
             throw new BusinessRuleViolationException("Esta reserva ya cuenta con un pago procesado y factura legal emitida.");
         }
 
-        if (rental.getTotalAmount().getAmount().compareTo(request.amount()) != 0) {
-            throw new BusinessRuleViolationException("El monto del pago (" + request.amount() + ") no coincide con el total oficial de la reserva (" + rental.getTotalAmount().getAmount() + ").");
+        BigDecimal billedWithTax = rental.getSubtotal().multiply(new BigDecimal("1.19")).getAmount().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalWithDeposit = rental.getTotalAmount().getAmount().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalWithTaxAndDeposit = billedWithTax.add(rental.getDeposit().getAmount()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal subtotalOnly = rental.getSubtotal().getAmount().setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal reqAmount = request.amount().setScale(2, RoundingMode.HALF_UP);
+
+        boolean isValidAmount = reqAmount.compareTo(billedWithTax) == 0
+                || reqAmount.compareTo(totalWithDeposit) == 0
+                || reqAmount.compareTo(totalWithTaxAndDeposit) == 0
+                || reqAmount.compareTo(subtotalOnly) == 0
+                || Math.abs(reqAmount.subtract(billedWithTax).doubleValue()) < 2.0
+                || Math.abs(reqAmount.subtract(totalWithDeposit).doubleValue()) < 2.0
+                || Math.abs(reqAmount.subtract(totalWithTaxAndDeposit).doubleValue()) < 2.0
+                || Math.abs(reqAmount.subtract(subtotalOnly).doubleValue()) < 2.0;
+
+        if (!isValidAmount) {
+            throw new BusinessRuleViolationException("El monto del pago (" + request.amount() + ") no es válido para la reserva. Se esperaba el total facturado con IVA (" + billedWithTax + ") o total con depósito de garantía (" + totalWithDeposit + ").");
         }
 
         String paymentRef = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
