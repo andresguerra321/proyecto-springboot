@@ -44,3 +44,35 @@ Por defecto, la compilación genera un archivo `.jar` embebido. Si un requerimie
 2. Incluir la dependencia `spring-boot-starter-tomcat` con *scope provided*.
 3. En la clase principal `RentaEquiposApplication`, heredar de `SpringBootServletInitializer` y sobrescribir el método `configure`.
 4. Ejecutar nuevamente `./mvnw clean package` y localizar el archivo `.war` en la carpeta `target/`.
+
+---
+
+## Compilación del Frontend (Vite + Tailwind CSS v3)
+
+El frontend de ToolRent se compila de forma independiente como una Single Page Application (SPA) optimizada para producción.
+
+### 1. Pre-requisitos del Frontend
+- **Node.js 18+** o **Node.js 20+ LTS**
+- **npm 9+**
+
+### 2. Proceso de Compilación
+Navega a la carpeta `frontend/`:
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+### 3. Salida de Compilación
+Vite empaquetará, minificará y optimizará los assets en la carpeta `frontend/dist/`:
+- `dist/index.html`: Punto de entrada HTML estático con pre-carga de módulos.
+- `dist/assets/index-[hash].js`: Bundle modular ES6 minificado con el router, controladores de vista, cliente HTTP y tiendas reactivas.
+- `dist/assets/index-[hash].css`: Hoja de estilos depurada con Tailwind CSS (PurgeCSS nativo).
+- `dist/assets/login-[hash].png`, `error-404-[hash].png`, etc.: Assets optimizados y versionados con hash para invalidación automática de caché.
+
+Para previsualizar la compilación de producción localmente:
+```bash
+npm run preview
+```
+El servidor de vista previa responderá en `http://localhost:4173/`.
+

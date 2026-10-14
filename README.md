@@ -67,8 +67,8 @@ docker-compose up -d --build
 ```
 Esto levantará la base de datos PostgreSQL, ejecutará las migraciones de Flyway automáticamente y desplegará la API en el puerto `8085`.
 
-3. **Ejecutar el Frontend (Vite + Tailwind CSS)**
-En una terminal separada, ingresa al directorio `frontend`:
+3. **Ejecutar el Frontend (Vite + Tailwind CSS v3)**
+El frontend se conecta de manera directa y en tiempo real a la API de Spring Boot (`http://localhost:8085/api/v1`):
 ```bash
 cd frontend
 npm install
@@ -76,8 +76,35 @@ npm run dev
 ```
 La aplicación web interactiva estará disponible de inmediato en:
 👉 **`http://localhost:5173/`**
-*(Incluye botones de acceso rápido para autenticarte como Admin, Proveedor o Cliente con 1 solo clic).*
 
+Para compilar la versión optimizada de producción del frontend:
+```bash
+npm run build
+npm run preview
+```
+
+### Mapeo de Puertos y URLs del Sistema
+
+| Servicio / Componente | Puerto Local | URL / Host | Descripción |
+| :--- | :---: | :--- | :--- |
+| **PostgreSQL 16** | `5434` | `localhost:5434` | Base de datos relacional 4FN (`renta_herramientas_db`) |
+| **Spring Boot API** | `8085` | `http://localhost:8085/api/v1` | API REST Spring Boot 3 con JWT y Arquitectura Hexagonal |
+| **Swagger UI** | `8085` | `http://localhost:8085/swagger-ui.html` | Documentación interactiva de contratos con Bearer Auth |
+| **Actuator / Health** | `8085` | `http://localhost:8085/api/v1/health` | Estado del backend (`{"status":"UP"}`) |
+| **Frontend Web SPA** | `5173` | `http://localhost:5173/` | Single Page Application reactiva conectada al backend |
+
+### Cuentas y Credenciales de Prueba (Seed Data)
+La base de datos se inicializa automáticamente mediante Flyway (`V2__seed_data.sql`) con 42 usuarios de prueba. Todas las cuentas comparten la misma contraseña maestra:
+
+> **Contraseña para todas las cuentas semilla:** `Password123*`
+
+| Rol | Usuario (`username`) | Correo Electrónico | Acceso / Panel Autorizado |
+| :--- | :--- | :--- | :--- |
+| **ADMIN** | `admin_principal` | `admin@rentaequipos.com` | `#/admin` (Analítica, usuarios, reporte de ingresos) |
+| **PROVEEDOR** | `prov_maquinaria_bog` | `contacto@maquinariabogota.com` | `#/provider` (Gestión de inventario, solicitudes, inspección de daños) |
+| **CLIENTE** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | `#/client` (Alquileres activos, checkout y facturas) |
+
+*(También puedes registrar nuevos clientes o proveedores desde el modal de registro en la interfaz web).*
 
 ## Ejemplo de `application.yml` (Configuración Principal)
 El archivo principal está en `backend/bootstrap/src/main/resources/application.yml`:
