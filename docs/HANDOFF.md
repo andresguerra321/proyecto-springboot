@@ -1,6 +1,6 @@
 # 📋 Documento de Traspaso y Estado del Proyecto (HANDOFF.md)
 
-**Proyecto:** Plataforma de Renta de Herramientas y Equipos de Construcción  
+**Proyecto:** Plataforma de Renta de Herramientas y Equipos de Construcción (ToolRent)  
 **Fecha:** Octubre 2026  
 **Tecnologías Backend:** Spring Boot 3.4.x, Java 21, PostgreSQL 16, Flyway, Maven Multi-Módulo, Spring Security 6, JWT, Docker, H2 (Testing)  
 **Tecnologías Frontend:** Vite, Vanilla JavaScript (ES6 Modules), Tailwind CSS v3.4, PostCSS, Lucide Icons, Glassmorphism UI  
@@ -19,11 +19,49 @@ El desarrollo se rige estrictamente por los lineamientos del documento instituci
 
 ---
 
-## 🏗️ 2. ¿Cómo lo estamos haciendo? (Arquitectura y Metodología)
+## 🔑 2. Matriz de Credenciales por Perfil y Flujo de Acceso
+
+La base de datos relacional PostgreSQL 16 se encuentra poblada mediante las migraciones de Flyway (`V2__seed_data.sql`) con datos de prueba consistentes.
+
+> [!IMPORTANT]
+> **Contraseña universal para todas las cuentas semilla precargadas:**  
+> `Password123*`
+
+### 2.1. Cuentas Básicas por Rol del Sistema
+
+| Rol del Sistema | Nombre de Usuario (`username`) | Correo Electrónico | Perfil Comercial Asociado | Destino tras Login | Pestaña Navbar |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ADMINISTRADOR** | `admin_principal` | `admin@rentaequipos.com` | Administrador General del Sistema | `#/admin` | `Administración [Admin]` |
+| **ADMINISTRADOR #2** | `admin_operaciones` | `operaciones@rentaequipos.com` | Supervisor de Operaciones | `#/admin` | `Administración [Admin]` |
+| **PROVEEDOR** | `prov_maquinaria_bog` | `contacto@maquinariabogota.com` | Maquinaria Bogotá S.A.S. | `#/provider` | `Panel de Proveedor` |
+| **PROVEEDOR #2** | `prov_equipos_med` | `ventas@equiposmedellin.com` | Equipos Medellín Ltda. | `#/provider` | `Panel de Proveedor` |
+| **PROVEEDOR #3** | `prov_rentacali` | `info@rentamaquinariacali.com` | Renta Maquinaria Cali | `#/provider` | `Panel de Proveedor` |
+| **CLIENTE** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | Constructora Gómez & Asoc. | `#/client` o `#/catalog` | `Mis Alquileres` |
+| **CLIENTE #2** | `cliente_maria_rodriguez` | `maria.rodriguez@ingenieria.com` | M&R Ingeniería Civil | `#/client` o `#/catalog` | `Mis Alquileres` |
+| **CLIENTE #3** | `cliente_juan_perez` | `juan.perez@obrasciviles.com` | Obras Civiles Santander | `#/client` o `#/catalog` | `Mis Alquileres` |
+
+---
+
+### 2.2. Flujo de Autenticación Universal y Redirección Inteligente
+
+1. **Punto de Entrada Común (SSO):**  
+   Todos los usuarios (Clientes, Proveedores y Administradores) inician sesión desde el botón **"Iniciar sesión"** en la barra superior o en los avisos de áreas restringidas.
+2. **Validación de Claims en JWT:**  
+   El backend expide un token firmado `HS384` con los claims de identidad y autoridades (`ROLE_ADMIN`, `ROLE_PROVEEDOR`, `ROLE_CLIENTE`).
+3. **Redirección Automática según Privilegios:**
+   - Si contiene `ROLE_ADMIN` $\to$ Se redirige de inmediato a `#/admin` (Consola de Administración).
+   - Si contiene `ROLE_PROVEEDOR` $\to$ Se redirige a `#/provider` (Panel de Solicitudes y KPIs).
+   - Si contiene `ROLE_CLIENTE` $\to$ Permanece en el catálogo o va a `#/client` (Mis Alquileres).
+4. **Protección Directa por URL:**  
+   Si un usuario no autenticado ingresa a `#/admin`, `#/provider` o `#/client` directamente, el sistema bloquea la vista con un componente guardián amigable e invita a autenticarse con el rol correspondiente.
+
+---
+
+## 🏗️ 3. ¿Cómo lo estamos haciendo? (Arquitectura y Metodología)
 
 El sistema se ha diseñado bajo los más altos estándares de ingeniería de software empresarial:
 
-### 2.1. Arquitectura Hexagonal (Puertos y Adaptadores)
+### 3.1. Arquitectura Hexagonal (Puertos y Adaptadores)
 Cada módulo vertical implementa una separación estricta en tres capas concéntricas:
 - **Capa de Dominio (`domain`):** Núcleo agnóstico de frameworks. Contiene las entidades puras (`Tool`, `Rental`, `RentalInspection`, `DamageReport`, `User`, `ClientProfile`, `ProviderProfile`, `Invoice`), Value Objects (`Money`, `DateRange`), enumeraciones de estado y los **Puertos** (interfaces como `ToolRepository`, `RentalRepository`, `RentalInspectionRepository`, `DamageReportRepository`, `ClientProfileRepository`, `ProviderProfileRepository`, `JwtTokenPort`).
 - **Capa de Aplicación (`application`):** Orquesta los casos de uso (`ToolUseCase`, `RentalUseCase`, `InspectionUseCase`, `ProfileUseCase`, `BillingUseCase`, `AuthUseCase`, `ReportingUseCase`) y define los DTOs de entrada y salida (Records inmutables).
@@ -58,7 +96,7 @@ Cada módulo vertical implementa una separación estricta en tres capas concént
 
 ---
 
-### 2.2. Domain-Driven Design (DDD) y Modularización con Maven
+### 3.2. Domain-Driven Design (DDD) y Modularización con Maven
 El backend está organizado como un proyecto **Maven Multi-Módulo** estructurado en Bounded Contexts independientes en [backend/pom.xml](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/backend/pom.xml):
 
 | Módulo | Propósito en el Dominio | Dependencias Clave |
@@ -73,7 +111,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 
 ---
 
-### 2.3. Base de Datos en Cuarta Forma Normal (4FN) y Datos Semilla
+### 3.3. Base de Datos en Cuarta Forma Normal (4FN) y Datos Semilla
 - **Normalización Teórica:** Detallada en [db/README.md](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/db/README.md). Se eliminaron las Dependencias Multivaluadas (MVDs) segregando en tablas independientes:
   - Herramientas vs. Fotos vs. Fichas Técnicas: `tools` $\to$ `tool_images` y `tool_specifications`.
   - Contrato de Alquiler vs. Equipos: `rentals` $\to$ `rental_items`.
@@ -81,43 +119,40 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 - **Motor Utilizado:** PostgreSQL 16 con extensión nativa `uuid-ossp`.
 - **Migraciones Flyway:**
   - `V1__create_schema.sql`: Creación de 15 tablas relacionales, llaves primarias UUID, llaves foráneas e índices.
-  - `V2__seed_data.sql`: Población de datos consistente con contraseñas encriptadas con BCrypt.
+  - `V2__seed_data.sql`: Población de datos consistente con contraseñas encriptadas con BCrypt (`Password123*`).
 - **Volumen:** Cumple rigurosamente el requisito de $\ge 20$ registros por entidad (42 usuarios, 20 perfiles de cliente, 20 perfiles de proveedor, 25 herramientas, 25 fotos, 25 fichas, 22 reservas, 22 pagos, 20 facturas, 20 inspecciones, 20 reportes de daño).
 
 ---
 
-### 2.4. Seguridad, Mitigación de Vulnerabilidades y Decisiones Arquitectónicas
+### 3.4. Seguridad, Mitigación de Vulnerabilidades y Decisiones de Hardening
 
 #### A. Mitigación contra IDOR (Insecure Direct Object References)
-- **El problema:** Endpoints como `GET /api/v1/rentals/client/{clientId}`, `GET /api/v1/rentals/provider/{providerId}` y `GET /api/v1/users/{id}` reciben identificadores en la URL. Si un cliente malintencionado consulta el ID de otro usuario o proveedor, podría acceder a información confidencial.
-- **La solución implementada:**
-  - `GET /api/v1/users/{id}`: Compara el `username` del usuario solicitado contra el `AuthenticationPrincipal` del JWT. Si no es el mismo y no posee el rol `ROLE_ADMIN`, lanza inmediatamente un `AccessDeniedException` (HTTP 403 Forbidden).
-  - `GET /api/v1/rentals/client/{clientId}`: Valida a nivel de base de datos que el perfil de cliente consultado pertenezca al usuario autenticado mediante `client_profiles.user_id = users.id`. Los usuarios `CLIENTE` solo pueden ver sus propias reservas.
-  - `GET /api/v1/rentals/provider/{providerId}`: Valida que el perfil pertenezca a la empresa del proveedor autenticado, impidiendo que proveedores competidores vean alquileres ajenos.
-  - `GET /api/v1/rentals`: Bloqueado con `@PreAuthorize("hasRole('ADMIN')")`.
-  - Endpoints de conveniencia sin paso de ID por URL: `GET /api/v1/users/me`, `GET /api/v1/clients/me`, `GET /api/v1/providers/me`.
+- `GET /api/v1/users/{id}`: Compara el `username` del usuario solicitado contra el `AuthenticationPrincipal` del JWT. Si no es el mismo y no posee el rol `ROLE_ADMIN`, lanza inmediatamente un `AccessDeniedException` (HTTP 403 Forbidden).
+- `GET /api/v1/rentals/client/{clientId}`: Valida a nivel de base de datos que el perfil de cliente consultado pertenezca al usuario autenticado (`client_profiles.user_id = users.id`).
+- `GET /api/v1/rentals/provider/{providerId}`: Valida que el perfil pertenezca a la empresa del proveedor autenticado, impidiendo acceso a alquileres ajenos.
+- `GET /api/v1/rentals`: Bloqueado con `@PreAuthorize("hasRole('ADMIN')")`.
+- Endpoints sin paso de ID por URL: `GET /api/v1/users/me`, `GET /api/v1/clients/me`, `GET /api/v1/providers/me`.
 
-#### B. Configuración de CORS (Cross-Origin Resource Sharing)
-- En `SecurityConfig.java`:
-  - `allowedOriginPatterns = List.of("*")` (permite cualquier origen local como `http://localhost:5173`, `http://localhost:3000`, `http://127.0.0.1:5500`).
-  - `allowedMethods = List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")`.
-  - `allowedHeaders = List.of("Authorization", "Content-Type", "Accept", "X-Requested-With")`.
-  - `allowCredentials = true`.
-  - La comunicación desde el frontend en cualquier puerto o servidor de desarrollo está 100% habilitada sin bloqueos de navegador.
+#### B. Prevención de Escalada de Privilegios en Registro Público
+- En `AuthUseCase.java`: Si una petición a `/auth/register` incluye `ROLE_ADMIN` sin estar previamente autenticada como administrador, el sistema aborta de inmediato con `HTTP 409 Conflict`. Los registros públicos solo permiten `ROLE_CLIENTE` o `ROLE_PROVEEDOR`.
 
-#### C. Almacenamiento de JWT en Frontend (`localStorage` vs. `HttpOnly Cookies`)
-- **Decisión Consciente:** Para fines académicos y de integración simple con frontend desacoplado (Single Page Application / Vanilla JS), el token se almacena en el cliente.
-- **Justificación de Riesgos y Mitigación:**
-  - El almacenamiento en `localStorage` simplifica el flujo SPA pero expone el token a ataques Cross-Site Scripting (XSS) si se introduce código malicioso en la aplicación.
-  - Para mitigar este riesgo, todo el contenido renderizado dinámicamente en el frontend utilizará sanitización estricta (`textContent`, codificación HTML y ausencia de `eval()` o `innerHTML` sin escapar).
-  - Los tokens poseen expiración configurable (`jwt.expiration-ms=86400000` / 24 horas) para limitar la ventana de exposición.
-  - Para un despliegue bancario/productivo de misión crítica, la recomendación es migrar a cookies `Set-Cookie: __Host-jwt; HttpOnly; Secure; SameSite=Strict`.
+#### C. Validación de Archivos (Anti Path Traversal y Anti Stored-XSS)
+- En `ToolController.java` (`/images/upload`):
+  - Se valida estrictamente el MIME Type (`image/jpeg`, `image/png`, `image/webp`), rechazando archivos ejecutables, scripts SVG o HTML.
+  - Se sanitiza el nombre de archivo eliminando secuencias `../` y caracteres no alfanuméricos.
+  - Se verifica que la ruta resuelta permanezca estrictamente dentro del directorio `uploads/`.
+
+#### D. Configuración de CORS y Headers
+- `allowedOriginPatterns = List.of("*")` para flexibilidad en desarrollo local.
+- `allowedMethods = List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")`.
+- `allowedHeaders = List.of("Authorization", "Content-Type", "Accept", "X-Requested-With")`.
+- `allowCredentials = true`.
 
 ---
 
-## 📦 3. Inventario Completo de Endpoints del Backend
+## 📦 4. Inventario Completo de Endpoints del Backend
 
-### 3.1. Autenticación y Cuentas
+### 4.1. Autenticación y Cuentas
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/register` | Público | Registro de usuarios con roles |
@@ -126,7 +161,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `GET` | `/api/v1/users/{id}` | Propietario / ADMIN | Detalle de usuario (Protegido contra IDOR) |
 | `GET` | `/api/v1/users` | ADMIN | Listado global de usuarios registrados |
 
-### 3.2. Perfiles Comerciales (Clientes y Proveedores)
+### 4.2. Perfiles Comerciales (Clientes y Proveedores)
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/clients` | Autenticado | Crear perfil de cliente / contratista |
@@ -142,7 +177,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `PUT` | `/api/v1/providers/{id}` | Autenticado | Actualizar datos comerciales de la empresa |
 | `PATCH` | `/api/v1/providers/{id}/verify` | ADMIN | Verificar y aprobar formalmente a un proveedor |
 
-### 3.3. Catálogo de Herramientas y Disponibilidad
+### 4.3. Catálogo de Herramientas y Disponibilidad
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/tools` | Público | Listar herramientas con filtros (`status`, `categoryId`, `providerId`, `search`) |
@@ -155,7 +190,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `POST` | `/api/v1/tools/{id}/images` | PROVEEDOR / ADMIN | Asociar fotografía por URL externa |
 | `POST` | `/api/v1/tools/{id}/images/upload` | PROVEEDOR / ADMIN | **Subir archivo de fotografía (Multipart File) y guardar en `/uploads/**`** |
 
-### 3.4. Alquileres y Reservas
+### 4.4. Alquileres y Reservas
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/rentals` | CLIENTE | Crear reserva (con validación de solapamiento de fechas) |
@@ -168,7 +203,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `PATCH` | `/api/v1/rentals/{id}/complete` | PROVEEDOR / ADMIN | Confirmar retorno y liberar herramienta (`AVAILABLE`) |
 | `PATCH` | `/api/v1/rentals/{id}/cancel` | Autenticado | Cancelar reserva y liberar equipo (`AVAILABLE`) |
 
-### 3.5. Inspecciones Físicas y Reportes de Averías (Devolución)
+### 4.5. Inspecciones Físicas y Reportes de Averías (Devolución)
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/inspections` | PROVEEDOR / ADMIN | Crear acta de inspección física (`DELIVERY` o `RETURN`) |
@@ -178,7 +213,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `GET` | `/api/v1/inspections/{id}/damages` | Autenticado | Consultar averías reportadas en una inspección |
 | `GET` | `/api/v1/inspections/damages` | Autenticado | Listado global de daños y averías reportadas |
 
-### 3.6. Pagos y Facturación Electrónica
+### 4.6. Pagos y Facturación Electrónica
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/billing/payments` | CLIENTE | Procesar pago (tarjeta, transferencia, etc.) y generar factura |
@@ -188,7 +223,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 | `GET` | `/api/v1/billing/invoices/rental/{rentalId}` | Autenticado | Factura emitida para un alquiler |
 | `GET` | `/api/v1/billing/invoices/{id}/html` | Autenticado | **Factura oficial en formato HTML con soporte para impresión (`@media print`)** |
 
-### 3.7. Analítica y Reportes
+### 4.7. Analítica y Reportes
 | Método | Endpoint | Roles Permitidos | Descripción |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/reporting/income` | ADMIN | Reporte de ingresos brutos consolidados |
@@ -199,91 +234,64 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 
 ---
 
-## ⚖️ 4. Balance frente a los Requisitos de `ejercicioDemo.md`
+## 💻 5. Implementación del Frontend (Vite + Tailwind CSS v3 + ToolRent Design System)
 
-| Requisito del Documento Demo | Estado | Observación |
-| :--- | :---: | :--- |
-| **Arquitectura Hexagonal + DDD + Multi-módulo** | ✅ 100% | 8 módulos Maven desacoplados por dominio |
-| **Normalización en 4FN** | ✅ 100% | 15 tablas sin dependencias multivaluadas (MVDs) |
-| **Al menos 20 registros por entidad** | ✅ 100% | Semilla completa en `data.sql` y `V2__seed_data.sql` |
-| **Documentación (README, COMPILACION, DESPLIEGUE)** | ✅ 100% | Completos y actualizados |
-| **Seguridad JWT con roles (Admin, Proveedor, Cliente)** | ✅ 100% | Spring Security 6, BCrypt, protección IDOR y filtros por rol |
-| **CRUD completo de Herramientas, Reservas y Pagos** | ✅ 100% | Métodos `GET`, `POST`, `PUT`, `PATCH`, `DELETE` implementados |
-| **CRUD completo de Clientes y Proveedores** | ✅ 100% | Perfiles comerciales implementados en módulo `identity` |
-| **Carga de Fotografías** | ✅ 100% | Doble soporte: URLs externas y subida multipart a `/uploads/**` |
-| **Disponibilidad por Fechas (Solapamiento)** | ✅ 100% | `DateRange.overlaps` en reservas y `/availability` para UI |
-| **Devoluciones con Reporte de Daños e Inspecciones** | ✅ 100% | `rental_inspections` y `damage_reports` con endpoints REST |
-| **Descarga / Impresión de Facturas** | ✅ 100% | JSON detallado y vista HTML imprimible con `@media print` |
-| **KPIs y Métricas de Proveedor** | ✅ 100% | Endpoint `/api/v1/reporting/provider/{id}` con los 4 KPIs clave |
-| **Configuración CORS** | ✅ 100% | Permitido para cualquier origen y credenciales en `SecurityConfig` |
-| **Documentación OpenAPI / Swagger** | ✅ 100% | Swagger UI expuesto en `/swagger-ui.html` con Bearer Auth |
-| **Colección de Postman** | ✅ 100% | Exportada en `docs/postman_collection.json` con 8 carpetas |
-| **Pruebas Automatizadas** | ✅ 100% | Tests unitarios + contexto H2 pasando al 100% (13 tests) |
-| **Docker Compose** | ✅ 100% | Configuración con Postgres 16 y app backend |
-| **Frontend Responsivo con Paneles por Rol** | ✅ 100% | Desarrollado con Vite, Tailwind CSS v3, Lucide y ES6 Modules. Paneles de Cliente, Proveedor y Admin completamente operativos |
-
----
-
-## 💻 5. Implementación Completa del Frontend (Vite + Tailwind CSS v3 + Stitch ToolRent Design System)
-
-El frontend se ha construido como una Single Page Application (SPA) desacoplada, moderna y de alto impacto estético ubicada en el directorio [`frontend/`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend), moldeada fielmente según los mockups de diseño de **ToolRent** generados con el MCP de Stitch:
+El frontend opera como una Single Page Application (SPA) reactiva y desacoplada en [`frontend/`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend):
 
 ### 5.1. Stack Tecnológico y Diseño
 - **Empaquetador y DevServer:** **Vite** para desarrollo ultrarrápido y construcción optimizada para producción (`npm run build`).
 - **Sistema de Estilos:** **Tailwind CSS v3.4** con PostCSS y Autoprefixer.
-- **Identidad de Marca e Interfaz ToolRent (Stitch Design System):**
-  - **Paleta de Color:** Naranja industrial ToolRent (`#ea580c` / `brand-600`), fondos limpios de SaaS moderno (`#f8fafc`), tarjetas blancas pulidas (`bg-white` con bordes sutiles `border-slate-200/80` y sombras suaves), acentos semánticos (verde esmeralda, azul cobalto, rojo carmesí).
-  - **Tipografía:** Google Fonts **Outfit** (encabezados de marca de alto impacto) e **Inter** (cuerpo de lectura optimizado).
-  - **Precios en Moneda Nacional:** Formato de Pesos Colombianos con puntos como separadores de miles (ej. `$ 185.000 / día`).
-  - **Íconos Vectoriales:** Librería **Lucide** SVG modularizada.
+- **Identidad de Marca ToolRent:**
+  - **Paleta de Color:** Naranja industrial ToolRent (`#FF5A1F` / `#ea580c`), fondos limpios (`#f8fafc`), tarjetas con elevación suave (`border-slate-200/80` y sombras sutiles).
+  - **Tipografía:** Google Fonts **Outfit** (marca y títulos) e **Inter** (cuerpo de texto).
+  - **Precios en Pesos Colombianos:** Separadores de miles con puntos (ej. `$ 185.000 / día`).
+  - **Iconografía:** Lucide Icons SVG modularizado.
 
-### 5.2. Conexión Directa al Backend Real (Eliminación Total de Mocks)
-El frontend opera conectado al 100% con los servicios reales de Spring Boot 3 y PostgreSQL 16:
-- **Purga de Mocks:** Todos los almacenes en memoria simulados (`mock-store.js`), datos fantasma y skeletons fueron eliminados del repositorio (`git rm`).
-- **Cliente HTTP Seguro ([`frontend/src/api/client.js`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend/src/api/client.js)):** Peticiones `fetch()` asíncronas directas a `http://localhost:8085/api/v1` inyectando automáticamente el encabezado `Authorization: Bearer <token>` cuando existe sesión activa.
-- **Manejo de Expiración:** Intercepta respuestas `401 Unauthorized` disparando el evento global `auth:expired` para renovar o solicitar credenciales limpiamente sin fallos silenciosos.
-- **Guardián de Rutas y Roles:**
-  - `#/client`: Pantalla de bloqueo elegante para usuarios no autenticados.
-  - `#/provider`: Control de acceso para `ROLE_PROVEEDOR` y `ROLE_ADMIN`, resolución dinámica de UUID del perfil comercial (`/api/v1/providers/me`), y pantalla explicativa si un usuario con rol *Cliente* intenta acceder.
-  - `#/admin`: Área restringida a `ROLE_ADMIN` con analítica en vivo.
+---
 
-### 5.3. Vistas Moldeadas Fielmente según los Mockups de Stitch (`img/`)
+### 5.2. Segmentación Dinámica de Navegación y Menú de Perfil (Role-Based UX)
 
-1. **🛒 Catálogo Marketplace (`img/ToolRent_ Equipment Rental Marketplace.png`):**
-   - Barra superior con logo poligonal ToolRent, buscador en tiempo real, selector de categorías (*pills* horizontales) y filtros laterales (rango de precio, disponibilidad, marca).
-   - Modal de ficha técnica completa con galería de fotos, tabla de especificaciones, cálculo de precio total por días y botón de reserva directa.
+La barra de navegación (`navbar.js`) adapta su estructura dinámicamente según el estado de la sesión:
 
-2. **🔑 Acceso y Registro Split-Screen (`img/web/login.png`):**
-   - Modal dividido con la nueva fotografía de alta resolución de equipo profesional (taladro percutor DeWalt en obra) sin textos fijos superpuestos, permitiendo que la tipografía de ToolRent y los degradados dinámicos ofrezcan máximo contraste.
-   - Selector visual de roles: tarjetas interactivas de **Cliente** ("Quiero alquilar equipos") vs. **Proveedor** ("Quiero publicar mis equipos").
-   - Registro automático de perfiles comerciales en el backend (`/api/v1/clients` o `/api/v1/providers`).
+1. **Visitante Público (Sin sesión):**
+   - Enlaces visibles: `Inicio` (catálogo) y botón `¿Tienes equipos? Publica aquí` (abre modal de registro para proveedores).
+   - Oculta por completo: `Mis Alquileres`, `Para Proveedores` y `Administración`.
+2. **Cliente Autenticado (`ROLE_CLIENTE`):**
+   - Enlaces visibles: `Inicio` y `Mis Alquileres`.
+3. **Proveedor Autenticado (`ROLE_PROVEEDOR`):**
+   - Enlaces visibles: `Inicio` y `Panel de Proveedor`.
+4. **Administrador Autenticado (`ROLE_ADMIN`):**
+   - Enlaces visibles: `Inicio` y `Administración` (con icono de escudo y badge dorado `Admin`).
+5. **Menú de Perfil Interactivo (Avatar Dropdown):**
+   - Al pulsar sobre el avatar del usuario conectado se abre una tarjeta popover con nombre, correo, insignia del rol (`Administrador`, `Proveedor Aliado`, o `Cliente Verificado`), accesos contextuales y botón para **Cerrar Sesión**.
+6. **Pie de Página (`footer.js`):**
+   - Limpio de accesos administrativos públicos; ofrece enlaces institucionales y enlace para registro de aliados comerciales.
 
-3. **🚜 Panel del Proveedor (`img/ToolRent Rental Requests Dashboard.png`):**
-   - **4 Tarjetas KPI en Vivo:** Herramientas disponibles (% respecto al total), Equipos alquilados, En mantenimiento y Solicitudes pendientes de confirmación.
-   - **Filtros Avanzados:** Buscador por nombre/marca/modelo, selector dinámico de categorías conectado a `/api/v1/tools/categories` y filtro por estado.
-   - **Tabla Operativa de Solicitudes:** Maquetación flexbox corregida sin desbordamiento. Botones operativos en tiempo real (`Confirmar`, `Rechazar`, `Registrar entrega`, `Registrar devolución`).
-   - **Modal de Inspección Técnica y Reporte de Daños (4FN):** Registro de estado físico (`GOOD` / `DAMAGED`), notas técnicas, costo estimado y derivación del equipo a mantenimiento (`MAINTENANCE`).
-   - **Drawer de Herramientas:** Formulario para publicar (`POST /api/v1/tools`) y editar (`PUT /api/v1/tools/{id}`) equipos con categorías y UUIDs reales en PostgreSQL.
+---
 
-4. **🛡️ Panel del Administrador (`img/ToolRent Dashboard with User Management Panel.png`):**
-   - **4 Métricas Superiores:** Ingresos facturados (`/api/v1/reporting/income`), Alquileres registrados, Usuarios en base de datos (`/api/v1/users`), y Herramientas en catálogo.
-   - **3 Gráficos de Analítica en Vivo:**
-     - *Herramientas más alquiladas:* Gráfico de barras horizontales (`/api/v1/reporting/most-rented-tools`).
-     - *Clientes frecuentes:* Ranking con volumen de alquileres (`/api/v1/reporting/frequent-clients`).
-     - *Estado del inventario:* Gráfico de dona SVG (`/api/v1/reporting/tool-availability`).
-   - **Gestión de Usuarios con Pestañas:** Filtros por `Todos`, `Clientes`, `Proveedores`, `Administradores`, buscador en vivo, y Drawers laterales para creación, edición y desactivación de usuarios.
-   - **Inventario Global de Herramientas:** Acordeón desplegable con tabla del inventario general.
+### 5.3. Vistas y Módulos de la Plataforma
 
-5. **📄 Visor de Factura Oficial (`img/Minimal ToolRent Rental Invoice Viewer.png`):**
-   - Documento imprimible con membrete oficial de ToolRent, NIT legal, datos completos del cliente y proveedor, desglose de ítems, cálculo automático del IVA del 19%, y datos bancarios.
-   - Soporte para impresión directa (`window.print()`).
+1. **🛒 Catálogo Marketplace (`#/catalog`):**
+   - Buscador en tiempo real, filtros por categoría taxonómica, precio y disponibilidad.
+   - Modal de reserva con cálculo automático de días e integración con el backend.
+2. **🔑 Acceso y Registro Split-Screen:**
+   - Fotografía profesional de alta resolución en obra sin texto sobrepuesto.
+   - Tarjetas de selección de rol: *Cliente* ("Quiero alquilar") vs. *Proveedor* ("Quiero publicar").
+3. **🚜 Panel del Proveedor (`#/provider`):**
+   - 4 KPIs en vivo: Disponibles, En renta, En mantenimiento y Solicitudes pendientes.
+   - Tabla operativa para confirmar, registrar entrega y recibir devoluciones.
+   - Modal de inspección técnica física y reporte de averías (4FN).
+   - Publicación y edición de herramientas conectadas al backend.
+4. **🛡️ Panel del Administrador (`#/admin`):**
+   - 4 métricas globales: Ingresos facturados, Alquileres, Usuarios y Herramientas.
+   - Gráficos interactivos de herramientas más rentadas, clientes frecuentes y disponibilidad de stock.
+   - Gestión integral de usuarios con cajones laterales (drawers) para crear, editar o desactivar.
+5. **📄 Visor de Factura Oficial (`rental-modal.js`):**
+   - Membrete legal, desglose de subtotal, IVA del 19% y soporte para impresión directa (`window.print()`).
+6. **🔔 Centro de Notificaciones Reactivo:**
+   - Badge con contador de no leídas, filtros, marcado masivo y deep linking contextual.
 
-6. **🔔 Centro de Notificaciones Interactivo y Store Reactivo:**
-   - **Campana Dinámica con Contador:** Badge reactivo en el navbar superior (`#btn-navbar-notifications`) y en el menú móvil (`#mobile-btn-notifs`), oculto para invitados y visible únicamente con sesiones activas que tengan alertas pendientes.
-   - **Menú Popover Flotante:** Desplegable interactivo con selector de filtros (*Todas* vs. *No leídas*), botón para "Marcar todas como leídas", y eliminación individual.
-   - **Píldoras y Categorías Temáticas:** Iconos temáticos según el evento (`RENTAL`, `PAYMENT`, `ALERT`, `INSPECTION`, `DAMAGE`).
-   - **Navegación Profunda (Deep Linking):** Redirección contextual al hacer clic en cualquier notificación hacia el portal correspondiente.
-
+---
 
 ### 5.4. Cómo Ejecutar el Frontend Localmente
 ```bash
@@ -302,7 +310,7 @@ La aplicación inicia de inmediato en: **`http://localhost:5173/`**
 | **1** | Repositorio GitHub con Código Fuente | ✅ 100% | Repositorio multi-módulo con ramas `develop` y `frontend` sincronizadas, commits descriptivos y código modular. |
 | **2** | Backend Completo en Spring Boot 3 + Java 21 | ✅ 100% | Arquitectura Hexagonal con 8 módulos Maven, JWT Stateless, Spring Security 6, control de solapamiento de fechas, CORS y manejo global de errores. |
 | **3** | Base de Datos Relacional Normalizada en 4FN | ✅ 100% | 15 tablas en PostgreSQL 16 sin MVDs, migraciones Flyway automáticas (`V1` y `V2`) y $\ge 20$ registros por entidad en `db/data.sql`. |
-| **4** | Documentación Completa del Proyecto | ✅ 100% | `README.md` estructurado, diagrama relacional PNG y Mermaid, guía de configuración `application.yml`, Swagger UI interactivo y guía `HANDOFF.md`. |
-| **5** | Frontend Responsivo con HTML, CSS y JS | ✅ 100% | Single Page Application en `frontend/` con Vite, Tailwind CSS v3, diseño adaptable (móvil, tablet, escritorio) y paneles dedicados por rol. |
+| **4** | Documentación Completa del Proyecto | ✅ 100% | `README.md` estructurado, diagrama relacional PNG y Mermaid, guía de configuración `application.yml`, Swagger UI interactivo, `HANDOFF.md` y `TESTING_INTEGRIDAD.md`. |
+| **5** | Frontend Responsivo con HTML, CSS y JS | ✅ 100% | Single Page Application en `frontend/` con Vite, Tailwind CSS v3, diseño adaptable (móvil, tablet, escritorio) y navegación dinámica por roles. |
 | **6** | Funcionalidades de Negocio del Sistema | ✅ 100% | Gestión de usuarios/proveedores, CRUD de herramientas con fotos, reservas con control de disponibilidad, pagos simulados, facturación HTML e inspección con daños. |
 | **7** | Pruebas de API y Despliegue Tomcat | ✅ 100% | Colección completa en `docs/postman_collection.json` con auto-captura de JWT, tests unitarios en Maven (`mvnw test`) y Tomcat embebido en puerto `8085`. |
