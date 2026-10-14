@@ -1,4 +1,5 @@
 import auth from '../auth/state.js';
+import api from '../api/client.js';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from './auth-modal.js';
 import { toggleNotificationsMenu, closeNotificationsMenu } from './notifications-menu.js';
@@ -112,8 +113,14 @@ export function renderNavbar(activeRoute = 'catalog') {
           <!-- 3. Right: Search Bar, Notifications & User Session Controls -->
           <div class="flex items-center gap-3 lg:gap-4 flex-shrink-0">
             
+            <!-- Live Spring Boot Engine Status Indicator -->
+            <div id="backend-health-indicator" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 select-none transition-all" title="Verificando conexión con Spring Boot en http://localhost:8085...">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+              <span>Conectando...</span>
+            </div>
+
             <!-- Rounded Pill Search Bar -->
-            <div class="hidden sm:flex items-center relative w-48 md:w-56 lg:w-64">
+            <div class="hidden sm:flex items-center relative w-44 md:w-52 lg:w-60">
               <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 ${renderIcon('Search', 'w-4 h-4')}
               </span>
@@ -472,4 +479,19 @@ export function renderNavbar(activeRoute = 'catalog') {
 
   handleSearchSubmit(container.querySelector('#navbar-global-search'));
   handleSearchSubmit(container.querySelector('#mobile-global-search'));
+
+  // Real-time Spring Boot Engine connection verification
+  api.checkHealth().then(isHealthy => {
+    const badge = container.querySelector('#backend-health-indicator');
+    if (!badge) return;
+    if (isHealthy) {
+      badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs select-none transition-all';
+      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Spring Boot 8085</span>`;
+      badge.title = 'Backend Spring Boot 3 + PostgreSQL en http://localhost:8085 (Conectado y Operativo)';
+    } else {
+      badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs select-none transition-all';
+      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Backend Desconectado</span>`;
+      badge.title = 'No se pudo conectar a http://localhost:8085. Inicia el backend con docker-compose up -d o ./mvnw spring-boot:run.';
+    }
+  });
 }

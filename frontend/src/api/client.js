@@ -111,6 +111,19 @@ class ApiClient {
     Object.entries(extraData).forEach(([k, v]) => formData.append(k, v));
     return this.post(endpoint, formData);
   }
+
+  async checkHealth() {
+    try {
+      const res = await fetch(`${this.baseUrl}/tools`, { 
+        method: 'GET', 
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(3000)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const api = new ApiClient();
