@@ -1,4 +1,5 @@
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
+import { openAuthModal } from './auth-modal.js';
 
 export function renderFooter() {
   const container = document.getElementById('footer-container');
@@ -29,9 +30,9 @@ export function renderFooter() {
             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 font-display">Plataforma</h4>
             <ul class="space-y-2.5 text-xs">
               <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Catálogo de Equipos</a></li>
-              <li><a href="#/client" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Mis Alquileres</a></li>
-              <li><a href="#/provider" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Para Proveedores</a></li>
-              <li><a href="#/admin" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Panel Administrativo</a></li>
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">¿Cómo funciona el alquiler?</a></li>
+              <li><button id="btn-footer-provider-register" type="button" class="text-slate-600 hover:text-[#FF5A1F] transition-colors text-left cursor-pointer">Registrarse como Proveedor</button></li>
+              <li><a href="#/catalog" class="text-slate-600 hover:text-[#FF5A1F] transition-colors">Garantía y Seguros</a></li>
             </ul>
           </div>
 
@@ -82,4 +83,8 @@ export function renderFooter() {
       </div>
     </footer>
   `;
+
+  container.querySelector('#btn-footer-provider-register')?.addEventListener('click', () => {
+    openAuthModal('register', 'ROLE_PROVEEDOR');
+  });
 }
