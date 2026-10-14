@@ -111,55 +111,27 @@ class AuthState {
     return this.user;
   }
 
-  async register({ username, email, password, roles, fullName, phone, companyName, taxId }) {
-    // 1. Register base user
-    const res = await api.post('/auth/register', {
+  async register({ username, email, password, roles, role, fullName, documentType, documentNumber, phone, address, city, companyName, taxId }) {
+    const targetRoles = roles && roles.length > 0 ? roles : [role || 'ROLE_CLIENTE'];
+
+    // 1. Register base user and commercial profile atomically in backend
+    await api.post('/auth/register', {
       username,
       email,
       password,
-      roles: roles || ['ROLE_CLIENTE'],
+      roles: targetRoles,
+      fullName: fullName || (companyName || username),
+      documentType: documentType || 'CC',
+      documentNumber: documentNumber || '',
+      phone: phone || '',
+      address: address || '',
+      city: city || '',
+      companyName: companyName || '',
+      taxId: taxId || ''
     });
 
-    // 2. Automatically log in to get token
+    // 2. Automatically log in to get token and load profile
     await this.login(username, password);
-
-    // 3. Create commercial profile if client or provider
-    if (this.isClient() && (fullName || phone)) {
-      try {
-        await api.post('/clients', {
-          userId: this.user.id,
-          fullName: fullName || username,
-          phone: phone || '',
-          address: '',
-          city: '',
-          identificationNumber: taxId || ''
-        });
-      } catch (e) {
-        console.warn('Could not auto-create client profile', e);
-      }
-    } else if (this.isProvider() && (companyName || taxId)) {
-      try {
-        await api.post('/providers', {
-          userId: this.user.id,
-          companyName: companyName || username,
-          taxId: taxId || '',
-          contactPhone: phone || '',
-          address: '',
-          city: ''
-        });
-      } catch (e) {
-        console.warn('Could not auto-create provider profile', e);
-      }
-    }
-
-    // Refresh user state
-    try {
-      const me = await api.get('/users/me');
-      this.user = { ...this.user, ...me };
-      localStorage.setItem('user', JSON.stringify(this.user));
-    } catch {}
-
-    this.notifyChange();
     return this.user;
   }
 

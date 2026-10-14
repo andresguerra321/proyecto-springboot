@@ -37,8 +37,21 @@ public class BillingUseCase {
         Rental rental = rentalRepository.findById(request.rentalId())
                 .orElseThrow(() -> new EntityNotFoundException("Rental", request.rentalId()));
 
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleViolationException("El monto a pagar debe ser estrictamente mayor a cero.");
+        }
+
+        if (rental.getStatus() == com.campus.rentaequipos.rental.domain.model.RentalStatus.CANCELLED ||
+            rental.getStatus() == com.campus.rentaequipos.rental.domain.model.RentalStatus.COMPLETED) {
+            throw new BusinessRuleViolationException("No es posible procesar pagos para reservas en estado " + rental.getStatus() + ".");
+        }
+
+        if (invoiceRepository.findByRentalId(rental.getId()).isPresent()) {
+            throw new BusinessRuleViolationException("Esta reserva ya cuenta con un pago procesado y factura legal emitida.");
+        }
+
         if (rental.getTotalAmount().getAmount().compareTo(request.amount()) != 0) {
-            throw new BusinessRuleViolationException("El monto del pago no coincide con el total de la reserva.");
+            throw new BusinessRuleViolationException("El monto del pago (" + request.amount() + ") no coincide con el total oficial de la reserva (" + rental.getTotalAmount().getAmount() + ").");
         }
 
         String paymentRef = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();

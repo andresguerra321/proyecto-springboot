@@ -13,6 +13,7 @@ import com.campus.rentaequipos.catalog.infrastructure.adapter.out.persistence.en
 import com.campus.rentaequipos.catalog.infrastructure.adapter.out.persistence.repository.SpringDataToolRepository;
 import com.campus.rentaequipos.shared.domain.valueobject.Money;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@Transactional
 public class ToolRepositoryAdapter implements ToolRepository {
 
     private final SpringDataToolRepository toolRepository;

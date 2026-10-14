@@ -103,6 +103,21 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        // Transiciones de estado inválidas del dominio (ej. confirmar un alquiler que no está PENDING)
+        ErrorResponse errorResponse = new ErrorResponse(
+                request.getRequestURI(),
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex,
@@ -110,18 +125,34 @@ public class GlobalExceptionHandler {
     ) {
         String exName = ex.getClass().getName();
         if (exName.contains("AccessDeniedException") || exName.contains("AuthorizationDeniedException") || "Access Denied".equals(ex.getMessage())) {
+            String msg = (ex.getMessage() != null && ex.getMessage().startsWith("Acceso denegado"))
+                    ? ex.getMessage()
+                    : "Acceso denegado: no tiene permisos para acceder a este recurso.";
             ErrorResponse errorResponse = new ErrorResponse(
                     request.getRequestURI(),
-                    "Access denied: You do not have permission to access this resource.",
+                    msg,
                     HttpStatus.FORBIDDEN.value(),
                     LocalDateTime.now()
             );
             return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
 
+        if (exName.contains("DataIntegrityViolationException") || exName.contains("ConstraintViolationException")) {
+            // No exponer SQL interno al cliente
+            ErrorResponse errorResponse = new ErrorResponse(
+                    request.getRequestURI(),
+                    "La operación viola una regla de integridad de datos (registro duplicado o referencia inexistente).",
+                    HttpStatus.CONFLICT.value(),
+                    LocalDateTime.now()
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .error("Error no controlado en {}", request.getRequestURI(), ex);
         ErrorResponse errorResponse = new ErrorResponse(
                 request.getRequestURI(),
-                "An unexpected error occurred: " + ex.getMessage(),
+                "Ocurrió un error inesperado en el servidor. Intente nuevamente.",
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 LocalDateTime.now()
         );

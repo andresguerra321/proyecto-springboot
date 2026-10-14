@@ -4,7 +4,9 @@ import com.campus.rentaequipos.catalog.domain.model.Category;
 import com.campus.rentaequipos.catalog.domain.model.Tool;
 import com.campus.rentaequipos.catalog.domain.model.ToolStatus;
 import com.campus.rentaequipos.catalog.domain.repository.ToolRepository;
+import com.campus.rentaequipos.rental.application.dto.RentalRequest;
 import com.campus.rentaequipos.rental.application.dto.RentalResponse;
+import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException;
 import com.campus.rentaequipos.rental.domain.model.Rental;
 import com.campus.rentaequipos.rental.domain.model.RentalItem;
 import com.campus.rentaequipos.rental.domain.model.RentalItemStatus;
@@ -88,6 +90,39 @@ class RentalUseCaseTest {
                 RentalStatus.PENDING,
                 List.of(item)
         );
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepción si la herramienta no está disponible por mantenimiento")
+    void shouldThrowWhenToolNotAvailable() {
+        UUID providerId = UUID.randomUUID();
+        Category category = new Category(UUID.randomUUID(), "Taladro", "Herramientas de perforación");
+        Tool unavailableTool = new Tool(
+                toolId,
+                providerId,
+                category,
+                "Taladro",
+                "DeWalt",
+                "D1",
+                "SN-TEST-4455",
+                "Desc",
+                Money.of(50.00),
+                Money.of(100.00),
+                ToolStatus.MAINTENANCE,
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(unavailableTool));
+
+        RentalRequest request = new RentalRequest(
+                UUID.randomUUID(),
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(3),
+                List.of(toolId)
+        );
+
+        assertThrows(BusinessRuleViolationException.class, () -> rentalUseCase.createRental(request));
     }
 
     @Test

@@ -34,6 +34,9 @@ public class Rental {
     }
 
     public void confirm() {
+        if (this.status == RentalStatus.CONFIRMED) {
+            return;
+        }
         if (this.status != RentalStatus.PENDING) {
             throw new IllegalStateException("Solo se pueden confirmar reservas en estado PENDING");
         }

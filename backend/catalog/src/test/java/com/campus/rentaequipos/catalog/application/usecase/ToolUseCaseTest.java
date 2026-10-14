@@ -116,12 +116,13 @@ class ToolUseCaseTest {
     }
 
     @Test
-    @DisplayName("Debe eliminar una herramienta existente")
+    @DisplayName("Debe dar de baja (soft-delete a RETIRED) una herramienta existente")
     void shouldDeleteTool() {
         when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
-        doNothing().when(toolRepository).deleteById(toolId);
+        when(toolRepository.save(any(Tool.class))).thenAnswer(i -> i.getArgument(0));
 
         assertDoesNotThrow(() -> toolUseCase.deleteTool(toolId));
-        verify(toolRepository).deleteById(toolId);
+        assertEquals(ToolStatus.RETIRED, testTool.getStatus());
+        verify(toolRepository).save(testTool);
     }
 }

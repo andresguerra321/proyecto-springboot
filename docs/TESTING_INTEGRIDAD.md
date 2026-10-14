@@ -274,9 +274,9 @@ El catálogo debe permitir la navegación y búsqueda libre a cualquier visitant
 ### Paso 4.7: Ciclo de Vida del Alquiler (Confirmar, Entregar, Recibir)
 1. Ve a la sección **"Solicitudes de Alquiler Recientes"** del panel del proveedor.
 2. Localiza la solicitud generada previamente por el cliente:
-   - **Paso A: Confirmar Reserva:** Haz clic en **"Confirmar"** (`PATCH /api/v1/rentals/{id}/confirm`). La reserva pasa a `CONFIRMED`.
-   - **Paso B: Registrar Entrega:** Cuando el cliente retira el equipo en bodega, haz clic en **"Registrar entrega"** (`PATCH /api/v1/rentals/{id}/start`). La reserva pasa a `IN_PROGRESS` y la herramienta pasa a estado `RENTED`.
-   - **Paso C: Registrar Devolución:** Al concluir los días contratados, haz clic en **"Registrar devolución"** (`PATCH /api/v1/rentals/{id}/complete`).
+   - **Paso A: Confirmar Reserva (Aprobación Operativa):** Si la reserva se encuentra en estado `PENDING` (por ejemplo, en modalidad contra-entrega o pre-reserva), haz clic en **"Confirmar"** (`PATCH /api/v1/rentals/{id}/confirm`). La reserva pasa a `CONFIRMED`. *(Nota: Si el cliente ya realizó el pago en el Paso 3.3, el sistema ya habrá promovido automáticamente la reserva a `CONFIRMED` y este método responderá de manera segura e idempotente).*
+   - **Paso B: Registrar Entrega (Despacho de Bodega):** Cuando el cliente retira el equipo en bodega, haz clic en **"Registrar entrega"** (`PATCH /api/v1/rentals/{id}/start`). La reserva pasa a `IN_PROGRESS` y las herramientas asociadas pasan a estado `RENTED`.
+   - **Paso C: Registrar Devolución:** Al concluir los días contratados y retornar el equipo, haz clic en **"Registrar devolución"** (`PATCH /api/v1/rentals/{id}/complete`).
 
 ### Paso 4.8: Inspección Física y Reporte de Averías (4FN)
 1. Al pulsar "Registrar devolución", se abrirá el **Modal de Inspección Técnica**:

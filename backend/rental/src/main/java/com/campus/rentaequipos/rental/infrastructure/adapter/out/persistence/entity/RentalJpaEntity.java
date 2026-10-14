@@ -41,7 +41,7 @@ public class RentalJpaEntity {
     @Column(nullable = false, length = 30)
     private String status;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "rental_id", nullable = false)
     private List<RentalItemJpaEntity> items = new ArrayList<>();
 

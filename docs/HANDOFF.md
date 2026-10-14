@@ -120,7 +120,7 @@ El backend está organizado como un proyecto **Maven Multi-Módulo** estructurad
 - **Migraciones Flyway:**
   - `V1__create_schema.sql`: Creación de 15 tablas relacionales, llaves primarias UUID, llaves foráneas e índices.
   - `V2__seed_data.sql`: Población de datos consistente con contraseñas encriptadas con BCrypt (`Password123*`).
-- **Volumen:** Cumple rigurosamente el requisito de $\ge 20$ registros por entidad (42 usuarios, 20 perfiles de cliente, 20 perfiles de proveedor, 25 herramientas, 25 fotos, 25 fichas, 22 reservas, 22 pagos, 20 facturas, 20 inspecciones, 20 reportes de daño).
+- **Volumen:** Cumple rigurosamente el requisito de $\ge 20$ registros por entidad transaccional y maestra (42 usuarios, 20 perfiles de cliente, 20 perfiles de proveedor, 25 herramientas, 25 fotos, 25 fichas técnicas, 22 reservas, 22 pagos, 20 facturas, 20 inspecciones, 20 reportes de daño; las tablas catálogo de dominio son 8 categorías de equipos y 3 roles de seguridad).
 
 ---
 
@@ -308,7 +308,7 @@ La aplicación inicia de inmediato en: **`http://localhost:5173/`**
 | # | Requisito Obligatorio | Cumplimiento | Evidencia en el Proyecto |
 |---|---|:---:|---|
 | **1** | Repositorio GitHub con Código Fuente | ✅ 100% | Repositorio multi-módulo con ramas `develop` y `frontend` sincronizadas, commits descriptivos y código modular. |
-| **2** | Backend Completo en Spring Boot 3 + Java 21 | ✅ 100% | Arquitectura Hexagonal con 8 módulos Maven, JWT Stateless, Spring Security 6, control de solapamiento de fechas, CORS y manejo global de errores. |
+| **2** | Backend Completo en Spring Boot 3 + Java 21 | ✅ 100% | Arquitectura Hexagonal con 7 módulos Maven desacoplados (shared-kernel, identity, catalog, rental, billing, reporting, bootstrap), JWT Stateless, Spring Security 6, control de solapamiento de fechas, CORS y manejo global de errores. |
 | **3** | Base de Datos Relacional Normalizada en 4FN | ✅ 100% | 15 tablas en PostgreSQL 16 sin MVDs, migraciones Flyway automáticas (`V1` y `V2`) y $\ge 20$ registros por entidad en `db/data.sql`. |
 | **4** | Documentación Completa del Proyecto | ✅ 100% | `README.md` estructurado, diagrama relacional PNG y Mermaid, guía de configuración `application.yml`, Swagger UI interactivo, `HANDOFF.md` y `TESTING_INTEGRIDAD.md`. |
 | **5** | Frontend Responsivo con HTML, CSS y JS | ✅ 100% | Single Page Application en `frontend/` con Vite, Tailwind CSS v3, diseño adaptable (móvil, tablet, escritorio) y navegación dinámica por roles. |

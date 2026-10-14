@@ -1,11 +1,12 @@
 import { renderIcon } from '../utils/icons.js';
+import { animate } from '../utils/animations.js';
 
 export function showToast(message, type = 'success', durationMs = 4000, title = '') {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
   const toast = document.createElement('div');
-  toast.className = `pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg text-xs font-sans transition-all duration-300 transform translate-y-4 opacity-0 max-w-sm w-full`;
+  toast.className = `pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg text-xs font-sans max-w-sm w-full opacity-0`;
 
   let iconName = 'CheckCircle2';
   let defaultTitle = 'Éxito';
@@ -46,17 +47,29 @@ export function showToast(message, type = 'success', durationMs = 4000, title = 
   `;
 
   const closeBtn = toast.querySelector('button');
+  let isRemoved = false;
   const removeToast = () => {
-    toast.classList.add('opacity-0', 'translate-y-2');
-    setTimeout(() => toast.remove(), 250);
+    if (isRemoved) return;
+    isRemoved = true;
+    animate(toast, {
+      opacity: [1, 0],
+      translateX: [0, 30],
+      duration: 250,
+      ease: 'inQuad',
+      onComplete: () => toast.remove()
+    });
   };
 
   closeBtn.addEventListener('click', removeToast);
   container.appendChild(toast);
 
-  // Trigger enter animation
-  requestAnimationFrame(() => {
-    toast.classList.remove('opacity-0', 'translate-y-4');
+  // Trigger smooth enter animation
+  animate(toast, {
+    opacity: [0, 1],
+    translateY: [24, 0],
+    scale: [0.92, 1],
+    duration: 350,
+    ease: 'outBack(1.4)'
   });
 
   // Auto remove

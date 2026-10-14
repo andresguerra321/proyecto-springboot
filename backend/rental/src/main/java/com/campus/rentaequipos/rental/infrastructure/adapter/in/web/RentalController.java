@@ -1,5 +1,6 @@
 package com.campus.rentaequipos.rental.infrastructure.adapter.in.web;
 
+import com.campus.rentaequipos.catalog.infrastructure.security.ProviderOwnershipGuard;
 import com.campus.rentaequipos.rental.application.dto.RentalRequest;
 import com.campus.rentaequipos.rental.application.dto.RentalResponse;
 import com.campus.rentaequipos.rental.application.usecase.RentalUseCase;
@@ -8,27 +9,41 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * API de alquileres con autorización a nivel de objeto (Anti-IDOR / BOLA):
+ * <ul>
+ *   <li>CLIENTE: solo crea, consulta y cancela SUS propios alquileres.</li>
+ *   <li>PROVEEDOR: solo consulta y opera (confirmar, entregar, devolver, rechazar) alquileres que incluyen SUS equipos.</li>
+ *   <li>ADMIN: acceso total.</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/v1/rentals")
 @Tag(name = "Rental", description = "Rental Management APIs")
+@SecurityRequirement(name = "bearerAuth")
 public class RentalController {
 
     private final RentalUseCase rentalUseCase;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+    private final ProviderOwnershipGuard guard;
 
-    public RentalController(RentalUseCase rentalUseCase, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+    public RentalController(RentalUseCase rentalUseCase, JdbcTemplate jdbcTemplate, ProviderOwnershipGuard guard) {
         this.rentalUseCase = rentalUseCase;
         this.jdbcTemplate = jdbcTemplate;
+        this.guard = guard;
     }
 
     @GetMapping
-    @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all rentals", description = "Retrieves all rentals in the system (Solo Administradores)")
     public ResponseEntity<List<RentalResponse>> getAllRentals() {
@@ -36,93 +51,145 @@ public class RentalController {
     }
 
     @PostMapping
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Create a new rental", description = "Creates a new rental reservation for a client")
-    public ResponseEntity<RentalResponse> createRental(@RequestBody RentalRequest request) {
-        RentalResponse response = rentalUseCase.createRental(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @Operation(summary = "Create a new rental", description = "Crea una reserva. Un CLIENTE siempre reserva a su propio nombre (se ignora clientId del body).")
+    public ResponseEntity<RentalResponse> createRental(@RequestBody RentalRequest request,
+                                                       @AuthenticationPrincipal UserDetails userDetails) {
+        UUID effectiveClientId;
+        if (guard.isAdmin(userDetails) && request.clientId() != null) {
+            effectiveClientId = resolveExistingClientProfileId(request.clientId());
+            if (effectiveClientId == null) {
+                throw new IllegalArgumentException("El cliente indicado no existe");
+            }
+        } else {
+            effectiveClientId = ensureOwnClientProfile(userDetails);
+        }
+        RentalRequest adjusted = new RentalRequest(effectiveClientId, request.startDate(), request.endDate(), request.toolIds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(rentalUseCase.createRental(adjusted));
     }
 
     @GetMapping("/client/{clientId}")
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLIENTE', 'PROVEEDOR')")
-    @Operation(summary = "Get client rentals", description = "Retrieves all rentals for a specific client (Protegido contra IDOR)")
-    public ResponseEntity<List<RentalResponse>> getClientRentals(
-            @PathVariable UUID clientId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
-        
-        boolean isAdminOrProvider = userDetails != null && userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PROVEEDOR"));
-
-        if (!isAdminOrProvider && userDetails != null) {
-            String clientOwnerUsername = jdbcTemplate.query(
-                    "SELECT u.username FROM client_profiles c JOIN users u ON c.user_id = u.id WHERE c.id = ?",
-                    rs -> rs.next() ? rs.getString("username") : null,
-                    clientId
-            );
-            if (clientOwnerUsername == null || !clientOwnerUsername.equals(userDetails.getUsername())) {
-                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no tiene permisos para consultar el historial de reservas de otro cliente");
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLIENTE')")
+    @Operation(summary = "Get client rentals", description = "Historial de un cliente (acepta client_profiles.id o users.id). Protegido contra IDOR.")
+    public ResponseEntity<List<RentalResponse>> getClientRentals(@PathVariable UUID clientId,
+                                                                 @AuthenticationPrincipal UserDetails userDetails) {
+        UUID resolved;
+        if (guard.isAdmin(userDetails)) {
+            resolved = resolveExistingClientProfileId(clientId);
+            if (resolved == null) return ResponseEntity.ok(List.of());
+        } else {
+            UUID own = ensureOwnClientProfile(userDetails);
+            UUID ownUserId = findUserId(userDetails);
+            if (!clientId.equals(own) && !clientId.equals(ownUserId)) {
+                throw new AccessDeniedException("Acceso denegado: no tiene permisos para consultar el historial de reservas de otro cliente");
             }
+            resolved = own;
         }
-        return ResponseEntity.ok(rentalUseCase.getClientRentals(clientId));
+        return ResponseEntity.ok(rentalUseCase.getClientRentals(resolved));
     }
 
     @GetMapping("/provider/{providerId}")
-    @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')")
-    @Operation(summary = "Get provider rentals", description = "Retrieves all rentals/solicitudes associated with a provider's equipment (Protegido contra IDOR)")
-    public ResponseEntity<List<RentalResponse>> getProviderRentals(
-            @PathVariable UUID providerId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+    @Operation(summary = "Get provider rentals", description = "Solicitudes sobre equipos de un proveedor (acepta provider_profiles.id o users.id). Protegido contra IDOR.")
+    public ResponseEntity<List<RentalResponse>> getProviderRentals(@PathVariable UUID providerId,
+                                                                   @AuthenticationPrincipal UserDetails userDetails) {
+        UUID resolved = jdbcTemplate.query(
+                "SELECT id FROM provider_profiles WHERE id = ? OR user_id = ?",
+                rs -> rs.next() ? (UUID) rs.getObject("id") : null,
+                providerId, providerId);
 
-        boolean isAdmin = userDetails != null && userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin && userDetails != null) {
-            String providerOwnerUsername = jdbcTemplate.query(
-                    "SELECT u.username FROM provider_profiles p JOIN users u ON p.user_id = u.id WHERE p.id = ?",
-                    rs -> rs.next() ? rs.getString("username") : null,
-                    providerId
-            );
-            if (providerOwnerUsername == null || !providerOwnerUsername.equals(userDetails.getUsername())) {
-                throw new org.springframework.security.access.AccessDeniedException("Acceso denegado: no tiene permisos para consultar los alquileres de otro proveedor");
+        if (!guard.isAdmin(userDetails)) {
+            UUID own = guard.findOwnProviderId(userDetails);
+            if (own == null || !own.equals(resolved)) {
+                throw new AccessDeniedException("Acceso denegado: no tiene permisos para consultar los alquileres de otro proveedor");
             }
         }
-        return ResponseEntity.ok(rentalUseCase.getProviderRentals(providerId));
+        if (resolved == null) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(rentalUseCase.getProviderRentals(resolved));
     }
 
     @GetMapping("/{id}")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Get a rental by ID", description = "Retrieves a specific rental by its ID")
-    public ResponseEntity<RentalResponse> getRentalById(@PathVariable UUID id) {
+    @Operation(summary = "Get a rental by ID", description = "Solo el cliente dueño, el proveedor de los equipos o un ADMIN")
+    public ResponseEntity<RentalResponse> getRentalById(@PathVariable UUID id,
+                                                        @AuthenticationPrincipal UserDetails userDetails) {
+        assertCanView(id, userDetails);
         return ResponseEntity.ok(rentalUseCase.getRentalById(id));
     }
 
     @PatchMapping("/{id}/confirm")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Confirm a rental", description = "Confirms a pending rental reservation")
-    public ResponseEntity<RentalResponse> confirmRental(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
+    @Operation(summary = "Confirm a rental", description = "Confirma manualmente una reserva PENDING sin pago registrado (solo proveedor dueño de los equipos)")
+    public ResponseEntity<RentalResponse> confirmRental(@PathVariable UUID id,
+                                                        @AuthenticationPrincipal UserDetails userDetails) {
+        guard.assertProviderOwnsRental(id, userDetails);
         return ResponseEntity.ok(rentalUseCase.confirmRental(id));
     }
 
     @PatchMapping("/{id}/cancel")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Cancel a rental", description = "Cancels a rental and releases the tools back to available")
-    public ResponseEntity<RentalResponse> cancelRental(@PathVariable UUID id) {
+    @Operation(summary = "Cancel a rental", description = "Cancela/rechaza la reserva: cliente dueño, proveedor de los equipos o ADMIN")
+    public ResponseEntity<RentalResponse> cancelRental(@PathVariable UUID id,
+                                                       @AuthenticationPrincipal UserDetails userDetails) {
+        assertCanView(id, userDetails);
         return ResponseEntity.ok(rentalUseCase.cancelRental(id));
     }
 
     @PatchMapping("/{id}/start")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Start a rental (Handover)", description = "Sets rental status to IN_PROGRESS upon equipment handover")
-    public ResponseEntity<RentalResponse> startRental(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
+    @Operation(summary = "Start a rental (Handover)", description = "Registra la entrega (CONFIRMED -> IN_PROGRESS). Solo proveedor dueño de los equipos.")
+    public ResponseEntity<RentalResponse> startRental(@PathVariable UUID id,
+                                                      @AuthenticationPrincipal UserDetails userDetails) {
+        guard.assertProviderOwnsRental(id, userDetails);
         return ResponseEntity.ok(rentalUseCase.startRental(id));
     }
 
     @PatchMapping("/{id}/complete")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Complete a rental (Return)", description = "Completes the rental upon return and releases equipment")
-    public ResponseEntity<RentalResponse> completeRental(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
+    @Operation(summary = "Complete a rental (Return)", description = "Registra la devolución (IN_PROGRESS -> COMPLETED). Solo proveedor dueño de los equipos.")
+    public ResponseEntity<RentalResponse> completeRental(@PathVariable UUID id,
+                                                         @AuthenticationPrincipal UserDetails userDetails) {
+        guard.assertProviderOwnsRental(id, userDetails);
         return ResponseEntity.ok(rentalUseCase.completeRental(id));
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private void assertCanView(UUID rentalId, UserDetails user) {
+        if (guard.isAdmin(user)) return;
+        if (guard.isClientOwnerOfRental(rentalId, user)) return;
+        if (guard.isProviderOfRental(rentalId, user)) return;
+        throw new AccessDeniedException("Acceso denegado: este alquiler no le pertenece");
+    }
+
+    private UUID findUserId(UserDetails user) {
+        return jdbcTemplate.query("SELECT id FROM users WHERE username = ?",
+                rs -> rs.next() ? (UUID) rs.getObject("id") : null, user.getUsername());
+    }
+
+    /** Resuelve client_profiles.id a partir de un id de perfil o de usuario, SIN crear nada. */
+    private UUID resolveExistingClientProfileId(UUID idOrUserId) {
+        return jdbcTemplate.query(
+                "SELECT id FROM client_profiles WHERE id = ? OR user_id = ?",
+                rs -> rs.next() ? (UUID) rs.getObject("id") : null,
+                idOrUserId, idOrUserId);
+    }
+
+    /**
+     * Devuelve el client_profiles.id del usuario autenticado. Si una cuenta legada no tiene perfil,
+     * lo crea solo para SÍ MISMA (nunca para terceros), evitando la violación de rentals_client_id_fkey.
+     */
+    private UUID ensureOwnClientProfile(UserDetails user) {
+        if (user == null) throw new AccessDeniedException("Acceso denegado: sesión no válida");
+        UUID userId = findUserId(user);
+        if (userId == null) throw new AccessDeniedException("Acceso denegado: usuario inexistente");
+        UUID profileId = resolveExistingClientProfileId(userId);
+        if (profileId != null) return profileId;
+
+        UUID newId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO client_profiles (id, user_id, full_name, document_type, document_number, phone, address, city) " +
+                "VALUES (?, ?, ?, 'CC', ?, '3000000000', 'Por actualizar', 'Por actualizar')",
+                newId, userId, user.getUsername(),
+                "PEND-" + userId.toString().substring(0, 8).toUpperCase());
+        return newId;
     }
 }

@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class ToolUseCase {
 
     private final ToolRepository toolRepository;
@@ -77,26 +78,36 @@ public class ToolUseCase {
         Tool tool = toolRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Tool", id));
 
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Category", request.categoryId()));
+        Category category = request.categoryId() != null
+                ? categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new EntityNotFoundException("Category", request.categoryId()))
+                : tool.getCategory();
 
-        List<ToolImage> images = request.images() != null ? request.images().stream()
+        List<ToolImage> images = (request.images() != null && !request.images().isEmpty()) ? request.images().stream()
                 .map(img -> new ToolImage(UUID.randomUUID(), img.imageUrl(), img.isPrimary()))
                 .collect(Collectors.toList()) : tool.getImages();
 
-        List<ToolSpecification> specs = request.specifications() != null ? request.specifications().stream()
+        List<ToolSpecification> specs = (request.specifications() != null && !request.specifications().isEmpty()) ? request.specifications().stream()
                 .map(spec -> new ToolSpecification(UUID.randomUUID(), spec.specName(), spec.specValue()))
                 .collect(Collectors.toList()) : tool.getSpecifications();
 
+        String name = request.name() != null && !request.name().isBlank() ? request.name() : tool.getName();
+        String brand = request.brand() != null ? request.brand() : tool.getBrand();
+        String model = request.model() != null ? request.model() : tool.getModel();
+        String serialNumber = request.serialNumber() != null ? request.serialNumber() : tool.getSerialNumber();
+        String description = request.description() != null ? request.description() : tool.getDescription();
+        Money dailyPrice = request.dailyPrice() != null ? Money.of(request.dailyPrice()) : tool.getDailyPrice();
+        Money replacementValue = request.replacementValue() != null ? Money.of(request.replacementValue()) : tool.getReplacementValue();
+
         tool.updateDetails(
                 category,
-                request.name(),
-                request.brand(),
-                request.model(),
-                request.serialNumber(),
-                request.description(),
-                Money.of(request.dailyPrice()),
-                Money.of(request.replacementValue()),
+                name,
+                brand,
+                model,
+                serialNumber,
+                description,
+                dailyPrice,
+                replacementValue,
                 images,
                 specs
         );
@@ -107,10 +118,11 @@ public class ToolUseCase {
 
     @Transactional
     public void deleteTool(UUID id) {
-        if (toolRepository.findById(id).isEmpty()) {
-            throw new EntityNotFoundException("Tool", id);
-        }
-        toolRepository.deleteById(id);
+        Tool tool = toolRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tool", id));
+        // Soft delete para garantizar integridad referencial estricta 4FN con historial de rental_items
+        tool.updateStatus(ToolStatus.RETIRED);
+        toolRepository.save(tool);
     }
 
     @Transactional

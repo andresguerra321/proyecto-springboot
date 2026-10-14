@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,9 +23,12 @@ import java.util.UUID;
 public class ToolController {
 
     private final ToolUseCase toolUseCase;
+    private final com.campus.rentaequipos.catalog.infrastructure.security.ProviderOwnershipGuard ownershipGuard;
 
-    public ToolController(ToolUseCase toolUseCase) {
+    public ToolController(ToolUseCase toolUseCase,
+                          com.campus.rentaequipos.catalog.infrastructure.security.ProviderOwnershipGuard ownershipGuard) {
         this.toolUseCase = toolUseCase;
+        this.ownershipGuard = ownershipGuard;
     }
 
     @GetMapping
@@ -55,8 +60,21 @@ public class ToolController {
     @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Register a new tool", description = "Registers a new tool in the catalog (Requires PROVEEDOR or ADMIN role)")
-    public ResponseEntity<ToolResponse> registerTool(@RequestBody ToolRequest request) {
-        ToolResponse response = toolUseCase.registerTool(request);
+    public ResponseEntity<ToolResponse> registerTool(
+            @RequestBody ToolRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ToolRequest effective = request;
+        if (!ownershipGuard.isAdmin(userDetails)) {
+            // Un proveedor SIEMPRE registra bajo su propio perfil (ignora providerId enviado por el cliente)
+            UUID ownProviderId = ownershipGuard.findOwnProviderId(userDetails);
+            if (ownProviderId == null) {
+                throw new org.springframework.security.access.AccessDeniedException("Su cuenta no tiene un perfil de proveedor asociado");
+            }
+            effective = new ToolRequest(ownProviderId, request.categoryId(), request.name(), request.brand(),
+                    request.model(), request.serialNumber(), request.description(), request.dailyPrice(),
+                    request.replacementValue(), request.images(), request.specifications());
+        }
+        ToolResponse response = toolUseCase.registerTool(effective);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -64,8 +82,17 @@ public class ToolController {
     @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update a tool", description = "Updates an existing tool in the catalog (Requires PROVEEDOR or ADMIN role)")
-    public ResponseEntity<ToolResponse> updateTool(@PathVariable UUID id, @RequestBody ToolRequest request) {
-        ToolResponse response = toolUseCase.updateTool(id, request);
+    public ResponseEntity<ToolResponse> updateTool(@PathVariable UUID id, @RequestBody ToolRequest request,
+                                                   @AuthenticationPrincipal UserDetails userDetails) {
+        ownershipGuard.assertOwnsTool(id, userDetails);
+        ToolRequest effective = request;
+        if (!ownershipGuard.isAdmin(userDetails)) {
+            // Impide transferir la herramienta a otro proveedor
+            effective = new ToolRequest(ownershipGuard.findOwnProviderId(userDetails), request.categoryId(), request.name(),
+                    request.brand(), request.model(), request.serialNumber(), request.description(), request.dailyPrice(),
+                    request.replacementValue(), request.images(), request.specifications());
+        }
+        ToolResponse response = toolUseCase.updateTool(id, effective);
         return ResponseEntity.ok(response);
     }
 
@@ -73,7 +100,8 @@ public class ToolController {
     @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Delete a tool", description = "Deletes a tool from the catalog (Requires PROVEEDOR or ADMIN role)")
-    public ResponseEntity<Void> deleteTool(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteTool(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        ownershipGuard.assertOwnsTool(id, userDetails);
         toolUseCase.deleteTool(id);
         return ResponseEntity.noContent().build();
     }
@@ -84,7 +112,9 @@ public class ToolController {
     @Operation(summary = "Asociar imagen a una herramienta", description = "Agrega una imagen por URL a una herramienta existente")
     public ResponseEntity<ToolResponse> addImage(
             @PathVariable UUID id,
-            @RequestBody ToolRequest.ImageRequest request) {
+            @RequestBody ToolRequest.ImageRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ownershipGuard.assertOwnsTool(id, userDetails);
         return ResponseEntity.ok(toolUseCase.addImageToTool(id, request.imageUrl(), request.isPrimary()));
     }
 
@@ -95,7 +125,9 @@ public class ToolController {
     public ResponseEntity<ToolResponse> uploadImage(
             @PathVariable UUID id,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary) {
+            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ownershipGuard.assertOwnsTool(id, userDetails);
         if (file.isEmpty()) {
             throw new IllegalArgumentException("El archivo de imagen no puede estar vacío");
         }
