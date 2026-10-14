@@ -99,15 +99,33 @@ public class ToolController {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("El archivo de imagen no puede estar vacío");
         }
+
+        // 1. Validación estricta de Content-Type MIME (Mitigación Stored XSS por archivos SVG/HTML embebidos)
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/") || contentType.contains("svg") || contentType.contains("html")) {
+            throw new IllegalArgumentException("Formato no permitido. Solo se admiten imágenes válidas (JPEG, PNG, WEBP). Se rechazan archivos SVG/HTML para prevenir Stored XSS.");
+        }
+
+        // 2. Sanitización estricta de nombre de archivo y verificación de extensión
+        String rawOriginal = file.getOriginalFilename() != null ? file.getOriginalFilename() : "tool.jpg";
+        String cleanBaseName = java.nio.file.Paths.get(rawOriginal).getFileName().toString().replaceAll("[^a-zA-Z0-9._-]", "_");
+        String lowerExt = cleanBaseName.toLowerCase();
+        if (!lowerExt.endsWith(".jpg") && !lowerExt.endsWith(".jpeg") && !lowerExt.endsWith(".png") && !lowerExt.endsWith(".webp")) {
+            throw new IllegalArgumentException("Extensión de archivo no permitida. Formatos admitidos: .jpg, .jpeg, .png, .webp");
+        }
+
         try {
-            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads");
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads").toAbsolutePath().normalize();
             if (!java.nio.file.Files.exists(uploadDir)) {
                 java.nio.file.Files.createDirectories(uploadDir);
             }
-            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "tool.jpg";
-            String cleanName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
-            String fileName = UUID.randomUUID() + "_" + cleanName;
-            java.nio.file.Path targetPath = uploadDir.resolve(fileName);
+            String fileName = UUID.randomUUID() + "_" + cleanBaseName;
+            java.nio.file.Path targetPath = uploadDir.resolve(fileName).normalize();
+
+            // 3. Mitigación contra Path Traversal
+            if (!targetPath.startsWith(uploadDir)) {
+                throw new SecurityException("Intento de Path Traversal detectado en el nombre del archivo");
+            }
             java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             String fileUrl = "/uploads/" + fileName;

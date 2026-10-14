@@ -370,6 +370,38 @@ curl -i -X GET "http://localhost:8085/api/v1/rentals/provider/d0000000-0000-0000
    - La campana de notificaciones se oculta.
    - La vista regresa al catálogo público en estado limpio sin retención de datos en memoria.
 
+### Paso 6.5: Pruebas de Ciberseguridad y Pentesting Local (SQLi, XSS, Path Traversal y Escalada de Privilegios)
+
+Para demostrar en vivo durante la sustentación técnica la solidez de la arquitectura y la defensa en profundidad del backend, ejecuta estas pruebas con `curl`:
+
+#### 1. Intento de SQL Injection en el Buscador de Herramientas (`?search=`)
+```bash
+curl -i -G "http://localhost:8085/api/v1/tools" --data-urlencode "search=' OR 1=1; DROP TABLE tools; --"
+```
+- **Resultado:** Código HTTP **`200 OK`** devolviendo `[]` (lista vacía).
+- **Mecanismo de Defensa:** El filtrado de búsqueda se ejecuta en memoria sobre un Java Stream (`ToolUseCase.java`) mediante `.toLowerCase().contains(...)`, haciéndolo estructuralmente inmune a inyecciones SQL sin ejecutar sentencias dinámicas en la base de datos.
+
+#### 2. Intento de SQL Injection en Parámetro de Ruta (`{id}`)
+```bash
+curl -i "http://localhost:8085/api/v1/tools/1%20OR%201=1"
+```
+- **Resultado:** Código HTTP **`400 Bad Request`** inmediato.
+- **Mecanismo de Defensa:** El tipado fuerte de `java.util.UUID` en Spring MVC intercepta la cadena maliciosa antes de que alcance la capa de aplicación o JPA.
+
+#### 3. Intento de Escalada de Privilegios en Registro Público (`POST /api/v1/auth/register`)
+```bash
+curl -i -X POST "http://localhost:8085/api/v1/auth/register" \
+     -H "Content-Type: application/json" \
+     -d '{"username":"intruso_admin","email":"intruso@test.com","password":"Password123*","roles":["ROLE_ADMIN"]}'
+```
+- **Resultado:** Código HTTP **`400 Bad Request`** con detalle `"El registro público no permite la asignación de roles administrativos. Solo se admiten ROLE_CLIENTE o ROLE_PROVEEDOR."`.
+- **Mecanismo de Defensa:** `AuthUseCase.java` inspecciona el contexto de seguridad (`SecurityContextHolder`). Si la petición no proviene de un `ROLE_ADMIN` previamente autenticado, se aborta la asignación de roles privilegiados.
+
+#### 4. Intento de Stored XSS y Path Traversal en Carga de Archivos (`POST /images/upload`)
+- **Mecanismo de Defensa (`ToolController.java`):**
+  - **Anti-Stored XSS:** Valida que el `Content-Type` comience por `image/` y rechaza expresamente formatos con capacidad de script embebido (`.svg`, `.html`), limitando las extensiones a `.jpg`, `.jpeg`, `.png` y `.webp`.
+  - **Anti-Path Traversal:** El nombre original se limpia descartando rutas relativas (`Paths.get(...).getFileName()`), sustituyendo caracteres no alfanuméricos (`[^a-zA-Z0-9._-]`), asignando un prefijo aleatorio `UUID.randomUUID()` y comprobando que `targetPath.normalize().startsWith(uploadDir)`. Cargas maliciosas son abortadas con `IllegalArgumentException` o `SecurityException`.
+
 ---
 
 ## Fase 7: Verificación de Responsividad, Compilación y Empaquetado
@@ -421,4 +453,5 @@ Marca cada casilla a medida que completes la verificación del sistema:
 - [ ] **Flujo Admin:** Métricas de ingresos reales, gráficos SVG dinámicos, verificación de proveedores (`PATCH /verify`), acordeón de inventario global y gestión de usuarios.
 - [ ] **Centro de Notificaciones y Responsividad:** Campana reactiva con *Deep Linking* y diseño adaptable en móvil, tablet y escritorio.
 - [ ] **Seguridad RBAC y Anti-IDOR:** Rutas protegidas por rol y peticiones forzadas a recursos de otros clientes o proveedores denegadas con HTTP `403`.
+- [ ] **Pentesting y Defensas de Seguridad:** Inmunidad a SQLi en buscador (Stream en memoria), tipado fuerte UUID (HTTP 400), bloqueo de escalada a ADMIN en registro público y sanitización multipart anti-Stored XSS / Path Traversal.
 - [ ] **Compilación:** `npm run build` en `frontend/` y `mvnw clean test` en `backend/` exitosos al 100%.
