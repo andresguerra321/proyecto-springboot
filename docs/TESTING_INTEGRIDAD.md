@@ -394,7 +394,7 @@ curl -i -X POST "http://localhost:8085/api/v1/auth/register" \
      -H "Content-Type: application/json" \
      -d '{"username":"intruso_admin","email":"intruso@test.com","password":"Password123*","roles":["ROLE_ADMIN"]}'
 ```
-- **Resultado:** Código HTTP **`400 Bad Request`** con detalle `"El registro público no permite la asignación de roles administrativos. Solo se admiten ROLE_CLIENTE o ROLE_PROVEEDOR."`.
+- **Resultado:** Código HTTP **`409 Conflict`** (o `400 Bad Request`) con detalle `"El registro público no permite la asignación de roles administrativos. Solo se admiten ROLE_CLIENTE o ROLE_PROVEEDOR."`.
 - **Mecanismo de Defensa:** `AuthUseCase.java` inspecciona el contexto de seguridad (`SecurityContextHolder`). Si la petición no proviene de un `ROLE_ADMIN` previamente autenticado, se aborta la asignación de roles privilegiados.
 
 #### 4. Intento de Stored XSS y Path Traversal en Carga de Archivos (`POST /images/upload`)
