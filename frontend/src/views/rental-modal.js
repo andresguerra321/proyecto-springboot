@@ -41,7 +41,7 @@ export async function openRentalModal(tool) {
       });
       isAvailable = res.available !== false;
     } catch (err) {
-      console.warn('Availability checked via mock store', err);
+      console.warn('Error al verificar disponibilidad:', err);
       isAvailable = true;
     } finally {
       isCheckingAvailability = false;
@@ -288,7 +288,7 @@ async function openCheckoutModal(tool, rentalData) {
       const user = auth.getUser();
       const method = content.querySelector('input[name="payment-method"]:checked')?.value || 'CREDIT_CARD';
 
-      // 1. Create Rental in Backend / Mock
+      // 1. Create Rental in Backend
       const rentalPayload = {
         clientId: user.profile?.id || user.id,
         startDate: rentalData.startDate,

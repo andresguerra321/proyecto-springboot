@@ -11,7 +11,7 @@ export async function renderProductPageView(toolId) {
   const container = document.getElementById('app-content');
   if (!container) return;
 
-  // Loading skeleton state
+  // Loading state
   container.innerHTML = `
     <div class="min-h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-3">
       ${renderIcon('Loader2', 'w-8 h-8 animate-spin text-[#FF5A1F]')}

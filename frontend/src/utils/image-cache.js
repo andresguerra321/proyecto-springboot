@@ -194,11 +194,40 @@ export async function handleImageError(imgEl, originalUrl, category = '', toolNa
   imgEl.classList.add('opacity-95');
 }
 
+// Curated bank of real database tool image URLs (matching V2__seed_data.sql) for offline preloading
+export const catalogImageUrls = [
+  'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092162384-8987c1d64718?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092446327-9b52bd1570c2?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1590496793929-36417d3117de?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop&q=80',
+];
+
 /**
  * Initializes the ToolRent Image Cache Shield
  * Registers global window helpers and sets up network status listeners.
  */
-export function initImageCacheShield(initialUrls = []) {
+export function initImageCacheShield(initialUrls = catalogImageUrls) {
   if (typeof window === 'undefined') return;
 
   // Register on window for direct onerror attribute access in dynamic HTML strings
@@ -220,12 +249,12 @@ export function initImageCacheShield(initialUrls = []) {
   });
 
   // Launch background preloader if URLs provided
-  if (initialUrls.length > 0) {
-    // Wait for initial render frame before triggering cache network requests
+  const urlsToPreload = initialUrls.length > 0 ? initialUrls : catalogImageUrls;
+  if (urlsToPreload.length > 0) {
     if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(() => preloadCatalogImages(initialUrls));
+      window.requestIdleCallback(() => preloadCatalogImages(urlsToPreload));
     } else {
-      setTimeout(() => preloadCatalogImages(initialUrls), 300);
+      setTimeout(() => preloadCatalogImages(urlsToPreload), 300);
     }
   }
 }

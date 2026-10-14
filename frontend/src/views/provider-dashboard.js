@@ -75,7 +75,7 @@ export async function renderProviderDashboard() {
     container.innerHTML = `
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        <!-- Top Header & Action matching Stitch & Impeccable Mockup -->
+        <!-- Top Header & Actions -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 class="text-2xl sm:text-3xl font-black text-slate-900 font-display">Gestión de Alquileres</h1>

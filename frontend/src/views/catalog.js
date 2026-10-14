@@ -154,7 +154,7 @@ export async function renderCatalogView() {
         <!-- Main Marketplace Layout: Sidebar Filters + Products Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           
-          <!-- Left Sidebar Filters matching mockup -->
+          <!-- Left Sidebar Filters -->
           <aside class="space-y-6 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
             
             <!-- Category Radio/Check Filters -->
@@ -209,7 +209,7 @@ export async function renderCatalogView() {
 
             <div class="border-t border-slate-100"></div>
 
-            <!-- Rango de Precio Slider & Inputs matching mockup -->
+            <!-- Rango de Precio Slider & Inputs -->
             <div>
               <div class="flex items-center justify-between pb-3 select-none">
                 <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Rango de precio (por día)</h3>
