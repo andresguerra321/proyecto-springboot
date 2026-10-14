@@ -609,12 +609,12 @@ export async function openCheckoutModal(tool, rentalData) {
       methodCards.forEach(c => {
         c.className = 'payment-method-card p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all';
         const icon = c.querySelector('svg');
-        if (icon) icon.className = 'w-5 h-5 text-slate-600';
+        if (icon) icon.setAttribute('class', 'w-5 h-5 text-slate-600');
       });
 
       card.className = 'payment-method-card p-3 rounded-xl border border-brand-500 bg-orange-50/20 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all';
       const activeIcon = card.querySelector('svg');
-      if (activeIcon) activeIcon.className = 'w-5 h-5 text-brand-600';
+      if (activeIcon) activeIcon.setAttribute('class', 'w-5 h-5 text-brand-600');
 
       fieldsContainer.innerHTML = renderPaymentFields(currentMethod);
     });
