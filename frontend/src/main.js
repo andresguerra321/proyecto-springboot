@@ -10,7 +10,6 @@ import { renderProductPageView } from './views/product-detail.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
 import { initImageCacheShield } from './utils/image-cache.js';
-import { curatedCatalogImageUrls } from './api/mock-store.js';
 
 export function render404View() {
   renderNavbar('catalog');
@@ -117,7 +116,7 @@ function router() {
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
-  initImageCacheShield(curatedCatalogImageUrls);
+  initImageCacheShield();
   renderFooter();
   router();
 
