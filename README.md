@@ -253,6 +253,6 @@ cd backend
 *(En Windows usa `mvnw.cmd clean test`)*
 
 ---
-Consulta [COMPILACION.md](docs/COMPILACION.md) para más detalles del empaquetado, [DESPLIEGUE.md](docs/DESPLIEGUE.md) para las estrategias de despliegue, y [HANDOFF.md](docs/HANDOFF.md) para el informe de traspaso técnico del proyecto.
+Consulta [COMPILACION.md](docs/COMPILACION.md) para más detalles del empaquetado, [DESPLIEGUE.md](docs/DESPLIEGUE.md) para las estrategias de despliegue, [TESTING_INTEGRIDAD.md](docs/TESTING_INTEGRIDAD.md) para la guía paso a paso de pruebas de integridad, y [HANDOFF.md](docs/HANDOFF.md) para el informe de traspaso técnico del proyecto.
 
 
