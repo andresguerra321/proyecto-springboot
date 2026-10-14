@@ -141,25 +141,6 @@ export function openAuthModal(initialTab = 'login') {
               <button type="submit" id="auth-submit-btn" class="btn-primary w-full !py-2.5 text-xs font-semibold shadow-sm mt-2">
                 ${currentTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
               </button>
-
-              <!-- Quick Demo Access Buttons for Test Grading -->
-              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 mt-2">
-                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>Acceso rápido demo (1 clic):</span>
-                </div>
-                <div class="grid grid-cols-3 gap-1.5 text-center">
-                  <button type="button" id="quick-admin" class="py-1 px-2 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg border border-slate-200 transition-colors">
-                    Admin
-                  </button>
-                  <button type="button" id="quick-provider" class="py-1 px-2 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg border border-slate-200 transition-colors">
-                    Proveedor
-                  </button>
-                  <button type="button" id="quick-client" class="py-1 px-2 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg border border-slate-200 transition-colors">
-                    Cliente
-                  </button>
-                </div>
-              </div>
-
             </form>
           </div>
 
@@ -209,23 +190,6 @@ export function openAuthModal(initialTab = 'login') {
     content.querySelector('#role-card-provider')?.addEventListener('click', () => {
       selectedRole = 'ROLE_PROVEEDOR';
       renderView();
-    });
-
-    // Quick demo buttons
-    content.querySelector('#quick-admin')?.addEventListener('click', () => {
-      content.querySelector('#auth-email').value = 'admin_principal';
-      content.querySelector('#auth-pass').value = 'Password123*';
-      submitForm();
-    });
-    content.querySelector('#quick-provider')?.addEventListener('click', () => {
-      content.querySelector('#auth-email').value = 'prov_maquinaria_bog';
-      content.querySelector('#auth-pass').value = 'Password123*';
-      submitForm();
-    });
-    content.querySelector('#quick-client')?.addEventListener('click', () => {
-      content.querySelector('#auth-email').value = 'cliente_juan_perez';
-      content.querySelector('#auth-pass').value = 'Password123*';
-      submitForm();
     });
 
     // Form submit

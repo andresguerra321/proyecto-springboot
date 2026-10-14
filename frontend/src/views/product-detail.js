@@ -13,18 +13,9 @@ export async function renderProductPageView(toolId) {
 
   // Loading skeleton state
   container.innerHTML = `
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-6">
-      <div class="h-4 w-48 bg-slate-200 rounded"></div>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6">
-          <div class="h-96 bg-slate-200 rounded-2xl"></div>
-          <div class="grid grid-cols-2 gap-6">
-            <div class="h-64 bg-slate-200 rounded-xl"></div>
-            <div class="h-64 bg-slate-200 rounded-xl"></div>
-          </div>
-        </div>
-        <div class="h-96 bg-slate-200 rounded-2xl"></div>
-      </div>
+    <div class="min-h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-3">
+      ${renderIcon('Loader2', 'w-8 h-8 animate-spin text-[#FF5A1F]')}
+      <span class="text-xs font-semibold text-slate-500">Cargando especificaciones del equipo...</span>
     </div>
   `;
 

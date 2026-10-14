@@ -75,12 +75,11 @@ class ApiClient {
 
       return data;
     } catch (err) {
-      if (err.status) {
-        // Legitimate HTTP error response from server (400, 401, 403, 404, etc.)
+      if (!USE_MOCK_BACKEND) {
         throw err;
       }
       console.warn(`[Live API offline] ${options.method || 'GET'} ${url} failed, fallback to mock:`, err);
-      // Fallback to mock if server is completely offline
+      // Fallback to mock only if explicitly running in standalone mock mode
       return this.handleMockRequest(endpoint, options);
     }
   }

@@ -183,13 +183,7 @@ export function renderNotificationsMenu() {
       </div>
 
       <!-- Footer Actions -->
-      <div class="p-2.5 px-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-[11px]">
-        <button 
-          id="btn-reset-demo-notifs"
-          class="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-        >
-          Reiniciar ejemplos
-        </button>
+      <div class="p-2.5 px-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end text-[11px]">
         <a 
           href="#/client" 
           id="link-go-client-rentals"
@@ -218,11 +212,6 @@ export function renderNotificationsMenu() {
 
   container.querySelector('#btn-filter-unread')?.addEventListener('click', () => {
     currentFilter = 'unread';
-    renderNotificationsMenu();
-  });
-
-  container.querySelector('#btn-reset-demo-notifs')?.addEventListener('click', () => {
-    notificationsStore.resetDefaults();
     renderNotificationsMenu();
   });
 

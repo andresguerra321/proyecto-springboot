@@ -372,18 +372,24 @@ function showSuccessModal(rental, payment, tool, rentalData) {
   `;
 
   content.querySelector('#btn-view-invoice-modal')?.addEventListener('click', () => {
+    const user = auth.getUser();
+    const rentalDays = rentalData?.days || 1;
+    const subtotal = rentalData?.subtotal || Math.round((rentalData?.total || 0) / 1.19);
+    const tax = rentalData?.tax || Math.round(subtotal * 0.19);
+    const total = rentalData?.total || (subtotal + tax);
+
     openInvoiceViewer({
-      invoiceNumber: 'TR-0004587',
-      issueDate: '13 oct 2026',
+      invoiceNumber: `TR-${String(rental.id || Date.now()).padStart(6, '0')}`,
+      issueDate: new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }),
       client: {
-        name: 'Juan Pérez García',
-        taxId: '1.032.456.789',
-        email: 'juan.perez@email.com',
-        phone: '+57 300 123 4567',
-        address: 'Cra 45 # 12-34, Bucaramanga, Santander'
+        name: user?.fullName || user?.username || 'Cliente ToolRent',
+        taxId: user?.documentNumber || '1.032.456.789',
+        email: user?.email || 'cliente@toolrent.com',
+        phone: user?.phone || '+57 300 123 4567',
+        address: 'Bucaramanga, Santander'
       },
       provider: {
-        name: tool?.provider?.name || 'Construcciones del Norte S.A.S.',
+        name: tool?.provider?.name || 'Constructoras del Norte S.A.S.',
         taxId: '901.234.567-8',
         email: 'contacto@cnorte.com',
         phone: '+57 317 654 3210',
@@ -391,37 +397,25 @@ function showSuccessModal(rental, payment, tool, rentalData) {
       },
       items: [
         {
-          name: tool?.name || 'Martillo demoledor 10 kg',
-          days: rentalData?.days || 3,
-          dailyPrice: tool?.dailyPrice || 85000,
-          subtotal: rentalData?.subtotal || 255000
-        },
-        {
-          name: 'Placa compactadora 90 kg',
-          days: 3,
-          dailyPrice: 150000,
-          subtotal: 450000
-        },
-        {
-          name: 'Andamio multidireccional',
-          days: 2,
-          dailyPrice: 28000,
-          subtotal: 56000
+          name: tool?.name || 'Equipo Industrial',
+          days: rentalDays,
+          dailyPrice: tool?.dailyPrice || 0,
+          subtotal: subtotal
         }
       ],
-      subtotal: 761000,
-      tax: 144590,
-      total: 905590,
-      paymentMethod: 'Transferencia bancaria',
-      bank: 'Bancolombia',
-      reference: 'TR-0004587',
-      paymentDate: '13 oct 2026'
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
+      paymentMethod: payment?.paymentMethod || 'Transferencia bancaria',
+      bank: 'Pasarela Electrónica',
+      reference: payment?.paymentReference || `PAY-${payment?.id || Date.now()}`,
+      paymentDate: new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
     });
   });
 
   content.querySelector('#btn-goto-my-rentals')?.addEventListener('click', () => {
     modal.close();
-    window.location.hash = '#catalog';
+    window.location.hash = '#/client';
   });
 
   modal.open({

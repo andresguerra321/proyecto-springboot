@@ -9,7 +9,6 @@ import { renderAdminDashboard } from './views/admin-dashboard.js';
 import { renderProductPageView } from './views/product-detail.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
-import { renderAllSystemStatesShowcase } from './components/system-states.js';
 import { initImageCacheShield } from './utils/image-cache.js';
 import { curatedCatalogImageUrls } from './api/mock-store.js';
 
@@ -79,8 +78,6 @@ const routes = {
   '#/provider': renderProviderDashboard,
   '#/admin': renderAdminDashboard,
   '#/404': render404View,
-  '#/system-states': renderAllSystemStatesShowcase,
-  '#/states': renderAllSystemStatesShowcase,
 };
 
 function router() {
