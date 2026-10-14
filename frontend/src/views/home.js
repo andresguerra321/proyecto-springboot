@@ -95,8 +95,9 @@ export async function renderHomeView() {
     allTools = toolsData || [];
 
     if (isAuth && rentalsData && rentalsData.length > 0) {
-      // Find active or latest rental
-      activeRental = rentalsData.find(r => r.status === 'CONFIRMED' || r.status === 'ACTIVE' || r.status === 'PENDING') || rentalsData[0];
+      // Find active or latest rental (sorted by creation/start date descending)
+      const sortedRentals = [...rentalsData].sort((a, b) => new Date(b.createdAt || b.startDate || 0) - new Date(a.createdAt || a.startDate || 0));
+      activeRental = sortedRentals.find(r => r.status === 'CONFIRMED' || r.status === 'ACTIVE' || r.status === 'PENDING') || sortedRentals[0];
       if (activeRental && activeRental.items?.[0]) {
         const itemToolId = activeRental.items[0].toolId;
         activeTool = allTools.find(t => String(t.id) === String(itemToolId)) || null;
@@ -132,7 +133,7 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 02. HERO COMERCIAL CON BUSCADOR DE DISPONIBILIDAD              -->
         <!-- ============================================================== -->
-        <section class="relative rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden animate-fade-in animate-duration-slow">
+        <section class="relative rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden">
           <div class="grid grid-cols-1 lg:grid-cols-12 items-center">
             
             <!-- Left Column: Copy & Search Tool -->
@@ -235,7 +236,7 @@ export async function renderHomeView() {
         <!-- 03. MI ALQUILER ACTIVO (Personalizado según sesión)             -->
         <!-- ============================================================== -->
         ${isAuth && activeRental ? `
-          <section class="bg-white rounded-2xl border-2 border-emerald-500/30 p-6 sm:p-7 shadow-sm space-y-4 animate-fade-in">
+          <section class="bg-white rounded-2xl border-2 border-emerald-500/30 p-6 sm:p-7 shadow-sm space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div class="flex items-center gap-2.5">
                 <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -279,7 +280,7 @@ export async function renderHomeView() {
                 <div class="text-left md:text-right mr-3">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Liquidado</div>
                   <div class="text-base font-black text-slate-900 font-mono">
-                    ${formatCurrency(activeRental.totalPrice || 450000)}
+                    ${formatCurrency(activeRental.totalAmount || activeRental.totalPrice || 450000)}
                   </div>
                 </div>
 
@@ -327,7 +328,7 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 04. EXPLORA POR CATEGORÍA (Imágenes limpias, sin texto doble)   -->
         <!-- ============================================================== -->
-        <section class="space-y-5 animate-fade-in">
+        <section class="space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
               <span class="text-xs font-bold uppercase tracking-wider text-slate-500 font-sans">
@@ -382,7 +383,7 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 05. DISPONIBLES AHORA (4 Equipos Reales con Botón Reservar)    -->
         <!-- ============================================================== -->
-        <section class="space-y-5 animate-fade-in">
+        <section class="space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
               <span class="text-xs font-bold uppercase tracking-wider text-[#FF5A1F] font-sans flex items-center gap-1.5">
@@ -481,7 +482,7 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 06. CÓMO FUNCIONA (3 Pasos Sencillos y Cierre Visual Discreto)  -->
         <!-- ============================================================== -->
-        <section class="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 shadow-2xs space-y-8 animate-fade-in">
+        <section class="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 shadow-2xs space-y-8">
           <div class="text-center max-w-xl mx-auto space-y-2">
             <span class="text-xs font-bold uppercase tracking-widest text-[#FF5A1F]">
               PROCESO SIMPLE Y TRANSPARENTE

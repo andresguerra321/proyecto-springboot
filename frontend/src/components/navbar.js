@@ -217,14 +217,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                         ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
                         <span>Panel de Proveedor</span>
                       </a>
-                    ` : `
-                      ${!isAdmin ? `
-                        <button id="btn-dropdown-become-provider" type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-orange-700 hover:text-orange-900 hover:bg-orange-50 font-semibold transition-colors text-left cursor-pointer">
-                          ${renderIcon('Building2', 'w-4 h-4 text-[#ea580c]')}
-                          <span>Activar Perfil de Proveedor</span>
-                        </button>
-                      ` : ''}
-                    `}
+                    ` : ''}
 
                     ${isAdmin ? `
                       <a href="#/admin" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-900 bg-amber-50/70 hover:bg-amber-100 font-semibold transition-colors">

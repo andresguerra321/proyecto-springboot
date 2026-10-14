@@ -86,7 +86,10 @@ const routes = {
   '#/404': render404View,
 };
 
-function router() {
+let currentNavId = 0;
+
+async function router() {
+  const navId = ++currentNavId;
   const hash = window.location.hash || '#/';
   const cleanRoute = hash.split('?')[0];
   
@@ -96,17 +99,21 @@ function router() {
     const rawId = parts[2];
     const toolId = rawId && !isNaN(Number(rawId)) ? Number(rawId) : rawId;
     renderNavbar('catalog');
-    renderProductPageView(toolId);
-    animateViewEntrance('#app-content');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
+    await renderProductPageView(toolId);
+    if (navId === currentNavId) {
+      animateViewEntrance('#app-content');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
+    }
     return;
   }
 
   // 404 Handler for unknown routes
   if (hash && hash !== '#/' && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
     render404View();
-    animateViewEntrance('#app-content');
+    if (navId === currentNavId) {
+      animateViewEntrance('#app-content');
+    }
     return;
   }
 
@@ -116,11 +123,13 @@ function router() {
   renderNavbar(activeRouteName);
 
   const viewHandler = routes[routeKey] || renderHomeView;
-  viewHandler();
-  animateViewEntrance('#app-content');
+  await viewHandler();
 
-  // Scroll to top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // If user navigated away while view was fetching/rendering, discard stale animation
+  if (navId !== currentNavId) return;
+
+  animateViewEntrance('#app-content');
+  window.scrollTo({ top: 0, behavior: 'instant' });
   setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
 }
 

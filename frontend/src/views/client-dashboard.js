@@ -55,11 +55,7 @@ export async function renderClientDashboard() {
               <a href="#/provider" class="px-3.5 py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-[#ea580c] hover:bg-orange-100/70 text-xs font-bold flex items-center gap-1.5 transition-colors">
                 ${renderIcon('Building2', 'w-4 h-4')} Panel de Proveedor
               </a>
-            ` : `
-              <a href="#/provider" class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 text-slate-700 hover:text-[#ea580c] text-xs font-semibold flex items-center gap-1.5 transition-colors">
-                ${renderIcon('Building2', 'w-4 h-4 text-slate-400')} Publicar Equipos como Proveedor
-              </a>
-            `}
+            ` : ''}
             <a href="#/catalog" class="btn-primary !py-2.5 text-xs font-semibold shadow-sm flex items-center gap-1.5">
               ${renderIcon('PlusCircle', 'w-4 h-4')} Nuevo Alquiler
             </a>
@@ -102,7 +98,8 @@ export async function renderClientDashboard() {
       ]);
       const toolMap = new Map((tools || []).map(t => [t.id, t.name]));
 
-      if (!rentals || rentals.length === 0) {
+      const rawRentals = rentals || [];
+      if (rawRentals.length === 0) {
         rentalsContainer.innerHTML = `
           <div class="py-16 text-center space-y-3">
             <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
@@ -118,7 +115,10 @@ export async function renderClientDashboard() {
         return;
       }
 
-      rentalsContainer.innerHTML = rentals.map(rental => {
+      // Sort newest rentals first
+      const sortedRentals = [...rawRentals].sort((a, b) => new Date(b.createdAt || b.startDate || 0) - new Date(a.createdAt || a.startDate || 0));
+
+      rentalsContainer.innerHTML = sortedRentals.map(rental => {
         const items = rental.items || [];
         const isPending = rental.status === 'PENDING';
 
