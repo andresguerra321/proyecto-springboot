@@ -39,11 +39,11 @@ public final class DateRange implements Serializable {
     }
 
     /**
-     * Calcula la cantidad total de días incluidos en el rango (mínimo 1 día).
+     * Calcula la cantidad total de días facturables incluidos en el rango (ambos extremos inclusive, mínimo 1 día).
+     * Ejemplo: Del 15 al 18 de octubre = 4 días facturables (día de entrega y día de devolución computables).
      */
     public long getDays() {
-        long days = ChronoUnit.DAYS.between(startDate, endDate);
-        return days == 0 ? 1 : days;
+        return ChronoUnit.DAYS.between(startDate, endDate) + 1;
     }
 
     /**

@@ -11,13 +11,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class DateRangeTest {
 
     @Test
-    @DisplayName("Debe calcular correctamente la cantidad de días entre fechas")
+    @DisplayName("Debe calcular correctamente la cantidad de días facturables entre fechas (ambos extremos inclusive)")
     void shouldCalculateDaysCorrectly() {
         LocalDate start = LocalDate.of(2026, 5, 1);
         LocalDate end = LocalDate.of(2026, 5, 5);
 
         DateRange range = DateRange.of(start, end);
-        assertEquals(4, range.getDays());
+        assertEquals(5, range.getDays());
     }
 
     @Test
