@@ -1,97 +1,65 @@
 /**
  * ToolRent Notifications Store
  * 
- * Central reactive storage for user notifications with:
- * - LocalStorage persistence
- * - Unread counters
- * - Categorization (RENTAL, PAYMENT, ALERT, INSPECTION, DAMAGE)
+ * Central reactive storage for user notifications:
+ * - Scoped to authenticated user sessions
+ * - No fictitious or preloaded default mock notifications
  * - CustomEvent dispatching ('notifications:change')
  * - Toast notification pairing
  */
 
 import { showToast } from '../components/toast.js';
+import auth from '../auth/state.js';
 
-const STORAGE_KEY = 'toolrent_notifications_v1';
-
-const defaultNotifications = [
-  {
-    id: 'notif-001',
-    category: 'RENTAL',
-    type: 'success',
-    title: 'Solicitud de Alquiler Aprobada',
-    message: 'Constructoras del Norte S.A.S. aprobó tu alquiler del Taladro Percutor DeWalt 20V (#SOL-001). Equipo listo para entrega.',
-    timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    timeAgo: 'Hace 10 min',
-    read: false,
-    link: '#/client',
-  },
-  {
-    id: 'notif-002',
-    category: 'PAYMENT',
-    type: 'info',
-    title: 'Factura #INV-2026-004 Generada',
-    message: 'Tu pago de $1.760.000 con IVA (19%) fue procesado con éxito. Ya puedes consultar y descargar tu factura oficial.',
-    timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    timeAgo: 'Hace 45 min',
-    read: false,
-    link: '#/client',
-  },
-  {
-    id: 'notif-003',
-    category: 'ALERT',
-    type: 'warning',
-    title: 'Recordatorio de Devolución Programada',
-    message: 'El contrato de alquiler para la Mezcladora de Concreto 400L finaliza mañana a las 5:00 PM. Programa la entrega con el proveedor.',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    timeAgo: 'Hace 2 horas',
-    read: false,
-    link: '#/client',
-  },
-  {
-    id: 'notif-004',
-    category: 'INSPECTION',
-    type: 'info',
-    title: 'Inspección de Entrega Registrada',
-    message: 'Se completó la inspección técnica de salida de la Placa Compactadora Wacker Neuson sin averías previas registradas.',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    timeAgo: 'Ayer',
-    read: true,
-    link: '#/client',
-  },
-  {
-    id: 'notif-005',
-    category: 'RENTAL',
-    type: 'success',
-    title: 'Depósito de Garantía Liberado',
-    message: 'Se confirmó la devolución conforme del Andamio Multidireccional Layher. Se devolvió el depósito en garantía por $180.000.',
-    timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-    timeAgo: 'Hace 2 días',
-    read: true,
-    link: '#/client',
-  },
-];
+const STORAGE_PREFIX = 'toolrent_user_notifications';
 
 class NotificationsStore {
   constructor() {
+    // Purge legacy mock notifications key if present in localStorage
+    try {
+      localStorage.removeItem('toolrent_notifications_v1');
+    } catch (_) {}
+
     this.notifications = this.load();
+
+    // Re-sync when authentication state changes
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:change', () => {
+        this.notifications = this.load();
+        this.emitChange();
+      });
+    }
+  }
+
+  getStorageKey() {
+    const user = auth.getUser();
+    const userId = user?.id || user?.username || 'guest';
+    return `${STORAGE_PREFIX}_${userId}`;
   }
 
   load() {
+    if (!auth.isAuthenticated()) {
+      return [];
+    }
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const data = localStorage.getItem(this.getStorageKey());
       if (data) {
         return JSON.parse(data);
       }
     } catch (e) {
-      console.error('Error al cargar notificaciones de localStorage:', e);
+      console.error('Error al cargar notificaciones:', e);
     }
-    this.save(defaultNotifications);
-    return [...defaultNotifications];
+    return [];
   }
 
   save(items) {
+    if (!auth.isAuthenticated()) {
+      this.notifications = [];
+      this.emitChange();
+      return;
+    }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(this.getStorageKey(), JSON.stringify(items));
     } catch (e) {
       console.error('Error al guardar notificaciones:', e);
     }
@@ -104,21 +72,24 @@ class NotificationsStore {
       window.dispatchEvent(new CustomEvent('notifications:change', {
         detail: {
           unreadCount: this.getUnreadCount(),
-          total: this.notifications.length,
+          total: this.getAll().length,
         }
       }));
     }
   }
 
   getAll() {
+    if (!auth.isAuthenticated()) return [];
     return [...this.notifications];
   }
 
   getUnreadCount() {
+    if (!auth.isAuthenticated()) return 0;
     return this.notifications.filter(n => !n.read).length;
   }
 
   markAsRead(id) {
+    if (!auth.isAuthenticated()) return;
     const updated = this.notifications.map(n => 
       n.id === id ? { ...n, read: true } : n
     );
@@ -126,11 +97,13 @@ class NotificationsStore {
   }
 
   markAllAsRead() {
+    if (!auth.isAuthenticated()) return;
     const updated = this.notifications.map(n => ({ ...n, read: true }));
     this.save(updated);
   }
 
   delete(id) {
+    if (!auth.isAuthenticated()) return;
     const updated = this.notifications.filter(n => n.id !== id);
     this.save(updated);
   }
@@ -139,14 +112,12 @@ class NotificationsStore {
     this.save([]);
   }
 
-  resetDefaults() {
-    this.save([...defaultNotifications]);
-  }
-
   /**
    * Adds a notification and triggers an immediate in-app toast
    */
   add({ category = 'RENTAL', type = 'success', title, message, link = '#/client' }) {
+    if (!auth.isAuthenticated()) return null;
+
     const newNotif = {
       id: `notif-${Date.now()}`,
       category,

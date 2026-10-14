@@ -2,11 +2,16 @@
  * ToolRent Notifications Popover Menu Component
  * 
  * Provides an interactive notification drawer / dropdown anchored to the navbar bell icon.
- * Refined with high-precision product hierarchy, readable typography, and balanced colors.
+ * Refined with authentic user session awareness:
+ * - Empty/guest invitation when unauthenticated
+ * - Clean state when no notifications exist
+ * - Dynamically populated only when real user transactions occur
  */
 
 import { renderIcon } from '../utils/icons.js';
 import { notificationsStore } from '../utils/notifications-store.js';
+import auth from '../auth/state.js';
+import { openAuthModal } from './auth-modal.js';
 
 let isOpen = false;
 let currentFilter = 'all'; // 'all' | 'unread'
@@ -15,8 +20,9 @@ export function renderNotificationsMenu() {
   const container = document.getElementById('notifications-menu-container');
   if (!container) return;
 
-  const notifications = notificationsStore.getAll();
-  const unreadCount = notificationsStore.getUnreadCount();
+  const isAuth = auth.isAuthenticated();
+  const notifications = isAuth ? notificationsStore.getAll() : [];
+  const unreadCount = isAuth ? notificationsStore.getUnreadCount() : 0;
 
   const filtered = currentFilter === 'unread' 
     ? notifications.filter(n => !n.read) 
@@ -34,7 +40,7 @@ export function renderNotificationsMenu() {
     <!-- Backdrop for click-outside dismissal -->
     <div id="notifications-backdrop" class="fixed inset-0 z-40 bg-black/5 backdrop-blur-[0.5px]"></div>
 
-    <!-- Floating Popover Card (preserved dimensions, corner radius & shadow) -->
+    <!-- Floating Popover Card -->
     <div 
       id="notifications-popover" 
       class="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
@@ -48,7 +54,7 @@ export function renderNotificationsMenu() {
           </div>
           <div class="flex items-center gap-2">
             <h3 class="text-xs font-bold text-slate-900 tracking-tight font-display">Notificaciones</h3>
-            ${unreadCount > 0 ? `
+            ${isAuth && unreadCount > 0 ? `
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-[#ea580c]">
                 ${unreadCount} nueva${unreadCount === 1 ? '' : 's'}
               </span>
@@ -57,7 +63,7 @@ export function renderNotificationsMenu() {
         </div>
 
         <div class="flex items-center gap-2">
-          ${unreadCount > 0 ? `
+          ${isAuth && unreadCount > 0 ? `
             <button 
               id="btn-mark-all-read" 
               class="text-[11px] font-semibold text-slate-500 hover:text-[#FF5A1F] transition-colors cursor-pointer px-1.5 py-0.5 rounded hover:bg-white"
@@ -76,129 +82,151 @@ export function renderNotificationsMenu() {
         </div>
       </div>
 
-      <!-- Segmented Filter Control (refined product styling) -->
-      <div class="px-3.5 py-2.5 bg-white border-b border-slate-100">
-        <div class="flex p-0.5 bg-slate-100/80 rounded-xl text-xs font-semibold text-slate-500">
-          <button 
-            id="btn-filter-all" 
-            class="flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer ${
-              currentFilter === 'all' 
-                ? 'bg-white text-slate-900 shadow-2xs font-bold' 
-                : 'text-slate-600 hover:text-slate-900'
-            }"
-          >
-            Todas <span class="ml-1 text-[11px] font-normal opacity-70">(${notifications.length})</span>
-          </button>
-          <button 
-            id="btn-filter-unread" 
-            class="flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer ${
-              currentFilter === 'unread' 
-                ? 'bg-white text-[#FF5A1F] shadow-2xs font-bold' 
-                : 'text-slate-600 hover:text-slate-900'
-            }"
-          >
-            No leídas ${unreadCount > 0 ? `<span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-orange-100 text-[#ea580c] font-bold">${unreadCount}</span>` : ''}
-          </button>
-        </div>
-      </div>
-
-      <!-- Notifications List (Preserving row separation & card structure) -->
-      <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-100 overscroll-contain">
-        ${filtered.length === 0 ? `
-          <div class="p-8 text-center space-y-2">
-            <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-              ${renderIcon('CheckCircle2', 'w-5 h-5 text-emerald-500')}
-            </div>
-            <p class="text-xs font-bold text-slate-800">¡Estás al día!</p>
-            <p class="text-[11px] text-slate-400">No tienes notificaciones ${currentFilter === 'unread' ? 'sin leer' : 'registradas'}.</p>
+      ${!isAuth ? `
+        <!-- Unauthenticated Guest State -->
+        <div class="p-8 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-orange-50 text-[#FF5A1F] flex items-center justify-center mx-auto">
+            ${renderIcon('BellOff', 'w-6 h-6')}
           </div>
-        ` : filtered.map(item => {
-          // Refined, subtle category icon styling
-          let icon = 'Info';
-          let badgeClass = 'bg-slate-100 text-slate-600 border-slate-200/70';
-
-          if (item.category === 'RENTAL') {
-            icon = 'CheckCircle2';
-            badgeClass = 'bg-emerald-50/80 text-emerald-600 border-emerald-100';
-          } else if (item.category === 'PAYMENT') {
-            icon = 'Receipt';
-            badgeClass = 'bg-slate-100 text-slate-700 border-slate-200/80';
-          } else if (item.category === 'ALERT') {
-            icon = 'Clock';
-            badgeClass = 'bg-amber-50/80 text-amber-600 border-amber-100';
-          } else if (item.category === 'INSPECTION') {
-            icon = 'Wrench';
-            badgeClass = 'bg-slate-100 text-slate-600 border-slate-200/70';
-          } else if (item.category === 'DAMAGE') {
-            icon = 'AlertTriangle';
-            badgeClass = 'bg-rose-50/80 text-rose-600 border-rose-100';
-          }
-
-          return `
-            <div 
-              class="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group notif-item ${
-                !item.read ? 'bg-orange-50/15' : 'bg-white'
+          <p class="text-xs font-bold text-slate-800">Inicia sesión para ver notificaciones</p>
+          <p class="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
+            Ingresa a tu cuenta para recibir confirmaciones de reservas, facturas legales y recordatorios de entrega.
+          </p>
+          <div class="pt-2">
+            <button id="btn-notif-guest-login" class="btn-primary !py-2 !px-5 text-xs font-bold shadow-xs">
+              Iniciar sesión
+            </button>
+          </div>
+        </div>
+      ` : `
+        <!-- Segmented Filter Control -->
+        <div class="px-3.5 py-2.5 bg-white border-b border-slate-100">
+          <div class="flex p-0.5 bg-slate-100/80 rounded-xl text-xs font-semibold text-slate-500">
+            <button 
+              id="btn-filter-all" 
+              class="flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer ${
+                currentFilter === 'all' 
+                  ? 'bg-white text-slate-900 shadow-2xs font-bold' 
+                  : 'text-slate-600 hover:text-slate-900'
               }"
-              data-id="${item.id}"
-              data-link="${item.link || '#/client'}"
             >
-              <!-- Category Icon Badge (Softer, cohesive tones) -->
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center border flex-shrink-0 mt-0.5 shadow-2xs ${badgeClass}">
-                ${renderIcon(icon, 'w-4 h-4')}
-              </div>
+              Todas <span class="ml-1 text-[11px] font-normal opacity-70">(${notifications.length})</span>
+            </button>
+            <button 
+              id="btn-filter-unread" 
+              class="flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer ${
+                currentFilter === 'unread' 
+                  ? 'bg-white text-[#FF5A1F] shadow-2xs font-bold' 
+                  : 'text-slate-600 hover:text-slate-900'
+              }"
+            >
+              No leídas ${unreadCount > 0 ? `<span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-orange-100 text-[#ea580c] font-bold">${unreadCount}</span>` : ''}
+            </button>
+          </div>
+        </div>
 
-              <!-- Message Body & Readable Hierarchy -->
-              <div class="flex-1 min-w-0 pr-1">
-                <div class="flex items-start justify-between gap-2 mb-1">
-                  <h4 class="text-xs leading-snug ${!item.read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">
-                    ${item.title}
-                  </h4>
-                  <div class="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
-                    <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                      ${item.timeAgo}
-                    </span>
-                    ${!item.read ? `
-                      <span class="w-1.5 h-1.5 rounded-full bg-[#FF5A1F]" title="No leída"></span>
-                    ` : ''}
-                  </div>
-                </div>
-                <p class="text-[11px] leading-relaxed line-clamp-2 ${!item.read ? 'text-slate-600 font-normal' : 'text-slate-400'}">
-                  ${item.message}
-                </p>
+        <!-- Notifications List -->
+        <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-100 overscroll-contain">
+          ${filtered.length === 0 ? `
+            <div class="p-8 text-center space-y-2">
+              <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                ${renderIcon('CheckCircle2', 'w-5 h-5 text-emerald-500')}
               </div>
-
-              <!-- Quick Delete on hover -->
-              <div class="flex items-center flex-shrink-0 pt-0.5">
-                <button 
-                  class="btn-delete-notif opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1 rounded transition-all cursor-pointer" 
-                  data-id="${item.id}"
-                  title="Eliminar notificación"
-                >
-                  ${renderIcon('Trash2', 'w-3.5 h-3.5')}
-                </button>
-              </div>
+              <p class="text-xs font-bold text-slate-800">¡Estás al día!</p>
+              <p class="text-[11px] text-slate-400">No tienes notificaciones ${currentFilter === 'unread' ? 'sin leer' : 'registradas'}.</p>
             </div>
-          `;
-        }).join('')}
-      </div>
+          ` : filtered.map(item => {
+            let icon = 'Info';
+            let badgeClass = 'bg-slate-100 text-slate-600 border-slate-200/70';
 
-      <!-- Footer Actions -->
-      <div class="p-2.5 px-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end text-[11px]">
-        <a 
-          href="#/client" 
-          id="link-go-client-rentals"
-          class="font-bold text-[#FF5A1F] hover:text-[#e04e18] transition-colors flex items-center gap-1"
-        >
-          <span>Ver mis alquileres</span>
-          <span>&rarr;</span>
-        </a>
-      </div>
+            if (item.category === 'RENTAL') {
+              icon = 'CheckCircle2';
+              badgeClass = 'bg-emerald-50/80 text-emerald-600 border-emerald-100';
+            } else if (item.category === 'PAYMENT') {
+              icon = 'Receipt';
+              badgeClass = 'bg-slate-100 text-slate-700 border-slate-200/80';
+            } else if (item.category === 'ALERT') {
+              icon = 'Clock';
+              badgeClass = 'bg-amber-50/80 text-amber-600 border-amber-100';
+            } else if (item.category === 'INSPECTION') {
+              icon = 'Wrench';
+              badgeClass = 'bg-slate-100 text-slate-600 border-slate-200/70';
+            } else if (item.category === 'DAMAGE') {
+              icon = 'AlertTriangle';
+              badgeClass = 'bg-rose-50/80 text-rose-600 border-rose-100';
+            }
+
+            return `
+              <div 
+                class="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group notif-item ${
+                  !item.read ? 'bg-orange-50/15' : 'bg-white'
+                }"
+                data-id="${item.id}"
+                data-link="${item.link || '#/client'}"
+              >
+                <!-- Category Icon Badge -->
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center border flex-shrink-0 mt-0.5 shadow-2xs ${badgeClass}">
+                  ${renderIcon(icon, 'w-4 h-4')}
+                </div>
+
+                <!-- Message Body -->
+                <div class="flex-1 min-w-0 pr-1">
+                  <div class="flex items-start justify-between gap-2 mb-1">
+                    <h4 class="text-xs leading-snug ${!item.read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">
+                      ${item.title}
+                    </h4>
+                    <div class="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
+                      <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                        ${item.timeAgo}
+                      </span>
+                      ${!item.read ? `
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#FF5A1F]" title="No leída"></span>
+                      ` : ''}
+                    </div>
+                  </div>
+                  <p class="text-[11px] leading-relaxed line-clamp-2 ${!item.read ? 'text-slate-600 font-normal' : 'text-slate-400'}">
+                    ${item.message}
+                  </p>
+                </div>
+
+                <!-- Delete on hover -->
+                <div class="flex items-center flex-shrink-0 pt-0.5">
+                  <button 
+                    class="btn-delete-notif opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1 rounded transition-all cursor-pointer" 
+                    data-id="${item.id}"
+                    title="Eliminar notificación"
+                  >
+                    ${renderIcon('Trash2', 'w-3.5 h-3.5')}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="p-2.5 px-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end text-[11px]">
+          <a 
+            href="#/client" 
+            id="link-go-client-rentals"
+            class="font-bold text-[#FF5A1F] hover:text-[#e04e18] transition-colors flex items-center gap-1"
+          >
+            <span>Ver mis alquileres</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+      `}
     </div>
   `;
 
   // Attach event handlers
   container.querySelector('#notifications-backdrop')?.addEventListener('click', closeNotificationsMenu);
   container.querySelector('#btn-close-notifs')?.addEventListener('click', closeNotificationsMenu);
+
+  container.querySelector('#btn-notif-guest-login')?.addEventListener('click', () => {
+    closeNotificationsMenu();
+    openAuthModal('login');
+  });
 
   container.querySelector('#btn-mark-all-read')?.addEventListener('click', () => {
     notificationsStore.markAllAsRead();
@@ -222,7 +250,6 @@ export function renderNotificationsMenu() {
   // Individual notification item click
   container.querySelectorAll('.notif-item').forEach(el => {
     el.addEventListener('click', (e) => {
-      // If clicked the trash button, prevent navigation
       if (e.target.closest('.btn-delete-notif')) return;
 
       const id = el.dataset.id;
