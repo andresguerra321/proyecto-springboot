@@ -53,12 +53,13 @@ export async function openRentalModal(tool) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffTime = Math.max(0, end - start);
-    const days = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const days = diffDays === 0 ? 1 : diffDays;
     
     const dailyPrice = tool.dailyPrice || 85000;
     const subtotal = days * dailyPrice;
-    const tax = subtotal * 0.19; // 19% IVA
-    const deposit = (tool.replacementValue || 850000) * 0.10; // 10% depósito de garantía
+    const tax = Math.round(subtotal * 0.19); // 19% IVA
+    const deposit = Math.round((tool.replacementValue || 850000) * 0.10); // 10% depósito de garantía
     const total = subtotal + tax;
 
     return { days, subtotal, tax, deposit, total };
@@ -307,9 +308,86 @@ export async function openRentalModal(tool) {
 /**
  * Step 2: Payment and Invoice Generation
  */
-async function openCheckoutModal(tool, rentalData) {
+export async function openCheckoutModal(tool, rentalData) {
   const content = document.createElement('div');
   content.className = 'p-6 space-y-5 bg-white text-slate-800';
+
+  let currentMethod = 'CREDIT_CARD';
+  let pendingRental = rentalData.existingRental || null;
+
+  function renderPaymentFields(method) {
+    if (method === 'CREDIT_CARD') {
+      return `
+        <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Tarjeta (Simulado)</label>
+            <input type="text" maxlength="19" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="4532 •••• •••• 8892" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vencimiento</label>
+              <input type="text" maxlength="5" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="12/28" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">CVC / CVV</label>
+              <input type="password" maxlength="4" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="892" />
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (method === 'DEBIT_CARD') {
+      return `
+        <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Banco Emisor (PSE)</label>
+            <select id="pse-bank" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500">
+              <option value="Bancolombia" selected>Bancolombia (Personas / Empresas)</option>
+              <option value="Davivienda">Davivienda</option>
+              <option value="Banco de Bogotá">Banco de Bogotá</option>
+              <option value="BBVA">BBVA Colombia</option>
+              <option value="Nequi">Nequi</option>
+              <option value="Daviplata">Daviplata</option>
+              <option value="Banco de Occidente">Banco de Occidente</option>
+              <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tipo de Persona</label>
+              <select class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500">
+                <option value="NATURAL">Persona Natural</option>
+                <option value="JURIDICA">Persona Jurídica</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Email Registrado en PSE</label>
+              <input type="email" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500" value="${auth.getUser()?.email || 'cliente@toolrent.com'}" />
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <div class="bg-blue-50 border border-blue-200/80 p-3 rounded-lg space-y-1 text-blue-900">
+            <div class="font-bold text-[11px] flex items-center gap-1.5">
+              ${renderIcon('Building2', 'w-3.5 h-3.5 text-blue-600')} Datos de Transferencia ToolRent:
+            </div>
+            <div class="text-[11px] text-blue-800 space-y-0.5 pt-1 font-mono">
+              <div><strong>Entidad:</strong> Bancolombia S.A.</div>
+              <div><strong>Convenio Recaudos:</strong> #48291</div>
+              <div><strong>Cuenta Ahorros:</strong> 317-092182-41</div>
+              <div><strong>Titular:</strong> ToolRent Colombia S.A.S. (NIT 901.234.567-8)</div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Comprobante / Transacción</label>
+            <input type="text" id="transfer-ref" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="TRF-${Date.now().toString().slice(-6)}" />
+          </div>
+        </div>
+      `;
+    }
+  }
 
   content.innerHTML = `
     <div class="space-y-4">
@@ -319,7 +397,7 @@ async function openCheckoutModal(tool, rentalData) {
           <div class="text-[11px] text-slate-500 mt-0.5">Desde ${formatDate(rentalData.startDate)} hasta ${formatDate(rentalData.endDate)} (${rentalData.days} días)</div>
         </div>
         <div class="text-right">
-          <div class="text-[11px] text-slate-400">Total</div>
+          <div class="text-[11px] text-slate-400">Total Factura (IVA inc.)</div>
           <div class="text-base font-bold text-brand-600 font-display">${formatCurrency(rentalData.total)}</div>
         </div>
       </div>
@@ -327,41 +405,28 @@ async function openCheckoutModal(tool, rentalData) {
       <!-- Payment Method Selection -->
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Selecciona Método de Pago</label>
-        <div class="grid grid-cols-3 gap-2.5">
-          <label class="p-3 rounded-xl border border-brand-500 bg-orange-50/20 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
-            <input type="radio" name="payment-method" value="CREDIT_CARD" checked class="text-brand-500">
+        <div class="grid grid-cols-3 gap-2.5" id="payment-methods-grid">
+          <label data-method="CREDIT_CARD" class="payment-method-card p-3 rounded-xl border border-brand-500 bg-orange-50/20 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
+            <input type="radio" name="payment-method" value="CREDIT_CARD" checked class="sr-only">
             ${renderIcon('CreditCard', 'w-5 h-5 text-brand-600')}
             <span class="text-xs font-semibold text-slate-900">Tarjeta Crédito</span>
           </label>
-          <label class="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
-            <input type="radio" name="payment-method" value="DEBIT_CARD" class="text-brand-500">
+          <label data-method="DEBIT_CARD" class="payment-method-card p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
+            <input type="radio" name="payment-method" value="DEBIT_CARD" class="sr-only">
             ${renderIcon('Wallet', 'w-5 h-5 text-slate-600')}
             <span class="text-xs font-semibold text-slate-900">PSE / Débito</span>
           </label>
-          <label class="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
-            <input type="radio" name="payment-method" value="BANK_TRANSFER" class="text-brand-500">
+          <label data-method="BANK_TRANSFER" class="payment-method-card p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all">
+            <input type="radio" name="payment-method" value="BANK_TRANSFER" class="sr-only">
             ${renderIcon('Building2', 'w-5 h-5 text-slate-600')}
             <span class="text-xs font-semibold text-slate-900">Transferencia</span>
           </label>
         </div>
       </div>
 
-      <!-- Simulated Card Form -->
-      <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Tarjeta (Simulado)</label>
-          <input type="text" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="4532 •••• •••• 8892" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vencimiento</label>
-            <input type="text" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="12/28" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">CVC / CVV</label>
-            <input type="password" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="892" />
-          </div>
-        </div>
+      <!-- Dynamic Form Container -->
+      <div id="payment-fields-container">
+        ${renderPaymentFields('CREDIT_CARD')}
       </div>
 
       <div id="checkout-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg"></div>
@@ -372,6 +437,30 @@ async function openCheckoutModal(tool, rentalData) {
     </div>
   `;
 
+  // Handle payment method toggling
+  const fieldsContainer = content.querySelector('#payment-fields-container');
+  const methodCards = content.querySelectorAll('.payment-method-card');
+
+  methodCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const radio = card.querySelector('input[type="radio"]');
+      radio.checked = true;
+      currentMethod = radio.value;
+
+      methodCards.forEach(c => {
+        c.className = 'payment-method-card p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all';
+        const icon = c.querySelector('svg');
+        if (icon) icon.className = 'w-5 h-5 text-slate-600';
+      });
+
+      card.className = 'payment-method-card p-3 rounded-xl border border-brand-500 bg-orange-50/20 cursor-pointer flex flex-col items-center text-center gap-1.5 transition-all';
+      const activeIcon = card.querySelector('svg');
+      if (activeIcon) activeIcon.className = 'w-5 h-5 text-brand-600';
+
+      fieldsContainer.innerHTML = renderPaymentFields(currentMethod);
+    });
+  });
+
   content.querySelector('#btn-confirm-payment').addEventListener('click', async () => {
     const btn = content.querySelector('#btn-confirm-payment');
     const errBox = content.querySelector('#checkout-error');
@@ -381,22 +470,27 @@ async function openCheckoutModal(tool, rentalData) {
 
     try {
       const user = auth.getUser();
-      const method = content.querySelector('input[name="payment-method"]:checked')?.value || 'CREDIT_CARD';
+      const method = currentMethod;
 
-      // 1. Create Rental in Backend
-      const rentalPayload = {
-        clientId: user.profile?.id || user.id,
-        startDate: rentalData.startDate,
-        endDate: rentalData.endDate,
-        toolIds: [tool.id]
-      };
+      // 1. Create Rental in Backend only if not already created
+      if (!pendingRental) {
+        const rentalPayload = {
+          clientId: user.profile?.id || user.id,
+          startDate: rentalData.startDate,
+          endDate: rentalData.endDate,
+          toolIds: [tool.id]
+        };
+        pendingRental = await api.post('/rentals', rentalPayload);
+      }
 
-      const createdRental = await api.post('/rentals', rentalPayload);
+      // 2. Determine official billed amount matching backend invoice (subtotal * 1.19)
+      const subtotalNum = Number(pendingRental.subtotal ?? rentalData.subtotal ?? 0);
+      const billedAmount = subtotalNum > 0 ? Math.round(subtotalNum * 1.19) : Math.round(rentalData.total);
 
-      // 2. Process simulated payment
+      // 3. Process payment
       const paymentPayload = {
-        rentalId: createdRental.id,
-        amount: rentalData.total,
+        rentalId: pendingRental.id,
+        amount: billedAmount,
         paymentMethod: method,
         referenceNumber: `PAY-ONLINE-${Date.now().toString().slice(-6)}`
       };
@@ -408,12 +502,17 @@ async function openCheckoutModal(tool, rentalData) {
         category: 'PAYMENT',
         type: 'success',
         title: '¡Alquiler y Pago Confirmados!',
-        message: `Has reservado ${tool.name} (#${createdRental.id}) por ${formatCurrency(rentalData.total)}. Factura legal generada.`,
+        message: `Has reservado ${tool.name} (#${pendingRental.id}) por ${formatCurrency(billedAmount)}. Factura legal generada.`,
         link: '#/client'
       });
 
-      // 3. Show Success & Invoice Viewer
-      showSuccessModal(createdRental, paymentResult, tool, rentalData);
+      // 4. Show Success & Invoice Viewer
+      showSuccessModal(pendingRental, paymentResult, tool, {
+        ...rentalData,
+        subtotal: subtotalNum || rentalData.subtotal,
+        tax: Math.round(subtotalNum * 0.19) || rentalData.tax,
+        total: billedAmount
+      });
 
     } catch (err) {
       errBox.textContent = err.message || 'Error al procesar la reserva o el pago.';
