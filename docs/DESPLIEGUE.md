@@ -45,13 +45,44 @@ Para visualizar los registros en tiempo real y comprobar que Spring Boot arranc�
 docker logs -f renta_herramientas_app
 ```
 
-### Paso 4: Probar la Disponibilidad
-La API estará expuesta en el puerto **8085** de tu máquina local.
-- **Swagger:** Navega en tu explorador web a: `http://localhost:8085/swagger-ui.html`
-- Para detener el servicio de manera limpia, usa:
+### Paso 4: Probar la Disponibilidad y Endpoints
+La arquitectura expone los servicios en los siguientes puertos de tu máquina local:
+
+| Componente | Puerto Local | Descripción | URL de Acceso |
+| :--- | :---: | :--- | :--- |
+| **PostgreSQL 16** | `5434` | Base de datos relacional en 4FN (`renta_herramientas_db`) | `localhost:5434` |
+| **Spring Boot API** | `8085` | API REST con Spring Security 6 y JWT | `http://localhost:8085/api/v1` |
+| **Swagger UI** | `8085` | Documentación interactiva OpenAPI con Bearer Auth | `http://localhost:8085/swagger-ui.html` |
+| **Health Check** | `8085` | Diagnóstico de salud en vivo del backend | `http://localhost:8085/api/v1/health` |
+| **Frontend SPA** | `5173` | Interfaz web interactiva con Vite y Tailwind CSS v3 | `http://localhost:5173/` |
+
+- **Verificación rápida de salud por terminal:**
+```bash
+curl http://localhost:8085/api/v1/health
+```
+Respuesta esperada: `{"status":"UP","application":"renta-equipos-api"}`
+
+- Para detener los servicios de Docker de manera limpia:
 ```bash
 docker-compose down
 ```
+
+---
+
+## Despliegue del Frontend (Vite SPA)
+El frontend se ejecuta conectado de forma directa y en tiempo real al backend de Spring Boot (sin datos simulados ni mock handlers):
+
+1. Ingresa a la carpeta `frontend`:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+2. El servidor de desarrollo iniciará en `http://localhost:5173/`.
+3. Todas las peticiones HTTP se dirigen automáticamente a `http://localhost:8085/api/v1`.
+4. El backend tiene CORS habilitado globalmente para admitir peticiones desde `http://localhost:5173` y cualquier origen local con credenciales.
+
+---
 
 ## Cambiar el Despliegue a Servidor Tomcat Nativo
 Si el requerimiento institucional dicta un despliegue sin contenedor Docker directamente en Apache Tomcat 10:
@@ -59,3 +90,4 @@ Si el requerimiento institucional dicta un despliegue sin contenedor Docker dire
 2. Renombra el archivo generado a `ROOT.war` si deseas que la aplicación responda a `/`, o a `renta-equipos.war` para que responda a `/renta-equipos`.
 3. Mueve este archivo al directorio `webapps/` de tu instalación de Tomcat.
 4. Asegúrate de configurar las variables de entorno de base de datos en las propiedades del servidor (ej. en `setenv.sh` de Tomcat), ya que las propiedades del `application.yml` dependen de inyecciones del OS como `DB_HOST`, `DB_USER`, `DB_PASSWORD`.
+

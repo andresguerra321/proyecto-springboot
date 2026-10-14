@@ -237,48 +237,53 @@ El frontend se ha construido como una Single Page Application (SPA) desacoplada,
   - **Precios en Moneda Nacional:** Formato de Pesos Colombianos con puntos como separadores de miles (ej. `$ 185.000 / día`).
   - **Íconos Vectoriales:** Librería **Lucide** SVG modularizada.
 
-### 5.2. Modo Autónomo de Mock (Evaluación sin Backend Activo)
-Para permitir moldear y explorar la interfaz al 100% sin requerir el backend de Spring Boot ni la base de datos PostgreSQL activos:
-- **`USE_MOCK_BACKEND = true`** en [`frontend/src/api/client.js`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend/src/api/client.js).
-- **Almacén en Memoria (`mock-store.js`):** Cuenta con 24 herramientas categorizadas, solicitudes con transiciones de estado, 42 usuarios con roles y métricas financieras exactas.
-- **Transición a Backend Real:** Basta con cambiar `USE_MOCK_BACKEND = false` para que todas las llamadas se dirijan automáticamente a `http://localhost:8085/api/v1`.
+### 5.2. Conexión Directa al Backend Real (Eliminación Total de Mocks)
+El frontend opera conectado al 100% con los servicios reales de Spring Boot 3 y PostgreSQL 16:
+- **Purga de Mocks:** Todos los almacenes en memoria simulados (`mock-store.js`), datos fantasma y skeletons fueron eliminados del repositorio (`git rm`).
+- **Cliente HTTP Seguro ([`frontend/src/api/client.js`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/frontend/src/api/client.js)):** Peticiones `fetch()` asíncronas directas a `http://localhost:8085/api/v1` inyectando automáticamente el encabezado `Authorization: Bearer <token>` cuando existe sesión activa.
+- **Manejo de Expiración:** Intercepta respuestas `401 Unauthorized` disparando el evento global `auth:expired` para renovar o solicitar credenciales limpiamente sin fallos silenciosos.
+- **Guardián de Rutas y Roles:**
+  - `#/client`: Pantalla de bloqueo elegante para usuarios no autenticados.
+  - `#/provider`: Control de acceso para `ROLE_PROVEEDOR` y `ROLE_ADMIN`, resolución dinámica de UUID del perfil comercial (`/api/v1/providers/me`), y pantalla explicativa si un usuario con rol *Cliente* intenta acceder.
+  - `#/admin`: Área restringida a `ROLE_ADMIN` con analítica en vivo.
 
 ### 5.3. Vistas Moldeadas Fielmente según los Mockups de Stitch (`img/`)
 
 1. **🛒 Catálogo Marketplace (`img/ToolRent_ Equipment Rental Marketplace.png`):**
    - Barra superior con logo poligonal ToolRent, buscador en tiempo real, selector de categorías (*pills* horizontales) y filtros laterales (rango de precio, disponibilidad, marca).
-   - Modal de ficha técnica completa (*Hammer Drill / Taladro*) con galería de fotos, tabla de especificaciones y tarjeta del proveedor con calificación por estrellas.
+   - Modal de ficha técnica completa con galería de fotos, tabla de especificaciones, cálculo de precio total por días y botón de reserva directa.
 
-2. **🔑 Acceso y Registro Split-Screen (`img/ToolRent Construction Equipment Login.png`):**
-   - Modal dividido con imagen hero a pantalla completa de excavadora pesada en atardecer de construcción.
+2. **🔑 Acceso y Registro Split-Screen (`img/web/login.png`):**
+   - Modal dividido con la nueva fotografía de alta resolución de equipo profesional (taladro percutor DeWalt en obra) sin textos fijos superpuestos, permitiendo que la tipografía de ToolRent y los degradados dinámicos ofrezcan máximo contraste.
    - Selector visual de roles: tarjetas interactivas de **Cliente** ("Quiero alquilar equipos") vs. **Proveedor** ("Quiero publicar mis equipos").
-   - Botones de acceso rápido demo en 1 clic (`Admin`, `Proveedor`, `Cliente`) para agilizar la evaluación de jurados y profesores.
+   - Registro automático de perfiles comerciales en el backend (`/api/v1/clients` o `/api/v1/providers`).
 
 3. **🚜 Panel del Proveedor (`img/ToolRent Rental Requests Dashboard.png`):**
-   - **5 Tarjetas KPI:** Total herramientas (24), En alquiler (5), Ganancias acumuladas ($ 8.450.000), Solicitudes pendientes (6) y Calificación (4.8 ★).
-   - **Tabla Operativa de Solicitudes:** Botones de cambio de estado en vivo (`Confirmar`, `Registrar entrega`, `Registrar devolución`).
-   - **Modal de Inspección Técnica y Reporte de Daños (4FN):** Formulario para registrar observaciones de devolución, marcar si hubo daños, calcular costo de reposición y cambiar el estado del equipo a mantenimiento.
-   - **Drawer Lateral de Nueva Herramienta:** Formulario desplegable para registrar equipos con especificaciones técnicas y subida de imágenes.
+   - **4 Tarjetas KPI en Vivo:** Herramientas disponibles (% respecto al total), Equipos alquilados, En mantenimiento y Solicitudes pendientes de confirmación.
+   - **Filtros Avanzados:** Buscador por nombre/marca/modelo, selector dinámico de categorías conectado a `/api/v1/tools/categories` y filtro por estado.
+   - **Tabla Operativa de Solicitudes:** Maquetación flexbox corregida sin desbordamiento. Botones operativos en tiempo real (`Confirmar`, `Rechazar`, `Registrar entrega`, `Registrar devolución`).
+   - **Modal de Inspección Técnica y Reporte de Daños (4FN):** Registro de estado físico (`GOOD` / `DAMAGED`), notas técnicas, costo estimado y derivación del equipo a mantenimiento (`MAINTENANCE`).
+   - **Drawer de Herramientas:** Formulario para publicar (`POST /api/v1/tools`) y editar (`PUT /api/v1/tools/{id}`) equipos con categorías y UUIDs reales en PostgreSQL.
 
 4. **🛡️ Panel del Administrador (`img/ToolRent Dashboard with User Management Panel.png`):**
-   - **4 Métricas Superiores:** Ingresos totales ($ 12.450.000 | ↑ 12%), Alquileres activos (18 | ↑ 5%), Usuarios registrados (42 | ↑ 8%), Herramientas disponibles (56 de 78).
-   - **3 Gráficos de Analítica:**
-     - *Herramientas más alquiladas:* Gráfico de barras de progreso horizontales (Top 5).
-     - *Clientes frecuentes:* Ranking numerado con volumen de alquileres (Top 5).
-     - *Estado del inventario:* Gráfico de dona SVG (Disponibles 72%, Alquiladas 21%, En mantenimiento 8%).
-   - **Gestión de Usuarios con Pestañas:** Filtros por `Todos (42)`, `Clientes (31)`, `Proveedores (10)`, `Administradores (1)`, buscador en vivo, y Drawer lateral para `+ Nuevo usuario`, `Editar usuario` y `Eliminar usuario`.
-   - **Inventario Global de Herramientas:** Acordeón desplegable con tabla de inventario completo.
+   - **4 Métricas Superiores:** Ingresos facturados (`/api/v1/reporting/income`), Alquileres registrados, Usuarios en base de datos (`/api/v1/users`), y Herramientas en catálogo.
+   - **3 Gráficos de Analítica en Vivo:**
+     - *Herramientas más alquiladas:* Gráfico de barras horizontales (`/api/v1/reporting/most-rented-tools`).
+     - *Clientes frecuentes:* Ranking con volumen de alquileres (`/api/v1/reporting/frequent-clients`).
+     - *Estado del inventario:* Gráfico de dona SVG (`/api/v1/reporting/tool-availability`).
+   - **Gestión de Usuarios con Pestañas:** Filtros por `Todos`, `Clientes`, `Proveedores`, `Administradores`, buscador en vivo, y Drawers laterales para creación, edición y desactivación de usuarios.
+   - **Inventario Global de Herramientas:** Acordeón desplegable con tabla del inventario general.
 
 5. **📄 Visor de Factura Oficial (`img/Minimal ToolRent Rental Invoice Viewer.png`):**
-   - Documento imprimible con membrete oficial de ToolRent, NIT 901.234.567-8, datos completos del cliente y proveedor, tabla detallada de equipos alquilados con días y subtotales, IVA del 19%, y datos bancarios de pago.
-   - Botones para volver, descargar comprobante y mandar a imprimir directamente (`window.print()`).
+   - Documento imprimible con membrete oficial de ToolRent, NIT legal, datos completos del cliente y proveedor, desglose de ítems, cálculo automático del IVA del 19%, y datos bancarios.
+   - Soporte para impresión directa (`window.print()`).
 
 6. **🔔 Centro de Notificaciones Interactivo y Store Reactivo:**
-   - **Campana Dinámica con Contador:** Badge reactivo en el navbar superior (`#btn-navbar-notifications`) y en el menú móvil (`#mobile-btn-notifs`) con actualización en tiempo real mediante eventos desacoplados `notifications:change`.
-   - **Menú Popover Flotante:** Desplegable interactivo con cierre al hacer click fuera, selector de filtros rápido (*Todas* vs. *No leídas*), botón para "Marcar todas como leídas", eliminación individual y botón de reinicio de ejemplos.
+   - **Campana Dinámica con Contador:** Badge reactivo en el navbar superior (`#btn-navbar-notifications`) y en el menú móvil (`#mobile-btn-notifs`), oculto para invitados y visible únicamente con sesiones activas que tengan alertas pendientes.
+   - **Menú Popover Flotante:** Desplegable interactivo con selector de filtros (*Todas* vs. *No leídas*), botón para "Marcar todas como leídas", y eliminación individual.
    - **Píldoras y Categorías Temáticas:** Iconos temáticos según el evento (`RENTAL`, `PAYMENT`, `ALERT`, `INSPECTION`, `DAMAGE`).
-   - **Navegación Profunda (Deep Linking):** Al hacer clic en una notificación, marca como leída y redirige al panel correspondiente (`#/client` o `#/provider`).
-   - **Disparadores en Tiempo Real:** Integrado con el flujo de checkout/pago (`rental-modal.js`), aprobación, despacho, devolución con daños y registro de nuevas herramientas (`provider-dashboard.js`), disparando simultáneamente banners Toast en pantalla.
+   - **Navegación Profunda (Deep Linking):** Redirección contextual al hacer clic en cualquier notificación hacia el portal correspondiente.
+
 
 ### 5.4. Cómo Ejecutar el Frontend Localmente
 ```bash
