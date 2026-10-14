@@ -1,4 +1,5 @@
 import prelinePlugin from './node_modules/preline/plugin.js';
+import animations from '@midudev/tailwind-animations';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -48,6 +49,7 @@ export default {
     },
   },
   plugins: [
-    prelinePlugin
+    prelinePlugin,
+    animations
   ],
 }
