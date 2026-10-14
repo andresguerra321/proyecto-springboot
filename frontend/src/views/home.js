@@ -7,6 +7,7 @@ import { openAuthModal } from '../components/auth-modal.js';
 
 // Assets
 import heroCatImg from '../assets/index-hero-cat.png';
+import indexCtaBanner from '../assets/index-cta-banner.png';
 import catCleanMovimiento from '../assets/cat-clean-movimiento.jpg';
 import catCleanHerramientas from '../assets/cat-clean-herramientas.jpg';
 import catCleanConstruccion from '../assets/cat-clean-construccion.jpg';
@@ -28,10 +29,11 @@ export async function renderHomeView() {
   const startFormatted = startDateDefault.toISOString().split('T')[0];
   const endFormatted = endDateDefault.toISOString().split('T')[0];
 
-  // 6 Curated Categories with clean, photorealistic studio photography (NO baked-in text!)
+  // 6 Curated Categories matching img/INDEX.png with crisp photography & counts
   const categoriesList = [
     {
       name: 'Movimiento de tierra',
+      countNum: 12,
       count: '12 disponibles',
       query: 'excavadora',
       image: catCleanMovimiento,
@@ -39,20 +41,23 @@ export async function renderHomeView() {
     },
     {
       name: 'Herramientas eléctricas',
+      countNum: 25,
       count: '25 disponibles',
       query: 'eléctrica',
       image: catCleanHerramientas,
       icon: 'Wrench'
     },
     {
-      name: 'Construcción y Hormigón',
+      name: 'Construcción',
+      countNum: 18,
       count: '18 disponibles',
       query: 'concreto',
       image: catCleanConstruccion,
       icon: 'Grid'
     },
     {
-      name: 'Elevación y Andamiaje',
+      name: 'Elevación',
+      countNum: 8,
       count: '8 disponibles',
       query: 'elevación',
       image: catCleanElevacion,
@@ -60,6 +65,7 @@ export async function renderHomeView() {
     },
     {
       name: 'Generación de energía',
+      countNum: 6,
       count: '6 disponibles',
       query: 'generador',
       image: catCleanEnergia,
@@ -67,6 +73,7 @@ export async function renderHomeView() {
     },
     {
       name: 'Compactación de suelos',
+      countNum: 7,
       count: '7 disponibles',
       query: 'compactadora',
       image: catCleanCompactacion,
@@ -107,36 +114,39 @@ export async function renderHomeView() {
     console.error('Error fetching home data', err);
   }
 
-  // 4 Featured available tools for Section 05 ("Disponibles ahora")
+  // 4 Featured available tools for Section ("Disponibles para entrega inmediata")
   const featuredTools = allTools
     .filter(t => t.status === 'AVAILABLE')
     .slice(0, 4);
 
-  // Helper to map fallback images for tools
+  // Helper to map fallback images for tools, ensuring machinery photos instead of blueprint sketches
   function getToolImage(tool) {
-    if (tool.images?.[0]?.imageUrl) return tool.images[0].imageUrl;
+    const rawImg = tool.images?.[0]?.imageUrl || '';
+    if (rawImg && !rawImg.includes('photo-1503387762-592deb58ef4e') && !rawImg.includes('photo-1520340356584')) {
+      return rawImg;
+    }
     const name = (tool.name || '').toLowerCase();
     const cat = (tool.categoryName || '').toLowerCase();
     if (name.includes('excavadora') || cat.includes('tierra')) return catCleanMovimiento;
     if (name.includes('martillo') || name.includes('taladro') || cat.includes('demolición')) return catCleanHerramientas;
-    if (name.includes('mezcladora') || name.includes('andamio') || cat.includes('hormigón')) return catCleanConstruccion;
+    if (name.includes('allanadora') || name.includes('helicóptero') || name.includes('compactadora') || cat.includes('compactación')) return catCleanCompactacion;
+    if (name.includes('mezcladora') || name.includes('andamio') || cat.includes('hormigón') || cat.includes('construcción')) return catCleanConstruccion;
     if (name.includes('plataforma') || name.includes('tijera') || cat.includes('elevación')) return catCleanElevacion;
     if (name.includes('generador') || cat.includes('energía')) return catCleanEnergia;
-    if (name.includes('compactadora') || name.includes('canguro') || cat.includes('compactación')) return catCleanCompactacion;
-    return catCleanHerramientas;
+    return catCleanCompactacion;
   }
 
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-20">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-12 sm:space-y-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-10 sm:space-y-12">
         
         <!-- ============================================================== -->
-        <!-- 02. HERO COMERCIAL CON BUSCADOR DE DISPONIBILIDAD              -->
+        <!-- 01. HERO PRINCIPAL (Matching img/INDEX.png con buscador)       -->
         <!-- ============================================================== -->
         <section class="relative rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden">
           <div class="grid grid-cols-1 lg:grid-cols-12 items-center">
             
-            <!-- Left Column: Copy & Search Tool -->
+            <!-- Left Column: Copy & Availability Tool -->
             <div class="lg:col-span-7 p-6 sm:p-10 lg:p-12 space-y-5 z-10">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/80 text-[11px] font-extrabold uppercase tracking-widest text-[#FF5A1F]">
                 ${renderIcon('ShieldCheck', 'w-3.5 h-3.5')}
@@ -151,76 +161,95 @@ export async function renderHomeView() {
                 Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en tu obra y contrato 100% digital.
               </p>
 
-              <!-- Embedded Availability Search Tool -->
+              <!-- Embedded Availability Search Tool (Spacious, Zero-overlap layout) -->
               <div class="mt-4 bg-[#f8fafc] p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
                 <div class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
                   ${renderIcon('Calendar', 'w-4 h-4 text-[#FF5A1F]')}
                   <span>Consultar Disponibilidad Inmediata</span>
                 </div>
 
-                <form id="hero-availability-form" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <!-- Category (Col-span 5) -->
-                  <div class="sm:col-span-5 space-y-1">
+                <form id="hero-availability-form" class="space-y-3">
+                  <!-- Row 1: Tipo de equipo (Full width, clear text & icon) -->
+                  <div class="space-y-1">
                     <label for="hero-search-category" class="block text-xs font-semibold text-slate-600">Tipo de equipo</label>
                     <div class="relative">
                       <select 
                         id="hero-search-category" 
-                        class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all appearance-none cursor-pointer shadow-2xs"
+                        class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all appearance-none cursor-pointer shadow-2xs pr-10"
                       >
                         <option value="">Todas las categorías de maquinaria</option>
                         <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
                         <option value="demolición">Demolición y Perforación (Martillos)</option>
-                        <option value="concreto">Hormigón y Concreto (Mezcladoras)</option>
+                        <option value="concreto">Hormigón y Concreto (Mezcladoras, Allanadoras)</option>
                         <option value="elevación">Elevación y Andamiaje (Plataformas, Torres)</option>
                         <option value="generador">Generación de Energía (Plantas diésel)</option>
                         <option value="compactadora">Compactación de Suelos (Ranas, Placas)</option>
                       </select>
-                      <div class="absolute right-3 top-3 pointer-events-none text-slate-400">
+                      <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
                         ${renderIcon('ChevronDown', 'w-3.5 h-3.5')}
                       </div>
                     </div>
                   </div>
 
-                  <!-- Start Date (Col-span 3) -->
-                  <div class="sm:col-span-3 space-y-1">
-                    <label for="hero-search-start" class="block text-xs font-semibold text-slate-600">Fecha de entrega</label>
-                    <input 
-                      type="date" 
-                      id="hero-search-start" 
-                      value="${startFormatted}" 
-                      min="${today.toISOString().split('T')[0]}"
-                      class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
-                    />
-                  </div>
+                  <!-- Row 2: Fechas y Botón CTA (3 columnas equilibradas sin solapamiento) -->
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <!-- Fecha de entrega -->
+                    <div class="space-y-1">
+                      <label for="hero-search-start" class="block text-xs font-semibold text-slate-600">Fecha de entrega</label>
+                      <input 
+                        type="date" 
+                        id="hero-search-start" 
+                        value="${startFormatted}" 
+                        min="${today.toISOString().split('T')[0]}"
+                        class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
+                      />
+                    </div>
 
-                  <!-- End Date (Col-span 2) -->
-                  <div class="sm:col-span-2 space-y-1">
-                    <label for="hero-search-end" class="block text-xs font-semibold text-slate-600">Devolución</label>
-                    <input 
-                      type="date" 
-                      id="hero-search-end" 
-                      value="${endFormatted}" 
-                      min="${startFormatted}"
-                      class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
-                    />
-                  </div>
+                    <!-- Devolución -->
+                    <div class="space-y-1">
+                      <label for="hero-search-end" class="block text-xs font-semibold text-slate-600">Devolución</label>
+                      <input 
+                        type="date" 
+                        id="hero-search-end" 
+                        value="${endFormatted}" 
+                        min="${startFormatted}"
+                        class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
+                      />
+                    </div>
 
-                  <!-- Submit Dominant CTA (Col-span 2) -->
-                  <div class="sm:col-span-2">
-                    <button 
-                      type="submit" 
-                      class="btn-primary w-full !py-2.5 !px-3 text-xs font-bold whitespace-nowrap shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-                    >
-                      <span>Ver disponibles</span>
-                      <span>&rarr;</span>
-                    </button>
+                    <!-- Botón Ver Disponibles -->
+                    <div>
+                      <button 
+                        type="submit" 
+                        class="btn-primary w-full !py-2.5 !px-3 text-xs font-bold whitespace-nowrap shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                      >
+                        <span>Ver disponibles</span>
+                        <span>&rarr;</span>
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
+
+              <!-- Quick action links -->
+              <div class="flex items-center gap-5 pt-1 text-xs font-semibold">
+                <a href="#/catalog" class="text-[#FF5A1F] hover:text-[#e04e18] flex items-center gap-1.5 transition-colors">
+                  <span>Explorar catálogo completo</span>
+                  <span>&rarr;</span>
+                </a>
+                <span class="text-slate-300">·</span>
+                <a href="#/catalog?q=excavadora" class="text-slate-500 hover:text-slate-800 transition-colors">
+                  Maquinaria pesada
+                </a>
+                <span class="text-slate-300">·</span>
+                <a href="#/catalog?q=concreto" class="text-slate-500 hover:text-slate-800 transition-colors">
+                  Equipos para hormigón
+                </a>
+              </div>
             </div>
 
-            <!-- Right Column: Hero Excavator Imagery -->
-            <div class="lg:col-span-5 relative h-64 sm:h-80 lg:h-[460px] flex items-center justify-end overflow-hidden">
+            <!-- Right Column: Hero Excavator Imagery with Gradient Blend -->
+            <div class="lg:col-span-5 relative h-64 sm:h-80 lg:h-[490px] flex items-center justify-end overflow-hidden">
               <img 
                 src="${heroCatImg}" 
                 alt="Excavadoras CAT en ToolRent" 
@@ -229,6 +258,49 @@ export async function renderHomeView() {
               <div class="hidden lg:block absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none"></div>
             </div>
 
+          </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- 02. VALUE PROPOSITIONS BAR (4 Features directas de INDEX.png)   -->
+        <!-- ============================================================== -->
+        <section class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-0 sm:divide-x divide-slate-100">
+            <!-- Feature 1 -->
+            <div class="sm:px-6 first:pl-0 space-y-2">
+              <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center">
+                ${renderIcon('ShieldCheck', 'w-5 h-5')}
+              </div>
+              <h4 class="text-sm font-bold text-slate-900 font-display">Equipos certificados</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">Todo nuestro equipo pasa por inspecciones rigurosas de calidad.</p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="sm:px-6 space-y-2">
+              <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center">
+                ${renderIcon('Truck', 'w-5 h-5')}
+              </div>
+              <h4 class="text-sm font-bold text-slate-900 font-display">Entrega a todo el país</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">Llevamos lo que necesitas, donde lo necesites en tu obra.</p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="sm:px-6 space-y-2">
+              <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center">
+                ${renderIcon('Clock', 'w-5 h-5')}
+              </div>
+              <h4 class="text-sm font-bold text-slate-900 font-display">Soporte especializado</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">Te asesoramos en cada etapa de tu proyecto de construcción.</p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="sm:px-6 last:pr-0 space-y-2">
+              <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center">
+                ${renderIcon('Shield', 'w-5 h-5')}
+              </div>
+              <h4 class="text-sm font-bold text-slate-900 font-display">Pagos seguros</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">Transacciones protegidas y facturación electrónica válida.</p>
+            </div>
           </div>
         </section>
 
@@ -255,19 +327,19 @@ export async function renderHomeView() {
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
               <!-- Left Machine Info -->
               <div class="md:col-span-7 flex items-center gap-4">
-                <div class="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                <div class="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 shadow-2xs">
                   <img 
-                    src="${activeTool ? getToolImage(activeTool) : catCleanMovimiento}" 
+                    src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
                     alt="${activeTool?.name || 'Equipo alquilado'}" 
                     class="w-full h-full object-cover"
                   />
                 </div>
                 <div class="space-y-1">
                   <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    ${activeTool?.brand || 'Caterpillar'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
+                    ${activeTool?.brand || 'Certificado'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
                   </div>
                   <h3 class="text-lg font-bold text-slate-900 leading-snug">
-                    ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Retroexcavadora Oruga Hidráulica'}
+                    ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Allanadora de Concreto 36" (Helicóptero)'}
                   </h3>
                   <p class="text-xs text-slate-600">
                     Proveedor asignado: <strong class="text-slate-800">${activeTool?.providerName || 'Equipos y Maquinaria de Colombia'}</strong>
@@ -287,7 +359,7 @@ export async function renderHomeView() {
                 <button 
                   id="btn-active-rental-detail" 
                   type="button" 
-                  class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs active:scale-95 inline-flex items-center gap-1.5"
+                  class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   ${renderIcon('FileText', 'w-4 h-4 text-slate-500')}
                   <span>Ver Detalle</span>
@@ -318,7 +390,7 @@ export async function renderHomeView() {
             <button 
               id="btn-guest-login-bar" 
               type="button" 
-              class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-all whitespace-nowrap shadow-2xs active:scale-95"
+              class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-all whitespace-nowrap shadow-2xs active:scale-95 cursor-pointer"
             >
               Iniciar sesión &rarr;
             </button>
@@ -326,13 +398,13 @@ export async function renderHomeView() {
         ` : '')}
 
         <!-- ============================================================== -->
-        <!-- 04. EXPLORA POR CATEGORÍA (Imágenes limpias, sin texto doble)   -->
+        <!-- 04. NUESTRAS CATEGORÍAS (Matching img/INDEX.png con fotografía) -->
         <!-- ============================================================== -->
         <section class="space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 font-sans">
-                Explora por categoría
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-sans">
+                NUESTRAS CATEGORÍAS
               </span>
               <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display tracking-tight mt-1">
                 Encuentra la herramienta ideal para tu proyecto.
@@ -348,31 +420,35 @@ export async function renderHomeView() {
             </a>
           </div>
 
-          <!-- 6 Clean Category Cards (Pure photography, single label underneath) -->
+          <!-- 6 Cards matching img/INDEX.png (Aspect 3/4, full photo, bottom overlay, white icon + title + (count)) -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             ${categoriesList.map(cat => `
               <a 
                 href="#/catalog?q=${encodeURIComponent(cat.query)}" 
-                class="group bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[#FF5A1F]/50 flex flex-col justify-between"
-                title="${cat.name} (${cat.count})"
+                class="group rounded-2xl overflow-hidden aspect-[3/4] relative shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block bg-slate-900"
+                title="${cat.name} (${cat.countNum})"
               >
-                <!-- Clean High-Resolution Image Canvas without any overlay text -->
-                <div class="aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                  <img 
-                    src="${cat.image}" 
-                    alt="${cat.name}" 
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                    loading="lazy"
-                  />
-                </div>
+                <!-- Clean High-Resolution Photography -->
+                <img 
+                  src="${cat.image}" 
+                  alt="${cat.name}" 
+                  class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  loading="lazy"
+                />
 
-                <!-- Single Clean Label Below Image -->
-                <div class="p-3.5 space-y-0.5">
-                  <h3 class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#FF5A1F] transition-colors font-display line-clamp-1">
+                <!-- Dark Gradient Overlay (from img/INDEX.png) -->
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent transition-opacity group-hover:from-slate-950/95"></div>
+
+                <!-- Content at Bottom-Left -->
+                <div class="absolute inset-x-0 bottom-0 p-3.5 sm:p-4 space-y-1 z-10">
+                  <div class="w-8 h-8 rounded-lg text-white mb-2 flex items-center justify-center">
+                    ${renderIcon(cat.icon, 'w-6 h-6 stroke-[1.75]')}
+                  </div>
+                  <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-[#FF5A1F] transition-colors font-display leading-tight line-clamp-2">
                     ${cat.name}
                   </h3>
-                  <p class="text-[11px] text-slate-500 font-medium">
-                    ${cat.count}
+                  <p class="text-[11px] text-slate-300/80 font-medium font-mono">
+                    (${cat.countNum})
                   </p>
                 </div>
               </a>
@@ -381,7 +457,47 @@ export async function renderHomeView() {
         </section>
 
         <!-- ============================================================== -->
-        <!-- 05. DISPONIBLES AHORA (4 Equipos Reales con Botón Reservar)    -->
+        <!-- 05. STATS BANNER (Matching img/INDEX.png)                       -->
+        <!-- ============================================================== -->
+        <section class="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 shadow-2xs">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <!-- Left Side with Orange Bar -->
+            <div class="lg:col-span-5 flex items-start gap-4">
+              <div class="w-1 h-12 bg-[#FF5A1F] rounded-full flex-shrink-0 mt-0.5"></div>
+              <div class="space-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-sans">
+                  POR QUÉ ELEGIR TOOLRENT
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display tracking-tight leading-tight">
+                  Más que un alquiler, es una solución.
+                </h2>
+              </div>
+            </div>
+
+            <!-- Right Side: 4 Stat Metrics -->
+            <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:divide-x divide-slate-100">
+              <div class="sm:px-6 first:pl-0 space-y-0.5">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">+200</div>
+                <div class="text-xs text-slate-500 font-medium">Equipos disponibles</div>
+              </div>
+              <div class="sm:px-6 space-y-0.5">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">98%</div>
+                <div class="text-xs text-slate-500 font-medium">Clientes satisfechos</div>
+              </div>
+              <div class="sm:px-6 space-y-0.5">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">+15</div>
+                <div class="text-xs text-slate-500 font-medium">Ciudades en Colombia</div>
+              </div>
+              <div class="sm:px-6 last:pr-0 space-y-0.5">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">24/7</div>
+                <div class="text-xs text-slate-500 font-medium">Soporte técnico</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- 06. DISPONIBLES AHORA (4 Equipos Reales con Botón Reservar)    -->
         <!-- ============================================================== -->
         <section class="space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
@@ -455,7 +571,7 @@ export async function renderHomeView() {
 
                     <button 
                       type="button" 
-                      class="btn-featured-reserve btn-primary w-full !py-2.5 !px-3 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
+                      class="btn-featured-reserve btn-primary w-full !py-2.5 !px-3 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
                       data-tool-id="${tool.id}"
                     >
                       <span>Reservar ahora</span>
@@ -466,21 +582,10 @@ export async function renderHomeView() {
               `;
             }).join('')}
           </div>
-
-          <!-- Discrete Catalog Link -->
-          <div class="text-center pt-2">
-            <a 
-              href="#/catalog" 
-              class="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#FF5A1F] bg-white border border-slate-200 hover:border-slate-300 px-6 py-3 rounded-xl shadow-2xs transition-all active:scale-95"
-            >
-              <span>Ver todos los equipos en el catálogo completo</span>
-              <span>&rarr;</span>
-            </a>
-          </div>
         </section>
 
         <!-- ============================================================== -->
-        <!-- 06. CÓMO FUNCIONA (3 Pasos Sencillos y Cierre Visual Discreto)  -->
+        <!-- 07. CÓMO FUNCIONA (3 Pasos Sencillos)                           -->
         <!-- ============================================================== -->
         <section class="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 shadow-2xs space-y-8">
           <div class="text-center max-w-xl mx-auto space-y-2">
@@ -536,19 +641,43 @@ export async function renderHomeView() {
               </p>
             </div>
           </div>
+        </section>
 
-          <!-- Discrete Bottom Closure -->
-          <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
-            <div class="text-xs text-slate-500 text-center sm:text-left">
-              ¿Tienes dudas o necesitas asesoría técnica para tu proyecto? Nuestro equipo está disponible en línea.
+        <!-- ============================================================== -->
+        <!-- 08. BOTTOM CTA BANNER (Matching img/INDEX.png)                  -->
+        <!-- ============================================================== -->
+        <section class="relative rounded-3xl overflow-hidden shadow-xl border border-slate-900 bg-[#121316]">
+          <div class="relative min-h-[240px] sm:min-h-[280px] flex items-center">
+            <img 
+              src="${indexCtaBanner}" 
+              alt="Tu proyecto no se detiene - ToolRent" 
+              class="absolute inset-0 w-full h-full object-cover object-right select-none pointer-events-none" 
+            />
+            <div class="relative z-10 p-8 sm:p-12 max-w-xl space-y-4">
+              <div class="flex items-start gap-3.5">
+                <div class="w-1 h-12 bg-[#FF5A1F] rounded-full flex-shrink-0 mt-0.5"></div>
+                <div class="space-y-1">
+                  <span class="text-[11px] font-bold uppercase tracking-widest text-slate-300">
+                    LISTO PARA COMENZAR
+                  </span>
+                  <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white font-display tracking-tight">
+                    Tu proyecto no se detiene.
+                  </h2>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-300 pl-4 sm:pl-5 leading-relaxed">
+                Encuentra el equipo perfecto y empieza hoy mismo.
+              </p>
+              <div class="pl-4 sm:pl-5 pt-1">
+                <a 
+                  href="#/catalog" 
+                  class="btn-primary !py-3 !px-7 text-xs sm:text-sm font-bold shadow-lg hover:shadow-orange-500/25 active:scale-95 transition-all inline-flex items-center gap-2"
+                >
+                  <span>Explorar catálogo</span>
+                  <span>&rarr;</span>
+                </a>
+              </div>
             </div>
-            <a 
-              href="#/catalog" 
-              class="btn-primary !py-2.5 !px-5 text-xs font-bold whitespace-nowrap shadow-xs inline-flex items-center gap-1.5"
-            >
-              <span>Explorar catálogo completo</span>
-              <span>&rarr;</span>
-            </a>
           </div>
         </section>
 
@@ -591,7 +720,7 @@ export async function renderHomeView() {
     }
   });
 
-  // 4. "Reservar ahora" buttons on Section 05
+  // 4. "Reservar ahora" buttons on Section 06
   container.querySelectorAll('.btn-featured-reserve').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
