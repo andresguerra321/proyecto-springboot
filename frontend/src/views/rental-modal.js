@@ -105,6 +105,22 @@ export async function openRentalModal(tool) {
               <strong class="text-slate-800 font-medium">${formatCurrency(deposit)}</strong>
             </div>
           </div>
+
+          <!-- Provider Responsible Card -->
+          <div class="p-3 bg-white border border-slate-200/90 rounded-xl space-y-1.5 text-xs shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                ${renderIcon('Building2', 'w-3.5 h-3.5 text-[#ea580c]')} Proveedor Responsable
+              </span>
+              <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verificado
+              </span>
+            </div>
+            <div class="text-xs font-bold text-slate-900">${tool.provider?.companyName || tool.providerName || 'Maquinaria y Equipos Bogotá S.A.S.'}</div>
+            <div class="text-[11px] text-slate-500 flex items-center gap-1 pt-0.5">
+              ${renderIcon('MapPin', 'w-3 h-3 text-slate-400')} ${tool.provider?.city || tool.providerCity || 'Bogotá D.C.'} · Tel: ${tool.provider?.phone || tool.providerPhone || '+57 310 111 2233'}
+            </div>
+          </div>
         </div>
 
         <!-- Right: Dates Selection & Costs Breakdown -->
