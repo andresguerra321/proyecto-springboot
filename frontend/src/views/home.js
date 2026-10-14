@@ -1,4 +1,4 @@
-import api from '../api/client.js';
+import heroFullImg from '../assets/index-hero-full.png';
 import heroCatImg from '../assets/index-hero-cat.png';
 import ctaBannerImg from '../assets/index-cta-banner.png';
 import catMovimientoImg from '../assets/cat-movimiento.png';
@@ -21,42 +21,36 @@ export async function renderHomeView() {
       count: 12,
       query: 'excavadora',
       image: catMovimientoImg,
-      icon: 'Truck'
     },
     {
       name: 'Herramientas eléctricas',
       count: 25,
       query: 'eléctrica',
       image: catHerramientasImg,
-      icon: 'Wrench'
     },
     {
       name: 'Construcción',
       count: 18,
       query: 'hormigón',
       image: catConstruccionImg,
-      icon: 'Grid'
     },
     {
       name: 'Elevación',
       count: 8,
       query: 'elevación',
       image: catElevacionImg,
-      icon: 'Maximize2'
     },
     {
       name: 'Generación de energía',
       count: 6,
       query: 'generación',
       image: catEnergiaImg,
-      icon: 'Zap'
     },
     {
       name: 'Compactación de suelos',
       count: 7,
       query: 'compactación',
       image: catCompactacionImg,
-      icon: 'Layers'
     }
   ];
 
@@ -65,110 +59,119 @@ export async function renderHomeView() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-10">
         
         <!-- 1. Hero Section matching INDEX.png -->
-        <section class="relative rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-12 items-center min-h-[380px] sm:min-h-[420px] lg:min-h-[440px]">
-            
-            <!-- Left: Hero Copy and CTAs -->
-            <div class="lg:col-span-6 p-8 sm:p-12 lg:p-14 space-y-4 z-10 relative">
-              <span class="text-[11px] sm:text-xs font-black uppercase tracking-widest text-slate-500 font-sans">
-                ALQUILER DE HERRAMIENTAS Y MAQUINARIA
-              </span>
-              
-              <h1 class="text-3xl sm:text-4xl lg:text-[44px] font-black text-slate-900 font-display tracking-tight leading-[1.12]">
-                El equipo que necesitas, cuando lo necesitas.
-              </h1>
-              
-              <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed pt-1 max-w-lg">
-                Herramientas y maquinaria de alta calidad para hacer realidad tus proyectos en toda Colombia.
-              </p>
+        <!-- Desktop / Tablet: Pixel-perfect replica from INDEX.png with interactive hotspots -->
+        <section class="hidden md:block relative rounded-3xl overflow-hidden border border-slate-200/90 shadow-xs bg-white select-none">
+          <img 
+            src="${heroFullImg}" 
+            alt="Alquiler de herramientas y maquinaria - ToolRent" 
+            class="w-full h-auto block select-none pointer-events-none" 
+          />
+          
+          <!-- Hotspot: Explorar catálogo button -->
+          <a 
+            href="#/catalog" 
+            class="absolute cursor-pointer rounded-xl transition-all hover:bg-black/5 active:scale-95" 
+            style="left: 4.2%; top: 78.5%; width: 15.5%; height: 14.5%;" 
+            title="Explorar catálogo"
+            aria-label="Explorar catálogo"
+          ></a>
 
-              <div class="pt-4 flex flex-wrap items-center gap-3.5">
-                <a 
-                  href="#/catalog" 
-                  class="btn-primary !px-6 !py-3.5 text-xs sm:text-sm font-bold shadow-sm inline-flex items-center gap-2 hover:shadow-md transition-all group"
-                >
-                  <span>Explorar catálogo</span>
-                  <span class="transition-transform group-hover:translate-x-1">&rarr;</span>
-                </a>
+          <!-- Hotspot: Cómo funciona button -->
+          <button 
+            id="btn-hero-how-it-works-desktop" 
+            type="button" 
+            class="absolute cursor-pointer rounded-xl transition-all hover:bg-black/5 active:scale-95" 
+            style="left: 20.8%; top: 78.5%; width: 11.5%; height: 14.5%;" 
+            title="Cómo funciona"
+            aria-label="Cómo funciona"
+          ></button>
+        </section>
 
-                <button 
-                  id="btn-hero-how-it-works" 
-                  type="button" 
-                  class="px-5 py-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 shadow-2xs cursor-pointer active:scale-95"
-                >
-                  ${renderIcon('PlayCircle', 'w-4 h-4 text-slate-500')}
-                  <span>Cómo funciona</span>
-                </button>
-              </div>
-            </div>
+        <!-- Mobile Hero Fallback (< 768px) -->
+        <section class="md:hidden relative rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden p-6 space-y-4">
+          <span class="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">
+            ALQUILER DE HERRAMIENTAS Y MAQUINARIA
+          </span>
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight leading-tight">
+            El equipo que necesitas, cuando lo necesitas.
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+            Herramientas y maquinaria de alta calidad para hacer realidad tus proyectos en toda Colombia.
+          </p>
 
-            <!-- Right: Hero CAT Excavator Imagery with Smooth Blend -->
-            <div class="lg:col-span-6 relative h-64 sm:h-80 lg:h-full flex items-center justify-end overflow-hidden">
-              <img 
-                src="${heroCatImg}" 
-                alt="Maquinaria y Excavadoras CAT en ToolRent" 
-                class="w-full h-full object-cover object-center lg:object-right select-none pointer-events-none" 
-              />
-              <!-- Soft gradient blend for large screens -->
-              <div class="hidden lg:block absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none"></div>
-            </div>
+          <div class="pt-2 flex flex-wrap items-center gap-3">
+            <a 
+              href="#/catalog" 
+              class="btn-primary !px-5 !py-3 text-xs font-bold inline-flex items-center gap-2"
+            >
+              <span>Explorar catálogo</span>
+              <span>&rarr;</span>
+            </a>
 
+            <button 
+              id="btn-hero-how-it-works-mobile" 
+              type="button" 
+              class="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5"
+            >
+              ${renderIcon('PlayCircle', 'w-4 h-4 text-slate-500')}
+              <span>Cómo funciona</span>
+            </button>
+          </div>
+
+          <div class="pt-2 overflow-hidden rounded-2xl">
+            <img 
+              src="${heroCatImg}" 
+              alt="Maquinaria CAT" 
+              class="w-full h-auto object-cover" 
+            />
           </div>
         </section>
 
-        <!-- 2. Value Proposition Strip (4 Items matching INDEX.png) -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-2 sm:px-4 py-2">
+        <!-- 2. Value Proposition Strip (4 Items with Outline Icons and Vertical Dividers) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-0 px-2 sm:px-4 py-2">
           
           <!-- Feature 1: Equipos certificados -->
-          <div class="flex items-start gap-3.5 group">
-            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-2xs text-slate-800 group-hover:border-[#FF5A1F]/40 group-hover:text-[#FF5A1F] transition-all">
-              ${renderIcon('ShieldCheck', 'w-5 h-5')}
+          <div class="space-y-1.5 lg:pr-6">
+            <div class="text-slate-800">
+              ${renderIcon('ShieldCheck', 'w-6 h-6 stroke-[1.8]')}
             </div>
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 font-display">Equipos certificados</h4>
-              <p class="text-xs text-slate-500 leading-relaxed mt-0.5">
-                Todo nuestro equipo pasa por inspecciones de calidad.
-              </p>
-            </div>
+            <h4 class="font-bold text-sm sm:text-[15px] text-slate-900 font-display pt-1">Equipos certificados</h4>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Todo nuestro equipo pasa por inspecciones de calidad.
+            </p>
           </div>
 
           <!-- Feature 2: Entrega a todo el país -->
-          <div class="flex items-start gap-3.5 group">
-            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-2xs text-slate-800 group-hover:border-[#FF5A1F]/40 group-hover:text-[#FF5A1F] transition-all">
-              ${renderIcon('Truck', 'w-5 h-5')}
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6">
+            <div class="text-slate-800">
+              ${renderIcon('Truck', 'w-6 h-6 stroke-[1.8]')}
             </div>
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 font-display">Entrega a todo el país</h4>
-              <p class="text-xs text-slate-500 leading-relaxed mt-0.5">
-                Llevamos lo que necesitas, donde lo necesites.
-              </p>
-            </div>
+            <h4 class="font-bold text-sm sm:text-[15px] text-slate-900 font-display pt-1">Entrega a todo el país</h4>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Llevamos lo que necesitas, donde lo necesites.
+            </p>
           </div>
 
           <!-- Feature 3: Soporte especializado -->
-          <div class="flex items-start gap-3.5 group">
-            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-2xs text-slate-800 group-hover:border-[#FF5A1F]/40 group-hover:text-[#FF5A1F] transition-all">
-              ${renderIcon('Clock', 'w-5 h-5')}
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6">
+            <div class="text-slate-800">
+              ${renderIcon('Clock', 'w-6 h-6 stroke-[1.8]')}
             </div>
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 font-display">Soporte especializado</h4>
-              <p class="text-xs text-slate-500 leading-relaxed mt-0.5">
-                Te asesoramos en cada etapa de tu proyecto.
-              </p>
-            </div>
+            <h4 class="font-bold text-sm sm:text-[15px] text-slate-900 font-display pt-1">Soporte especializado</h4>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Te asesoramos en cada etapa de tu proyecto.
+            </p>
           </div>
 
           <!-- Feature 4: Pagos seguros -->
-          <div class="flex items-start gap-3.5 group">
-            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-2xs text-slate-800 group-hover:border-[#FF5A1F]/40 group-hover:text-[#FF5A1F] transition-all">
-              ${renderIcon('Shield', 'w-5 h-5')}
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:pl-6">
+            <div class="text-slate-800">
+              ${renderIcon('Shield', 'w-6 h-6 stroke-[1.8]')}
             </div>
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 font-display">Pagos seguros</h4>
-              <p class="text-xs text-slate-500 leading-relaxed mt-0.5">
-                Transacciones confiables y sin complicaciones.
-              </p>
-            </div>
+            <h4 class="font-bold text-sm sm:text-[15px] text-slate-900 font-display pt-1">Pagos seguros</h4>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Transacciones confiables y sin complicaciones.
+            </p>
           </div>
 
         </section>
@@ -194,36 +197,26 @@ export async function renderHomeView() {
             </a>
           </div>
 
-          <!-- 6 Grid Category Cards -->
+          <!-- 6 Grid Category Cards without redundant double text -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
             ${categoriesList.map(cat => `
               <a 
                 href="#/catalog?q=${encodeURIComponent(cat.query)}" 
-                class="group relative rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-[3/4] bg-slate-900 border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1 block"
+                class="group block rounded-2xl overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-1 ring-slate-900/5 hover:ring-brand-500/40"
                 title="${cat.name} (${cat.count})"
               >
                 <img 
                   src="${cat.image}" 
                   alt="${cat.name}" 
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108" 
+                  class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 block rounded-2xl select-none" 
                 />
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent"></div>
-                
-                <div class="absolute inset-0 p-3.5 flex flex-col justify-end text-white">
-                  <div class="text-xs sm:text-sm font-bold leading-tight font-display drop-shadow-sm group-hover:text-orange-300 transition-colors">
-                    ${cat.name}
-                  </div>
-                  <div class="text-[11px] text-slate-300 font-medium mt-0.5">
-                    (${cat.count})
-                  </div>
-                </div>
               </a>
             `).join('')}
           </div>
         </section>
 
         <!-- 4. Why Choose ToolRent Metrics Strip matching INDEX.png -->
-        <section class="bg-[#f1f5f9]/70 border border-slate-200/90 rounded-2xl p-6 sm:p-8 lg:p-10">
+        <section class="bg-[#f8fafc] border border-slate-200/90 rounded-2xl p-6 sm:p-8 lg:p-10">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             <!-- Left heading with orange bar -->
@@ -242,25 +235,25 @@ export async function renderHomeView() {
               <!-- Metric 1: +200 -->
               <div class="space-y-1">
                 <div class="text-3xl sm:text-4xl font-black text-slate-900 font-display tracking-tight">+200</div>
-                <div class="text-xs text-slate-600 font-medium">Equipos disponibles</div>
+                <div class="text-xs text-slate-500 font-medium">Equipos disponibles</div>
               </div>
 
               <!-- Metric 2: 98% -->
               <div class="space-y-1 border-l border-slate-200/80 pl-4 sm:pl-6">
                 <div class="text-3xl sm:text-4xl font-black text-slate-900 font-display tracking-tight">98%</div>
-                <div class="text-xs text-slate-600 font-medium">Clientes satisfechos</div>
+                <div class="text-xs text-slate-500 font-medium">Clientes satisfechos</div>
               </div>
 
               <!-- Metric 3: +15 -->
               <div class="space-y-1 border-l border-slate-200/80 pl-4 sm:pl-6">
                 <div class="text-3xl sm:text-4xl font-black text-slate-900 font-display tracking-tight">+15</div>
-                <div class="text-xs text-slate-600 font-medium">Ciudades en Colombia</div>
+                <div class="text-xs text-slate-500 font-medium">Ciudades en Colombia</div>
               </div>
 
               <!-- Metric 4: 24/7 -->
               <div class="space-y-1 border-l border-slate-200/80 pl-4 sm:pl-6">
                 <div class="text-3xl sm:text-4xl font-black text-slate-900 font-display tracking-tight">24/7</div>
-                <div class="text-xs text-slate-600 font-medium">Soporte técnico</div>
+                <div class="text-xs text-slate-500 font-medium">Soporte técnico</div>
               </div>
 
             </div>
@@ -280,7 +273,7 @@ export async function renderHomeView() {
           <a 
             href="#/catalog" 
             class="hidden sm:block absolute cursor-pointer rounded-xl transition-all hover:bg-white/10 active:scale-95" 
-            style="left: 4.8%; top: 62.5%; width: 14.5%; height: 26%;" 
+            style="left: 5.0%; top: 51.5%; width: 15.2%; height: 25%;" 
             title="Explorar catálogo"
             aria-label="Explorar catálogo"
           ></a>
@@ -302,8 +295,11 @@ export async function renderHomeView() {
     </div>
   `;
 
-  // Attach interactive "Cómo funciona" modal
-  container.querySelector('#btn-hero-how-it-works')?.addEventListener('click', () => {
+  // Attach interactive "Cómo funciona" modal to both desktop and mobile buttons
+  container.querySelector('#btn-hero-how-it-works-desktop')?.addEventListener('click', () => {
+    openHowItWorksModal();
+  });
+  container.querySelector('#btn-hero-how-it-works-mobile')?.addEventListener('click', () => {
     openHowItWorksModal();
   });
 }
