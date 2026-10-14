@@ -234,6 +234,18 @@ Para permitir que cualquier frontend desacoplado (Single Page Application en Rea
 ### 3. Mitigación contra IDOR (Insecure Direct Object References)
 - Se valida la pertenencia de los recursos (`users/{id}`, `rentals/client/{clientId}`, `rentals/provider/{providerId}`) contra el usuario autenticado extraído del JWT. Un cliente o proveedor no puede consultar el historial de reservas de otro usuario alterando el parámetro en la URL.
 
+### 4. Mitigación contra Escalada de Privilegios en Registro Público (`AuthUseCase.java`)
+- El endpoint público `/api/v1/auth/register` restringe la creación no autenticada exclusivamente a los roles `ROLE_CLIENTE` o `ROLE_PROVEEDOR`.
+- Cualquier intento de autorregistrarse como `ROLE_ADMIN` (por ejemplo vía Postman o cURL) es interceptado y denegado (`BusinessRuleViolationException`), requiriendo que la solicitud provenga de un Administrador previamente autenticado.
+
+### 5. Blindaje en Subida de Archivos contra Stored XSS y Path Traversal (`ToolController.java`)
+- **Anti-Stored XSS:** Se valida estrictamente el `Content-Type` MIME del archivo (`image/jpeg`, `image/png`, `image/webp`) y se rechazan de forma explícita formatos vectoriales (`.svg`, `.html`) que puedan contener etiquetas `<script>` embebidas.
+- **Anti-Path Traversal:** El nombre de archivo se limpia descartando rutas relativas (`Paths.get(...).getFileName()`), se sanitizan caracteres no alfanuméricos (`[^a-zA-Z0-9._-]`), se le asigna un prefijo UUID único y se verifica mediante `targetPath.normalize().startsWith(uploadDir)` que el archivo no pueda escribirse fuera de la carpeta de uploads.
+
+### 6. Inmunidad Estructural contra Inyección SQL (SQLi)
+- **Búsqueda en Catálogo (`?search=`):** El filtrado de texto por nombre, marca y descripción se procesa en memoria mediante Java Streams en `ToolUseCase.java` (`.toLowerCase().contains(...)`), imposibilitando la inyección de sentencias SQL maliciosas.
+- **Identificadores Fuertes (`{id}`):** Todos los endpoints utilizan `java.util.UUID` fuertemente tipado en Spring MVC. Cualquier intento de inyección en la URL (ej. `1 OR 1=1`) es rechazado de inmediato a nivel de framework con HTTP `400 Bad Request`.
+
 ---
 
 ## 🧪 Pruebas del Sistema

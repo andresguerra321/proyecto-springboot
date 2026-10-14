@@ -39,7 +39,7 @@ public class AuthUseCase {
             throw new BusinessRuleViolationException("Email is already taken");
         }
 
-        Set<Role> roles = request.roles().stream()
+        Set<Role> roles = request.roles() != null ? request.roles().stream()
                 .map(roleStr -> {
                     try {
                         return Role.valueOf(roleStr);
@@ -47,10 +47,23 @@ public class AuthUseCase {
                         throw new BusinessRuleViolationException("Invalid role: " + roleStr);
                     }
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet()) : new java.util.HashSet<>();
 
         if (roles.isEmpty()) {
             roles = Set.of(Role.ROLE_CLIENTE);
+        }
+
+        // Mitigación de Escalada de Privilegios en Registro Público:
+        // Las peticiones no autenticadas solo pueden crear cuentas con ROLE_CLIENTE o ROLE_PROVEEDOR.
+        // La asignación de cualquier otro rol (ej. ROLE_ADMIN) requiere que la sesión actual posea privilegios de ADMIN.
+        boolean containsPrivilegedRole = roles.stream().anyMatch(r -> r != Role.ROLE_CLIENTE && r != Role.ROLE_PROVEEDOR);
+        if (containsPrivilegedRole) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            boolean isCurrentAdmin = auth != null && auth.isAuthenticated() &&
+                    auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            if (!isCurrentAdmin) {
+                throw new BusinessRuleViolationException("El registro público no permite la asignación de roles administrativos. Solo se admiten ROLE_CLIENTE o ROLE_PROVEEDOR.");
+            }
         }
 
         User newUser = new User(
