@@ -60,7 +60,7 @@ export async function renderHomeView() {
         
         <!-- 1. Hero Section matching INDEX.png -->
         <!-- Desktop / Tablet: Pixel-perfect replica from INDEX.png with interactive hotspots -->
-        <section class="hidden md:block relative rounded-3xl overflow-hidden border border-slate-200/90 shadow-xs bg-white select-none">
+        <section class="hidden md:block relative rounded-3xl overflow-hidden border border-slate-200/90 shadow-xs bg-white select-none animate-fade-in animate-duration-slow">
           <img 
             src="${heroFullImg}" 
             alt="Alquiler de herramientas y maquinaria - ToolRent" 
@@ -88,7 +88,7 @@ export async function renderHomeView() {
         </section>
 
         <!-- Mobile Hero Fallback (< 768px) -->
-        <section class="md:hidden relative rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden p-6 space-y-4">
+        <section class="md:hidden relative rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden p-6 space-y-4 animate-fade-in animate-duration-normal">
           <span class="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">
             ALQUILER DE HERRAMIENTAS Y MAQUINARIA
           </span>
@@ -131,7 +131,7 @@ export async function renderHomeView() {
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-0 px-2 sm:px-4 py-2">
           
           <!-- Feature 1: Equipos certificados -->
-          <div class="space-y-1.5 lg:pr-6">
+          <div class="space-y-1.5 lg:pr-6 animate-fade-in-up animate-duration-normal">
             <div class="text-slate-800">
               ${renderIcon('ShieldCheck', 'w-6 h-6 stroke-[1.8]')}
             </div>
@@ -142,7 +142,7 @@ export async function renderHomeView() {
           </div>
 
           <!-- Feature 2: Entrega a todo el país -->
-          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6">
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6 animate-fade-in-up animate-duration-normal animate-delay-100">
             <div class="text-slate-800">
               ${renderIcon('Truck', 'w-6 h-6 stroke-[1.8]')}
             </div>
@@ -153,7 +153,7 @@ export async function renderHomeView() {
           </div>
 
           <!-- Feature 3: Soporte especializado -->
-          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6">
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:px-6 animate-fade-in-up animate-duration-normal animate-delay-200">
             <div class="text-slate-800">
               ${renderIcon('Clock', 'w-6 h-6 stroke-[1.8]')}
             </div>
@@ -164,7 +164,7 @@ export async function renderHomeView() {
           </div>
 
           <!-- Feature 4: Pagos seguros -->
-          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:pl-6">
+          <div class="space-y-1.5 lg:border-l lg:border-slate-200/90 lg:pl-6 animate-fade-in-up animate-duration-normal animate-delay-300">
             <div class="text-slate-800">
               ${renderIcon('Shield', 'w-6 h-6 stroke-[1.8]')}
             </div>
@@ -177,7 +177,7 @@ export async function renderHomeView() {
         </section>
 
         <!-- 3. Categories Section matching INDEX.png -->
-        <section class="space-y-4 pt-4">
+        <section class="space-y-4 pt-4 animate-fade-in animate-duration-normal">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
               <span class="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">
@@ -199,10 +199,10 @@ export async function renderHomeView() {
 
           <!-- 6 Grid Category Cards without redundant double text -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-            ${categoriesList.map(cat => `
+            ${categoriesList.map((cat, idx) => `
               <a 
                 href="#/catalog?q=${encodeURIComponent(cat.query)}" 
-                class="group block rounded-2xl overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-1 ring-slate-900/5 hover:ring-brand-500/40"
+                class="group block rounded-2xl overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-1 ring-slate-900/5 hover:ring-brand-500/40 animate-fade-in-up animate-duration-fast animate-delay-[${(idx + 1) * 75}ms]"
                 title="${cat.name} (${cat.count})"
               >
                 <img 
@@ -216,7 +216,7 @@ export async function renderHomeView() {
         </section>
 
         <!-- 4. Why Choose ToolRent Metrics Strip matching INDEX.png -->
-        <section class="bg-[#f8fafc] border border-slate-200/90 rounded-2xl p-6 sm:p-8 lg:p-10">
+        <section class="bg-[#f8fafc] border border-slate-200/90 rounded-2xl p-6 sm:p-8 lg:p-10 animate-fade-in animate-duration-normal">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             <!-- Left heading with orange bar -->
@@ -262,7 +262,7 @@ export async function renderHomeView() {
         </section>
 
         <!-- 5. Bottom Dark CTA Banner matching INDEX.png -->
-        <section class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-950 select-none">
+        <section class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-950 select-none animate-fade-in animate-duration-slow">
           <img 
             src="${ctaBannerImg}" 
             alt="Tu proyecto no se detiene - ToolRent" 
