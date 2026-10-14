@@ -88,7 +88,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                       <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                         ${renderIcon('User', 'w-3.5 h-3.5')}
                       </span>
-                      <input type="text" id="reg-username" required placeholder="ej. carlos_gomez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                      <input type="text" id="reg-username" required maxlength="30" autocomplete="username" placeholder="ej. carlos_gomez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
                     </div>
                   </div>
 
@@ -98,7 +98,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                       <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                         ${renderIcon('Mail', 'w-3.5 h-3.5')}
                       </span>
-                      <input type="email" id="reg-email" required placeholder="carlos@empresa.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                      <input type="email" id="reg-email" required maxlength="60" autocomplete="email" placeholder="carlos@empresa.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
                     </div>
                   </div>
                 </div>
@@ -109,7 +109,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                     <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                       ${renderIcon('Lock', 'w-3.5 h-3.5')}
                     </span>
-                    <input type="password" id="reg-password" required placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                    <input type="password" id="reg-password" required maxlength="50" autocomplete="new-password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
                     <button type="button" id="btn-toggle-reg-pass" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600">
                       ${renderIcon('Eye', 'w-3.5 h-3.5')}
                     </button>
@@ -208,7 +208,8 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         return `
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nombre y Apellidos completos *</label>
-            <input type="text" id="reg-fullName" required placeholder="ej. Carlos Gómez Pérez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Carlos Gómez Pérez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <p class="text-[10px] text-slate-400 mt-0.5">Solo letras y espacios (máx. 60 caracteres)</p>
           </div>
           <div class="grid grid-cols-3 gap-2">
             <div>
@@ -222,55 +223,160 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
             </div>
             <div class="col-span-2">
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Número de documento *</label>
-              <input type="text" id="reg-docNumber" required placeholder="ej. 1020304050" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="text" id="reg-docNumber" required maxlength="20" inputmode="numeric" placeholder="ej. 1020304050" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono móvil *</label>
-              <input type="tel" id="reg-phone" required placeholder="3001234567" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3001234567" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad *</label>
-              <input type="text" id="reg-city" required placeholder="ej. Bogotá" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Bogotá" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de entrega *</label>
-            <input type="text" id="reg-address" required placeholder="ej. Cra 7 # 120-45" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <input type="text" id="reg-address" required maxlength="100" autocomplete="street-address" placeholder="ej. Cra 7 # 120-45" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
           </div>
         `;
       } else {
         return `
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Razón Social / Nombre Comercial *</label>
-            <input type="text" id="reg-companyName" required placeholder="ej. Maquinaria y Equipos del Norte S.A.S." class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <input type="text" id="reg-companyName" required maxlength="80" autocomplete="organization" placeholder="ej. Maquinaria y Equipos del Norte S.A.S." class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">NIT / RUT *</label>
-              <input type="text" id="reg-taxId" required placeholder="901.234.567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="text" id="reg-taxId" required maxlength="20" inputmode="numeric" placeholder="ej. 901.234.567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono corporativo *</label>
-              <input type="tel" id="reg-phone" required placeholder="3109876543" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3109876543" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Contacto / Representante *</label>
-              <input type="text" id="reg-fullName" required placeholder="ej. Laura Sánchez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Laura Sánchez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <p class="text-[10px] text-slate-400 mt-0.5">Solo letras y espacios (sin números)</p>
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad de sede *</label>
-              <input type="text" id="reg-city" required placeholder="ej. Medellín" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Medellín" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
             </div>
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de despacho / Bodega *</label>
-            <input type="text" id="reg-address" required placeholder="ej. Zona Industrial Calle 15 # 40-10" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <input type="text" id="reg-address" required maxlength="100" autocomplete="street-address" placeholder="ej. Zona Industrial Calle 15 # 40-10" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
           </div>
         `;
+      }
+    }
+
+    // Input sanitizers & character-type filters
+    function bindInputFilters(root) {
+      if (!root) return;
+
+      // 1. Username: no spaces, only alphanumeric, dot, underscore, dash, max 30 chars
+      const userInput = root.querySelector('#reg-username');
+      if (userInput && !userInput._filterBound) {
+        userInput._filterBound = true;
+        userInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 30);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 2. Email: no spaces, max 60 chars
+      const emailInput = root.querySelector('#reg-email');
+      if (emailInput && !emailInput._filterBound) {
+        emailInput._filterBound = true;
+        emailInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/\s+/g, '').slice(0, 60);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 3. Password: max 50 chars
+      const passInput = root.querySelector('#reg-password');
+      if (passInput && !passInput._filterBound) {
+        passInput._filterBound = true;
+        passInput.addEventListener('input', (e) => {
+          if (e.target.value.length > 50) e.target.value = e.target.value.slice(0, 50);
+        });
+      }
+
+      // 4. Phone: only digits, +, spaces, hyphens. Max 15 chars. (Rejects letters like edd and symbols like /*)
+      const phoneInput = root.querySelector('#reg-phone');
+      if (phoneInput && !phoneInput._filterBound) {
+        phoneInput._filterBound = true;
+        phoneInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^0-9+\s-]/g, '').slice(0, 15);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 5. Contact / Full Name: only letters, accents, spaces, apostrophes. (Rejects digits like 0201321 and symbols)
+      const nameInput = root.querySelector('#reg-fullName');
+      if (nameInput && !nameInput._filterBound) {
+        nameInput._filterBound = true;
+        nameInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, '').slice(0, 60);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 6. City: only letters, accents, spaces, hyphens. (Rejects semicolons like Cale;as, digits, etc.)
+      const cityInput = root.querySelector('#reg-city');
+      if (cityInput && !cityInput._filterBound) {
+        cityInput._filterBound = true;
+        cityInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s-]/g, '').slice(0, 40);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 7. NIT / RUT: only numbers, dots, hyphens. Max 20 chars.
+      const taxInput = root.querySelector('#reg-taxId');
+      if (taxInput && !taxInput._filterBound) {
+        taxInput._filterBound = true;
+        taxInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^0-9.-]/g, '').slice(0, 20);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 8. Document number: only numbers, letters, hyphens. Max 20 chars.
+      const docInput = root.querySelector('#reg-docNumber');
+      if (docInput && !docInput._filterBound) {
+        docInput._filterBound = true;
+        docInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^0-9A-Za-z-]/g, '').slice(0, 20);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 9. Company Name: letters, numbers, spaces, dots, hyphens, commas, &, apostrophe. Max 80 chars.
+      const companyInput = root.querySelector('#reg-companyName');
+      if (companyInput && !companyInput._filterBound) {
+        companyInput._filterBound = true;
+        companyInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,&'-]/g, '').slice(0, 80);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
+      // 10. Address: letters, numbers, spaces, #, -, ., ,, / Max 100 chars.
+      const addressInput = root.querySelector('#reg-address');
+      if (addressInput && !addressInput._filterBound) {
+        addressInput._filterBound = true;
+        addressInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s#.,\/-]/g, '').slice(0, 100);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
       }
     }
 
@@ -340,6 +446,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       const dynContainer = content.querySelector('#dynamic-profile-fields');
       if (dynContainer) {
         dynContainer.innerHTML = renderProfileFieldsHTML(selectedRole);
+        bindInputFilters(content);
       }
     }
 
@@ -357,6 +464,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       e.preventDefault();
       submitForm();
     });
+
+    // Apply live input restrictions
+    bindInputFilters(content);
   }
 
   async function submitForm() {
@@ -405,38 +515,54 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       const address = content.querySelector('#reg-address')?.value.trim();
 
       // Client-side validations
-      if (!username || username.length < 3) {
-        errorBox.textContent = 'El nombre de usuario debe tener al menos 3 caracteres.';
+      if (!username || username.length < 3 || username.length > 30) {
+        errorBox.textContent = 'El nombre de usuario debe tener entre 3 y 30 caracteres.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-        errorBox.textContent = 'El nombre de usuario solo puede contener letras, números, guiones y puntos.';
+        errorBox.textContent = 'El nombre de usuario no puede contener espacios ni caracteres especiales (solo letras, números, guiones y puntos).';
         errorBox.classList.remove('hidden');
         return;
       }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errorBox.textContent = 'Por favor ingresa un correo electrónico válido.';
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 60) {
+        errorBox.textContent = 'Por favor ingresa un correo electrónico válido (máx. 60 caracteres).';
         errorBox.classList.remove('hidden');
         return;
       }
-      if (!password || password.length < 6) {
-        errorBox.textContent = 'La contraseña debe contener al menos 6 caracteres.';
+      if (!password || password.length < 6 || password.length > 50) {
+        errorBox.textContent = 'La contraseña debe contener entre 6 y 50 caracteres.';
         errorBox.classList.remove('hidden');
         return;
       }
-      if (!fullName) {
-        errorBox.textContent = 'El nombre o persona de contacto es obligatorio.';
+      if (!fullName || fullName.length < 3 || fullName.length > 60) {
+        errorBox.textContent = 'El nombre o persona de contacto es obligatorio (entre 3 y 60 caracteres).';
         errorBox.classList.remove('hidden');
         return;
       }
-      if (!phone || phone.length < 7) {
-        errorBox.textContent = 'Por favor ingresa un número de teléfono de contacto válido (mínimo 7 dígitos).';
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/.test(fullName)) {
+        errorBox.textContent = 'El nombre o persona de contacto solo puede contener letras y espacios (no se permiten números ni caracteres especiales).';
         errorBox.classList.remove('hidden');
         return;
       }
-      if (!city || !address) {
-        errorBox.textContent = 'La ciudad y dirección son obligatorias.';
+      const phoneDigits = phone ? phone.replace(/\D/g, '') : '';
+      if (!phone || phoneDigits.length < 7 || phoneDigits.length > 15) {
+        errorBox.textContent = 'El teléfono debe contener entre 7 y 15 dígitos numéricos (ej. 3001234567 o +57 3001234567).';
+        errorBox.classList.remove('hidden');
+        return;
+      }
+      if (!city || city.length < 2 || city.length > 40) {
+        errorBox.textContent = 'La ciudad es obligatoria (entre 2 y 40 caracteres).';
+        errorBox.classList.remove('hidden');
+        return;
+      }
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s-]+$/.test(city)) {
+        errorBox.textContent = 'La ciudad solo puede contener letras (sin números ni caracteres como punto y coma).';
+        errorBox.classList.remove('hidden');
+        return;
+      }
+      if (!address || address.length < 5 || address.length > 100) {
+        errorBox.textContent = 'La dirección es obligatoria (entre 5 y 100 caracteres).';
         errorBox.classList.remove('hidden');
         return;
       }
@@ -449,21 +575,21 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       if (selectedRole === 'ROLE_CLIENTE') {
         documentType = content.querySelector('#reg-docType')?.value || 'CC';
         documentNumber = content.querySelector('#reg-docNumber')?.value.trim();
-        if (!documentNumber) {
-          errorBox.textContent = 'El número de documento del cliente es obligatorio.';
+        if (!documentNumber || documentNumber.length < 5 || documentNumber.length > 20) {
+          errorBox.textContent = 'El número de documento debe tener entre 5 y 20 caracteres.';
           errorBox.classList.remove('hidden');
           return;
         }
       } else {
         companyName = content.querySelector('#reg-companyName')?.value.trim();
         taxId = content.querySelector('#reg-taxId')?.value.trim();
-        if (!companyName) {
-          errorBox.textContent = 'La razón social de la empresa es obligatoria.';
+        if (!companyName || companyName.length < 3 || companyName.length > 80) {
+          errorBox.textContent = 'La razón social de la empresa debe tener entre 3 y 80 caracteres.';
           errorBox.classList.remove('hidden');
           return;
         }
-        if (!taxId) {
-          errorBox.textContent = 'El NIT o RUT de la empresa proveedora es obligatorio.';
+        if (!taxId || taxId.length < 5 || taxId.length > 20) {
+          errorBox.textContent = 'El NIT o RUT de la empresa debe tener entre 5 y 20 caracteres (ej. 901.234.567-8).';
           errorBox.classList.remove('hidden');
           return;
         }
