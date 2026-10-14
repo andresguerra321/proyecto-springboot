@@ -331,8 +331,8 @@ export async function renderProductPageView(toolId) {
                 </div>
 
                 <!-- Booking Button -->
-                <button id="btn-add-to-rental" class="btn-primary w-full !py-3 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
-                  ${renderIcon('CalendarCheck', 'w-4 h-4')} Agregar a mi reserva
+                <button id="btn-add-to-rental" class="btn-primary w-full !py-3 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                  ${renderIcon('CalendarCheck', 'w-4 h-4')} Alquilar este equipo
                 </button>
 
                 <!-- Auth / Help Note -->
@@ -398,24 +398,19 @@ export async function renderProductPageView(toolId) {
     });
 
     // Dates picker / booking button
-    container.querySelector('#btn-add-to-rental')?.addEventListener('click', () => {
-      showToast('Herramienta agregada a tu reserva con éxito', 'success', 3000, 'Agregado a tu reserva');
-      setTimeout(() => {
-        openRentalModal(tool);
-      }, 500);
-    });
-
-    container.querySelector('#btn-open-dates-picker')?.addEventListener('click', () => {
-      openRentalModal(tool);
-    });
-
-    container.querySelector('#btn-auth-hint')?.addEventListener('click', () => {
+    const handleRentalClick = () => {
       if (!auth.isAuthenticated()) {
+        showToast('Debes iniciar sesión para realizar un alquiler', 'warning');
         openAuthModal('login');
-      } else {
-        openRentalModal(tool);
+        return;
       }
-    });
+      openRentalModal(tool);
+    };
+
+    container.querySelector('#btn-add-to-rental')?.addEventListener('click', handleRentalClick);
+    container.querySelector('#btn-open-dates-picker')?.addEventListener('click', handleRentalClick);
+
+    container.querySelector('#btn-auth-hint')?.addEventListener('click', handleRentalClick);
   }
 
   render();
