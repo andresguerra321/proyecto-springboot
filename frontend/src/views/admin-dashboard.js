@@ -43,14 +43,41 @@ export async function renderAdminDashboard() {
   // Initial local state for admin view
   let currentTab = 'all'; // all, client, provider, admin
   let searchQuery = '';
-  let usersList = [
-    { id: 'usr-01', name: 'Juan Pérez García', email: 'juan.perez@ejemplo.com', role: 'Cliente', date: '13 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' },
-    { id: 'usr-02', name: 'Carlos Rodríguez', email: 'carlos.rodriguez@ejemplo.com', role: 'Proveedor', date: '11 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
-    { id: 'usr-03', name: 'Laura Gómez', email: 'laura.gomez@ejemplo.com', role: 'Cliente', date: '09 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
-    { id: 'usr-04', name: 'Diego Torres', email: 'diego.torres@ejemplo.com', role: 'Proveedor', date: '07 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
-    { id: 'usr-05', name: 'Ana Martínez', email: 'ana.martinez@ejemplo.com', role: 'Cliente', date: '05 oct 2026', active: false, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100' },
-    { id: 'usr-06', name: 'Admin General', email: 'admin@toolrent.co', role: 'Administrador', date: '01 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' }
-  ];
+  let usersList = [];
+
+  try {
+    const rawUsers = await api.get('/users');
+    if (Array.isArray(rawUsers) && rawUsers.length > 0) {
+      usersList = rawUsers.map(u => {
+        const isClient = u.roles?.some(r => r.includes('CLIENTE'));
+        const isProvider = u.roles?.some(r => r.includes('PROVEEDOR'));
+        const isAdmin = u.roles?.some(r => r.includes('ADMIN'));
+        const roleLabel = isAdmin ? 'Administrador' : isProvider ? 'Proveedor' : 'Cliente';
+        return {
+          id: u.id,
+          name: u.username,
+          email: u.email,
+          role: roleLabel,
+          date: '13 oct 2026',
+          active: u.enabled !== false,
+          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.username)}`
+        };
+      });
+    }
+  } catch (err) {
+    console.warn('Could not fetch real users from backend, fallback to default', err);
+  }
+
+  if (usersList.length === 0) {
+    usersList = [
+      { id: 'usr-01', name: 'Juan Pérez García', email: 'juan.perez@ejemplo.com', role: 'Cliente', date: '13 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' },
+      { id: 'usr-02', name: 'Carlos Rodríguez', email: 'carlos.rodriguez@ejemplo.com', role: 'Proveedor', date: '11 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
+      { id: 'usr-03', name: 'Laura Gómez', email: 'laura.gomez@ejemplo.com', role: 'Cliente', date: '09 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
+      { id: 'usr-04', name: 'Diego Torres', email: 'diego.torres@ejemplo.com', role: 'Proveedor', date: '07 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
+      { id: 'usr-05', name: 'Ana Martínez', email: 'ana.martinez@ejemplo.com', role: 'Cliente', date: '05 oct 2026', active: false, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100' },
+      { id: 'usr-06', name: 'Admin General', email: 'admin@toolrent.co', role: 'Administrador', date: '01 oct 2026', active: true, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' }
+    ];
+  }
 
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800">

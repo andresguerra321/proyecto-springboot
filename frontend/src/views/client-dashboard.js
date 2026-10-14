@@ -95,7 +95,11 @@ export async function renderClientDashboard() {
   async function loadClientRentals() {
     try {
       const clientId = user.profile?.id || user.id;
-      const rentals = await api.get(`/rentals/client/${clientId}`);
+      const [rentals, tools] = await Promise.all([
+        api.get(`/rentals/client/${clientId}`),
+        api.get('/tools').catch(() => [])
+      ]);
+      const toolMap = new Map((tools || []).map(t => [t.id, t.name]));
 
       if (!rentals || rentals.length === 0) {
         rentalsContainer.innerHTML = `
@@ -148,7 +152,7 @@ export async function renderClientDashboard() {
               <div class="flex flex-wrap gap-2 pt-1">
                 ${items.map(item => `
                   <span class="inline-flex items-center gap-1 text-[11px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-medium">
-                    ${renderIcon('Check', 'w-3 h-3 text-emerald-600')} ${item.toolName || 'Equipo Industrial'} (${formatCurrency(item.dailyPrice)}/día)
+                    ${renderIcon('Check', 'w-3 h-3 text-emerald-600')} ${item.toolName || toolMap.get(item.toolId) || 'Equipo Industrial'} (${formatCurrency(item.dailyPrice)}/día)
                   </span>
                 `).join('')}
               </div>

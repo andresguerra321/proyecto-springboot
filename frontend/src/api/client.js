@@ -3,7 +3,7 @@ import { mockCategories, mockTools, mockRequests, mockAdminUsers, mockAdminKpis 
 const API_BASE_URL = 'http://localhost:8085/api/v1';
 
 // Control flag: Run in standalone mock mode (Stitch design preview) or live backend
-export const USE_MOCK_BACKEND = true;
+export const USE_MOCK_BACKEND = false;
 
 class ApiClient {
   constructor(baseUrl = API_BASE_URL) {
@@ -75,8 +75,12 @@ class ApiClient {
 
       return data;
     } catch (err) {
-      console.warn(`[Live API fallback to mock] ${options.method || 'GET'} ${url} failed:`, err);
-      // Fallback to mock if server is offline
+      if (err.status) {
+        // Legitimate HTTP error response from server (400, 401, 403, 404, etc.)
+        throw err;
+      }
+      console.warn(`[Live API offline] ${options.method || 'GET'} ${url} failed, fallback to mock:`, err);
+      // Fallback to mock if server is completely offline
       return this.handleMockRequest(endpoint, options);
     }
   }

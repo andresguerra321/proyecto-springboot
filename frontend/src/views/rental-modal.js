@@ -351,13 +351,13 @@ function showSuccessModal(rental, payment, tool, rentalData) {
       <h3 class="text-lg font-bold text-slate-900 font-display">¡Reserva y Pago Exitosos!</h3>
       <p class="text-xs text-slate-500 mt-1">
         Tu solicitud ha sido radicada correctamente con el código 
-        <strong class="text-slate-900 font-mono">${rental.id}</strong>
+        <strong class="text-slate-900 font-mono">${rental.rentalCode || rental.id}</strong>
       </p>
     </div>
 
     <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-left space-y-1.5">
       <div class="flex justify-between"><span class="text-slate-500">Estado:</span> <span class="badge-pending">Pendiente de Despacho</span></div>
-      <div class="flex justify-between"><span class="text-slate-500">Transacción Pago:</span> <strong class="text-emerald-600 font-mono">${payment?.id || 'APROBADA'}</strong></div>
+      <div class="flex justify-between"><span class="text-slate-500">Transacción Pago:</span> <strong class="text-emerald-600 font-mono">${payment?.paymentReference || payment?.id || 'APROBADA'}</strong></div>
       <div class="flex justify-between"><span class="text-slate-500">Total Abonado:</span> <strong class="text-slate-900 font-bold">${formatCurrency(payment?.amount || rentalData?.total || 255000)}</strong></div>
     </div>
 

@@ -30,8 +30,16 @@ export async function renderProductPageView(toolId) {
 
   let tool = null;
   try {
-    const tools = await api.get('/tools');
-    tool = (tools || []).find(t => String(t.id) === String(toolId)) || null;
+    try {
+      tool = await api.get(`/tools/${toolId}`);
+    } catch {
+      const tools = await api.get('/tools');
+      tool = (tools || []).find(t => String(t.id) === String(toolId)) || null;
+    }
+    if (tool) {
+      tool.categoryId = tool.categoryId || tool.category?.id;
+      tool.categoryName = tool.categoryName || tool.category?.name || 'Herramientas y Maquinaria';
+    }
   } catch (err) {
     console.error('Error fetching tool details', err);
   }
@@ -108,7 +116,9 @@ export async function renderProductPageView(toolId) {
     const totalAmount = dailyPrice * daysCount;
     const currentImg = images[activeImageIndex]?.imageUrl || images[0].imageUrl;
 
-    const specsList = tool.specs && tool.specs.length > 0 ? tool.specs : [
+    const specsList = (tool.specifications && tool.specifications.length > 0)
+      ? tool.specifications
+      : (tool.specs && tool.specs.length > 0 ? tool.specs : [
       { specName: 'Marca', specValue: tool.brand || 'DeWalt' },
       { specName: 'Modelo', specValue: tool.model || 'DWD520K' },
       { specName: 'Potencia', specValue: '710 W' },
@@ -119,7 +129,7 @@ export async function renderProductPageView(toolId) {
       { specName: 'Capacidad de perforación (metal)', specValue: '13 mm' },
       { specName: 'Capacidad de perforación (concreto)', specValue: '16 mm' },
       { specName: 'Peso', specValue: '2.6 kg' },
-    ];
+    ]);
 
     const highlights = tool.highlights && tool.highlights.length > 0 ? tool.highlights : [
       'Incluye maletín', '2 brocas SDS', 'Empuñadura lateral', 'Tope de profundidad'

@@ -223,7 +223,7 @@ export function openAuthModal(initialTab = 'login') {
       submitForm();
     });
     content.querySelector('#quick-client')?.addEventListener('click', () => {
-      content.querySelector('#auth-email').value = 'cli_constructora_col';
+      content.querySelector('#auth-email').value = 'cliente_juan_perez';
       content.querySelector('#auth-pass').value = 'Password123*';
       submitForm();
     });

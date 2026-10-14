@@ -29,8 +29,18 @@ export async function renderCatalogView() {
       api.get('/tools'),
       api.get('/tools/categories')
     ]);
-    allTools = toolsData || [];
-    categories = catsData || [];
+    const rawTools = toolsData || [];
+    allTools = rawTools.map(t => ({
+      ...t,
+      categoryId: t.categoryId || t.category?.id,
+      categoryName: t.categoryName || t.category?.name || 'Maquinaria',
+    }));
+
+    const rawCats = catsData || [];
+    const hasAll = rawCats.some(c => c.id === 'cat-all');
+    categories = hasAll 
+      ? rawCats 
+      : [{ id: 'cat-all', name: 'Todas las categorías', icon: 'LayoutGrid' }, ...rawCats];
   } catch (e) {
     console.error('Error loading catalog data', e);
   }
