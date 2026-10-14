@@ -116,56 +116,73 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                   </div>
                 </div>
 
-                <!-- Role Selection -->
-                <div class="pt-1">
-                  <label class="block text-[11px] font-semibold text-slate-700 mb-1.5">¿Qué rol tendrás en la plataforma? *</label>
+                <!-- Explicit Role Selection with Radio Labels -->
+                <div class="pt-1 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                      ¿Qué tipo de cuenta deseas crear? *
+                    </label>
+                    <span id="role-active-indicator" class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      selectedRole === 'ROLE_PROVEEDOR' ? 'bg-orange-100 text-[#ea580c] border border-orange-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+                    }">
+                      ${selectedRole === 'ROLE_PROVEEDOR' ? '🏢 Proveedor Seleccionado' : '👤 Cliente Seleccionado'}
+                    </span>
+                  </div>
+
                   <div class="grid grid-cols-2 gap-2.5" id="role-cards-wrapper">
                     
-                    <!-- Card Cliente -->
-                    <div id="role-card-client" class="border-2 ${
-                      selectedRole === 'ROLE_CLIENTE' ? 'border-[#ea580c] bg-orange-50/30 shadow-xs ring-1 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } rounded-xl p-2.5 cursor-pointer flex flex-col justify-between transition-all select-none">
-                      <div class="flex items-center justify-between mb-1.5">
-                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_CLIENTE' ? 'text-[#ea580c]' : 'text-slate-600'}">
-                          ${renderIcon('User', 'w-4 h-4')}
+                    <!-- Option Cliente -->
+                    <label id="role-card-client" class="border-2 ${
+                      selectedRole === 'ROLE_CLIENTE' ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
+                    } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_CLIENTE' ? 'text-[#ea580c]' : 'text-slate-500'}">
+                          ${renderIcon('User', 'w-5 h-5')}
                         </div>
-                        <div class="role-radio-circle w-4 h-4 rounded-full border-2 ${
-                          selectedRole === 'ROLE_CLIENTE' ? 'border-[#ea580c] bg-white ring-2 ring-orange-500/20' : 'border-slate-300 bg-white'
-                        } flex items-center justify-center transition-all">
-                          ${selectedRole === 'ROLE_CLIENTE' ? '<span class="w-2 h-2 rounded-full bg-[#ea580c] shadow-xs block"></span>' : ''}
-                        </div>
+                        <input type="radio" name="accountRole" value="ROLE_CLIENTE" ${selectedRole === 'ROLE_CLIENTE' ? 'checked' : ''} class="w-4 h-4 text-[#ea580c] focus:ring-[#ea580c] cursor-pointer" />
                       </div>
                       <div>
-                        <div class="text-xs font-bold text-slate-900">Cliente</div>
-                        <div class="text-[10px] text-slate-500">Alquilar herramientas y maquinaria</div>
+                        <div class="text-xs font-bold text-slate-900">Cliente Arrendatario</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5 leading-snug">Quiero alquilar herramientas y maquinaria para mis obras</div>
                       </div>
-                    </div>
+                    </label>
 
-                    <!-- Card Proveedor -->
-                    <div id="role-card-provider" class="border-2 ${
-                      selectedRole === 'ROLE_PROVEEDOR' ? 'border-[#ea580c] bg-orange-50/30 shadow-xs ring-1 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } rounded-xl p-2.5 cursor-pointer flex flex-col justify-between transition-all select-none">
-                      <div class="flex items-center justify-between mb-1.5">
-                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_PROVEEDOR' ? 'text-[#ea580c]' : 'text-slate-600'}">
-                          ${renderIcon('Building2', 'w-4 h-4')}
+                    <!-- Option Proveedor -->
+                    <label id="role-card-provider" class="border-2 ${
+                      selectedRole === 'ROLE_PROVEEDOR' ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
+                    } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_PROVEEDOR' ? 'text-[#ea580c]' : 'text-slate-500'}">
+                          ${renderIcon('Building2', 'w-5 h-5')}
                         </div>
-                        <div class="role-radio-circle w-4 h-4 rounded-full border-2 ${
-                          selectedRole === 'ROLE_PROVEEDOR' ? 'border-[#ea580c] bg-white ring-2 ring-orange-500/20' : 'border-slate-300 bg-white'
-                        } flex items-center justify-center transition-all">
-                          ${selectedRole === 'ROLE_PROVEEDOR' ? '<span class="w-2 h-2 rounded-full bg-[#ea580c] shadow-xs block"></span>' : ''}
-                        </div>
+                        <input type="radio" name="accountRole" value="ROLE_PROVEEDOR" ${selectedRole === 'ROLE_PROVEEDOR' ? 'checked' : ''} class="w-4 h-4 text-[#ea580c] focus:ring-[#ea580c] cursor-pointer" />
                       </div>
                       <div>
-                        <div class="text-xs font-bold text-slate-900">Proveedor</div>
-                        <div class="text-[10px] text-slate-500">Publicar y rentar mis equipos</div>
+                        <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <span>Proveedor Aliado</span>
+                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c]">Empresas</span>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-0.5 leading-snug">Quiero publicar equipos y generar ingresos por alquiler</div>
                       </div>
-                    </div>
+                    </label>
 
+                  </div>
+
+                  <!-- Role Description Callout -->
+                  <div id="role-info-callout" class="p-2.5 rounded-xl text-[11px] leading-relaxed transition-all ${
+                    selectedRole === 'ROLE_PROVEEDOR'
+                      ? 'bg-orange-50 text-orange-950 border border-orange-200/90'
+                      : 'bg-blue-50 text-blue-950 border border-blue-200/90'
+                  }">
+                    ${selectedRole === 'ROLE_PROVEEDOR'
+                      ? '<strong>🏢 Cuenta de Proveedor:</strong> Registrarás tu empresa con Razón Social y NIT. Tendrás acceso directo al <strong>Panel de Proveedor</strong> para publicar herramientas, fijar precios diarios y cobrar alquileres.'
+                      : '<strong>👤 Cuenta de Cliente:</strong> Registrarás tu cuenta personal para buscar equipos, reservar en línea y recibir facturas electrónicas oficiales.'
+                    }
                   </div>
                 </div>
 
                 <!-- Dynamic Profile Fields Container -->
-                <div id="dynamic-profile-fields" class="space-y-2 pt-1 border-t border-slate-100">
+                <div id="dynamic-profile-fields" class="space-y-2 pt-2 border-t border-slate-100">
                   ${renderProfileFieldsHTML(selectedRole)}
                 </div>
               `}
@@ -173,7 +190,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
               <div id="auth-error-msg" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg"></div>
 
               <button type="submit" id="auth-submit-btn" class="btn-primary w-full !py-2.5 text-xs font-semibold shadow-sm mt-3">
-                ${currentTab === 'login' ? 'Iniciar sesión' : 'Registrar y Crear Cuenta'}
+                ${currentTab === 'login' 
+                  ? 'Iniciar sesión' 
+                  : (selectedRole === 'ROLE_PROVEEDOR' ? '🏢 Registrar y Crear Cuenta de Proveedor Aliado' : '👤 Registrar y Crear Cuenta de Cliente Arrendatario')}
               </button>
             </form>
           </div>
@@ -402,6 +421,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
     function updateRoleUI() {
       const clientCard = content.querySelector('#role-card-client');
       const providerCard = content.querySelector('#role-card-provider');
+      const indicator = content.querySelector('#role-active-indicator');
+      const callout = content.querySelector('#role-info-callout');
+      const submitBtn = content.querySelector('#auth-submit-btn');
       if (!clientCard || !providerCard) return;
 
       const isClient = selectedRole === 'ROLE_CLIENTE';
@@ -409,37 +431,52 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       // Update Client Card
       clientCard.className = `border-2 ${
         isClient
-          ? 'border-[#ea580c] bg-orange-50/30 shadow-xs ring-1 ring-[#ea580c]/20'
+          ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20'
           : 'border-slate-200 bg-white hover:border-slate-300'
-      } rounded-xl p-2.5 cursor-pointer flex flex-col justify-between transition-all select-none`;
+      } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none`;
+
+      const clientRadio = clientCard.querySelector('input[type="radio"]');
+      if (clientRadio) clientRadio.checked = isClient;
 
       const clientIcon = clientCard.querySelector('.role-icon-wrapper');
-      if (clientIcon) clientIcon.className = `role-icon-wrapper ${isClient ? 'text-[#ea580c]' : 'text-slate-600'}`;
-
-      const clientCircle = clientCard.querySelector('.role-radio-circle');
-      if (clientCircle) {
-        clientCircle.className = `role-radio-circle w-4 h-4 rounded-full border-2 ${
-          isClient ? 'border-[#ea580c] bg-white ring-2 ring-orange-500/20' : 'border-slate-300 bg-white'
-        } flex items-center justify-center transition-all`;
-        clientCircle.innerHTML = isClient ? '<span class="w-2 h-2 rounded-full bg-[#ea580c] shadow-xs block"></span>' : '';
-      }
+      if (clientIcon) clientIcon.className = `role-icon-wrapper ${isClient ? 'text-[#ea580c]' : 'text-slate-500'}`;
 
       // Update Provider Card
       providerCard.className = `border-2 ${
         !isClient
-          ? 'border-[#ea580c] bg-orange-50/30 shadow-xs ring-1 ring-[#ea580c]/20'
+          ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20'
           : 'border-slate-200 bg-white hover:border-slate-300'
-      } rounded-xl p-2.5 cursor-pointer flex flex-col justify-between transition-all select-none`;
+      } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none`;
+
+      const providerRadio = providerCard.querySelector('input[type="radio"]');
+      if (providerRadio) providerRadio.checked = !isClient;
 
       const providerIcon = providerCard.querySelector('.role-icon-wrapper');
-      if (providerIcon) providerIcon.className = `role-icon-wrapper ${!isClient ? 'text-[#ea580c]' : 'text-slate-600'}`;
+      if (providerIcon) providerIcon.className = `role-icon-wrapper ${!isClient ? 'text-[#ea580c]' : 'text-slate-500'}`;
 
-      const providerCircle = providerCard.querySelector('.role-radio-circle');
-      if (providerCircle) {
-        providerCircle.className = `role-radio-circle w-4 h-4 rounded-full border-2 ${
-          !isClient ? 'border-[#ea580c] bg-white ring-2 ring-orange-500/20' : 'border-slate-300 bg-white'
-        } flex items-center justify-center transition-all`;
-        providerCircle.innerHTML = !isClient ? '<span class="w-2 h-2 rounded-full bg-[#ea580c] shadow-xs block"></span>' : '';
+      // Update Indicator Badge
+      if (indicator) {
+        indicator.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          !isClient ? 'bg-orange-100 text-[#ea580c] border border-orange-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+        }`;
+        indicator.textContent = !isClient ? '🏢 Proveedor Seleccionado' : '👤 Cliente Seleccionado';
+      }
+
+      // Update Callout
+      if (callout) {
+        callout.className = `p-2.5 rounded-xl text-[11px] leading-relaxed transition-all ${
+          !isClient ? 'bg-orange-50 text-orange-950 border border-orange-200/90' : 'bg-blue-50 text-blue-950 border border-blue-200/90'
+        }`;
+        callout.innerHTML = !isClient
+          ? '<strong>🏢 Cuenta de Proveedor:</strong> Registrarás tu empresa con Razón Social y NIT. Tendrás acceso directo al <strong>Panel de Proveedor</strong> para publicar herramientas, fijar precios diarios y cobrar alquileres.'
+          : '<strong>👤 Cuenta de Cliente:</strong> Registrarás tu cuenta personal para buscar equipos, reservar en línea y recibir facturas electrónicas oficiales.';
+      }
+
+      // Update Submit Button Label
+      if (submitBtn && currentTab === 'register') {
+        submitBtn.textContent = !isClient 
+          ? '🏢 Registrar y Crear Cuenta de Proveedor Aliado' 
+          : '👤 Registrar y Crear Cuenta de Cliente Arrendatario';
       }
 
       // Update dynamic fields
@@ -449,6 +486,13 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         bindInputFilters(content);
       }
     }
+
+    content.querySelectorAll('input[name="accountRole"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        selectedRole = e.target.value;
+        updateRoleUI();
+      });
+    });
 
     content.querySelector('#role-card-client')?.addEventListener('click', () => {
       selectedRole = 'ROLE_CLIENTE';
@@ -506,6 +550,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       }
     } else {
       // REGISTRATION VALIDATION
+      selectedRole = content.querySelector('input[name="accountRole"]:checked')?.value || selectedRole;
       const username = content.querySelector('#reg-username')?.value.trim();
       const email = content.querySelector('#reg-email')?.value.trim();
       const password = content.querySelector('#reg-password')?.value;

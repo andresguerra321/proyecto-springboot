@@ -3,6 +3,7 @@ import 'preline/preline';
 import anime, { animateViewEntrance } from './utils/animations.js';
 import { renderNavbar } from './components/navbar.js';
 import { renderFooter } from './components/footer.js';
+import { renderHomeView } from './views/home.js';
 import { renderCatalogView } from './views/catalog.js';
 import { renderClientDashboard } from './views/client-dashboard.js';
 import { renderProviderDashboard } from './views/provider-dashboard.js';
@@ -76,6 +77,8 @@ export function render404View() {
 
 // Router mapping
 const routes = {
+  '#/': renderHomeView,
+  '#/home': renderHomeView,
   '#/catalog': renderCatalogView,
   '#/client': renderClientDashboard,
   '#/provider': renderProviderDashboard,
@@ -84,7 +87,7 @@ const routes = {
 };
 
 function router() {
-  const hash = window.location.hash || '#/catalog';
+  const hash = window.location.hash || '#/';
   const cleanRoute = hash.split('?')[0];
   
   // Handle dynamic product detail route: #/product/:id
@@ -101,18 +104,18 @@ function router() {
   }
 
   // 404 Handler for unknown routes
-  if (hash && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
+  if (hash && hash !== '#/' && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
     render404View();
     animateViewEntrance('#app-content');
     return;
   }
 
-  const routeKey = cleanRoute in routes ? cleanRoute : '#/catalog';
+  const routeKey = cleanRoute in routes ? cleanRoute : '#/';
   
-  const activeRouteName = routeKey.replace('#/', '');
+  const activeRouteName = (routeKey === '#/' || routeKey === '#/home') ? 'home' : routeKey.replace('#/', '');
   renderNavbar(activeRouteName);
 
-  const viewHandler = routes[routeKey] || renderCatalogView;
+  const viewHandler = routes[routeKey] || renderHomeView;
   viewHandler();
   animateViewEntrance('#app-content');
 
