@@ -169,6 +169,101 @@ export async function openRentalModal(tool) {
           </button>
         </div>
 
+        <!-- Bottom: Comprehensive Service Features & Guarantees -->
+        <div class="col-span-1 md:col-span-2 border-t border-slate-100 pt-5 mt-1 space-y-4">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600')} ¿Qué incluye este servicio de alquiler?
+            </h5>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Servicio Garantizado ToolRent
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <!-- Feature 1: Mantenimiento & Calibración -->
+            <div class="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl space-y-1.5">
+              <div class="w-7 h-7 rounded-lg bg-orange-100 text-[#ea580c] flex items-center justify-center">
+                ${renderIcon('Wrench', 'w-4 h-4')}
+              </div>
+              <div class="font-bold text-slate-900 text-xs">Equipo 100% Calibrado</div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                Inspeccionado y probado en banco antes de cada entrega para garantizar máxima seguridad y cero paros en obra.
+              </p>
+            </div>
+
+            <!-- Feature 2: Sustitución Inmediata -->
+            <div class="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl space-y-1.5">
+              <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                ${renderIcon('RefreshCw', 'w-4 h-4')}
+              </div>
+              <div class="font-bold text-slate-900 text-xs">Sustitución en 24h</div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                Si la máquina sufre falla técnica por desgaste operativo, el proveedor la reemplaza sin costo adicional.
+              </p>
+            </div>
+
+            <!-- Feature 3: Depósito Reembolsable -->
+            <div class="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl space-y-1.5">
+              <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                ${renderIcon('Coins', 'w-4 h-4')}
+              </div>
+              <div class="font-bold text-slate-900 text-xs">Depósito Reembolsable</div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                El 10% en garantía (${formatCurrency(deposit)}) se desbloquea y reintegra a tu cuenta al finalizar la inspección de retorno.
+              </p>
+            </div>
+
+            <!-- Feature 4: Facturación y Contrato Legal -->
+            <div class="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl space-y-1.5">
+              <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                ${renderIcon('FileText', 'w-4 h-4')}
+              </div>
+              <div class="font-bold text-slate-900 text-xs">Factura Legal & Contrato</div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                Factura electrónica DIAN con IVA deducible para tu contabilidad y contrato digital de arrendamiento vinculante.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step by Step Workflow Banner -->
+          <div class="bg-gradient-to-r from-orange-50/70 via-slate-50 to-orange-50/40 border border-orange-200/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
+                1
+              </div>
+              <div>
+                <span class="font-bold text-slate-900">1. Reserva Online</span>
+                <p class="text-[11px] text-slate-500">Bloqueas fechas con pago cifrado</p>
+              </div>
+            </div>
+
+            <div class="hidden sm:block text-slate-300 font-bold">→</div>
+
+            <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
+                2
+              </div>
+              <div>
+                <span class="font-bold text-slate-900">2. Entrega con Acta Digital</span>
+                <p class="text-[11px] text-slate-500">Inspección con fotos de check-in</p>
+              </div>
+            </div>
+
+            <div class="hidden sm:block text-slate-300 font-bold">→</div>
+
+            <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
+                3
+              </div>
+              <div>
+                <span class="font-bold text-slate-900">3. Retorno y Liberación</span>
+                <p class="text-[11px] text-slate-500">Devolución y reintegro del depósito</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     `;
 
@@ -205,7 +300,7 @@ export async function openRentalModal(tool) {
   modal.open({
     title: `Reservar Herramienta: ${tool.name}`,
     content: content,
-    maxWidth: 'max-w-3xl',
+    maxWidth: 'max-w-4xl',
   });
 }
 
