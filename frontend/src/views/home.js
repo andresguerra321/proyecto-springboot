@@ -140,46 +140,50 @@ export async function renderHomeView() {
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-16">
       
       <!-- ============================================================== -->
-      <!-- 1. HERO BANNER FULL-BLEED (Conectado detrás de la barra con imagen 100% nítida sin niebla) -->
+      <!-- 1. HERO BANNER FULL-BLEED (Limpio, sin recuadros forzados, palabras clave y fondo integrado) -->
       <!-- ============================================================== -->
-      <section class="relative w-full bg-slate-900 border-b border-slate-200/80 overflow-hidden min-h-[520px] sm:min-h-[560px] lg:min-h-[600px] flex items-center -mt-20 pt-20">
-        <!-- Imagen de fondo HD de extremo a extremo: 100% nítida, cristalina y sin capas de niebla -->
+      <section class="relative w-full bg-white border-b border-slate-200/80 overflow-hidden min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
+        <!-- Imagen de fondo HD de extremo a extremo: Maquinaria nítida a la derecha, transición integrada a la izquierda -->
         <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
           <img 
             src="${heroCatImg}" 
             alt="Excavadora Caterpillar en obra de construcción" 
             class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
           />
-          <!-- Sutil viñeta ambiental en esquinas inferiores para contraste natural, sin niebla blanca -->
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none"></div>
+          <!-- Fusión suave y limpia: blanco sólido en textos a la izquierda, transición transparente sobre la maquinaria a la derecha -->
+          <div class="absolute inset-0 bg-gradient-to-r from-white from-28% via-white/85 via-45% to-transparent to-68% pointer-events-none"></div>
         </div>
 
-        <!-- Contenedor alineado con el resto de la web: Panel de comando en Glassmorfismo Puro -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-14">
-          <div class="max-w-xl lg:max-w-[590px] bg-white/80 sm:bg-white/75 backdrop-blur-xl border border-white/85 shadow-2xl rounded-3xl p-6 sm:p-8 lg:p-9 space-y-5 sm:space-y-6">
+        <!-- Contenedor alineado con el resto de la web: Estructura intuitiva y clean -->
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+          <div class="max-w-xl lg:max-w-[560px] space-y-5 sm:space-y-6">
             
             <!-- Kicker sobrio & minimalista con micro-indicador ToolRent -->
-            <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-600 uppercase select-none">
+            <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase select-none">
               <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]"></span>
               <span>Renta Industrial en Colombia</span>
             </div>
 
             <!-- Titular Editorial con escala fluida -->
-            <h1 class="text-3xl sm:text-4xl lg:text-[44px] font-extrabold tracking-tight leading-[1.12] text-slate-900 font-display">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.12] text-slate-900 font-display">
               El equipo que necesitas,<br />
               <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
             </h1>
 
-            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-              Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
-            </p>
+            <!-- Palabras Clave de Valor (Directas, intuitivas, sin párrafos de relleno) -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-600">
+              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Entrega en obra</span>
+              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Contrato digital</span>
+              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Equipos certificados</span>
+              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Disponibilidad inmediata</span>
+            </div>
 
-            <!-- Buscador Unificado con Sistema Responsive Eficiente en Glassmorfismo -->
-            <form id="hero-availability-form" class="bg-white/90 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 shadow-md">
+            <!-- Buscador Unificado con Sistema Responsive Eficiente (Sin recuadros anidados) -->
+            <form id="hero-availability-form" class="bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-lg">
               <div class="grid grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
                 
-                <!-- Opción 1: Categoría (full width en móviles/tablets, 4 cols en desktop) -->
-                <div class="col-span-2 lg:col-span-4 bg-slate-50/80 hover:bg-slate-100/80 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
+                <!-- Categoría: full width en móviles/tablets (col-span-2), 4 cols en desktop -->
+                <div class="col-span-2 lg:col-span-4 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
                   <label for="hero-search-category" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Categoría
                   </label>
@@ -194,8 +198,8 @@ export async function renderHomeView() {
                   </select>
                 </div>
 
-                <!-- Opción 2: Fecha Entrega (50% en móviles/tablets, 3 cols en desktop) -->
-                <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/80 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                <!-- Fecha Entrega: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
+                <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
                   <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                     Entrega
                   </label>
@@ -208,8 +212,8 @@ export async function renderHomeView() {
                   />
                 </div>
 
-                <!-- Opción 3: Fecha Retorno (50% en móviles/tablets, 3 cols en desktop) -->
-                <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/80 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                <!-- Fecha Devolución: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
+                <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
                   <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                     Retorno
                   </label>
@@ -222,7 +226,7 @@ export async function renderHomeView() {
                   />
                 </div>
 
-                <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap -->
+                <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap para que jamás se parta -->
                 <div class="col-span-2 lg:col-span-2 flex items-center">
                   <button 
                     type="submit" 
@@ -238,7 +242,7 @@ export async function renderHomeView() {
 
             <!-- Filtros rápidos inferiores neutralizados para respetar la regla del 10% de acentos -->
             <div class="flex flex-wrap items-center gap-2 text-xs pt-0.5">
-              <span class="text-slate-500 font-medium mr-1">Filtros rápidos:</span>
+              <span class="text-slate-400 font-medium mr-1">Filtros rápidos:</span>
               <a href="#/catalog" class="px-3 py-1 rounded-lg bg-slate-100/90 text-slate-700 font-semibold hover:bg-slate-200 hover:text-slate-900 transition-colors">
                 Catálogo completo &rarr;
               </a>
