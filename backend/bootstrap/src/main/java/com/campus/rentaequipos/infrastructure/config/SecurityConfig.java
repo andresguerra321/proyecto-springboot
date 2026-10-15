@@ -25,7 +25,8 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/uploads/**"
+            "/uploads/**",
+            "/api/v1/billing/invoices/*/html"
     };
 
     private final com.campus.rentaequipos.identity.infrastructure.adapter.out.security.JwtAuthenticationFilter jwtAuthFilter;

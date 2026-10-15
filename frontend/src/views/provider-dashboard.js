@@ -759,10 +759,10 @@ export async function renderProviderDashboard() {
           invoiceNumber: req.rentalCode || 'TR-000' + (req.id?.slice(0, 4) || '4587'),
           issueDate: formatDate(req.startDate || '2026-10-13'),
           client: {
-            name: client?.fullName || 'Constructora Bolívar S.A.S.',
-            taxId: client?.documentNumber || '900.342.112-4',
-            address: client?.address || 'Calle 100 # 19-61, Of. 402, Bogotá',
-            email: client?.email || 'compras@cliente.com',
+            name: client?.fullName || 'Cliente Registrado',
+            taxId: client?.documentNumber ? `${client.documentType || 'CC'} ${client.documentNumber}` : 'Documento Registrado',
+            address: [client?.address, client?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente',
+            email: client?.email || 'cliente@toolrent.com',
             phone: client?.phone || '+57 (1) 745-8900'
           },
           provider: {

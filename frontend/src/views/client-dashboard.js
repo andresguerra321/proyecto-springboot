@@ -122,18 +122,20 @@ export async function renderClientDashboard() {
         const items = rental.items || [];
         const isPending = rental.status === 'PENDING';
 
+        const rentalCode = rental.rentalCode || `RNT-${String(rental.id).slice(0, 8).toUpperCase()}`;
+
         return `
           <div class="p-6 hover:bg-slate-50/50 transition-colors flex flex-col lg:flex-row justify-between gap-6 items-start lg:items-center">
             
             <!-- Rental Info -->
             <div class="space-y-2 flex-1">
               <div class="flex flex-wrap items-center gap-3">
-                <span class="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                  #${rental.id}
+                <span class="font-mono text-xs font-bold text-slate-800 bg-orange-50 border border-orange-200/80 px-2.5 py-0.5 rounded-md">
+                  ${rentalCode}
                 </span>
                 ${getRentalStatusBadge(rental.status)}
                 <span class="text-xs text-slate-400">
-                  Creada el ${formatDate(rental.createdAt?.split('T')[0] || '2026-10-13')}
+                  Período: ${formatDate(rental.startDate)} → ${formatDate(rental.endDate)}
                 </span>
               </div>
 
@@ -141,7 +143,7 @@ export async function renderClientDashboard() {
               <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
                 <div class="flex items-center gap-1.5">
                   ${renderIcon('Calendar', 'w-4 h-4 text-brand-600')}
-                  <span>Vigencia: <strong>${formatDate(rental.startDate)}</strong> hasta <strong>${formatDate(rental.endDate)}</strong></span>
+                  <span>Duración: <strong>${rental.totalDays || 1} día(s)</strong></span>
                 </div>
                 <div class="flex items-center gap-1.5">
                   ${renderIcon('Layers', 'w-4 h-4 text-blue-600')}
@@ -164,7 +166,7 @@ export async function renderClientDashboard() {
               <div class="text-left lg:text-right">
                 <span class="text-[10px] text-slate-400 block font-medium uppercase tracking-wider">Total Transacción</span>
                 <span class="text-lg font-bold text-slate-900 font-display">
-                  ${formatCurrency(rental.totalAmount || 255000)}
+                  ${formatCurrency(rental.totalAmount || rental.subtotal || 255000)}
                 </span>
               </div>
 
@@ -229,25 +231,47 @@ export async function renderClientDashboard() {
           try {
             const invoice = await api.get(`/billing/invoices/rental/${rentalId}`);
             const firstItem = targetRental?.items?.[0];
-            const toolName = toolMap.get(firstItem?.toolId) || 'Equipo Industrial Certificado';
+            const targetTool = tools.find(t => t.id === firstItem?.toolId);
+            const toolName = targetTool?.name || toolMap.get(firstItem?.toolId) || 'Equipo Industrial Certificado';
+
+            // Resolve real provider data dynamically
+            let providerData = {
+              name: 'Proveedor Autorizado ToolRent S.A.S.',
+              taxId: '901.458.789-1',
+              email: 'contacto@toolrent.com',
+              phone: '+57 (1) 745-8900',
+              address: 'Zona Industrial, Colombia'
+            };
+
+            if (targetTool?.providerId) {
+              try {
+                const p = await api.get(`/providers/${targetTool.providerId}`);
+                if (p) {
+                  providerData = {
+                    name: p.companyName || providerData.name,
+                    taxId: p.taxId || providerData.taxId,
+                    email: p.email || 'contacto@proveedor.com',
+                    phone: p.phone || providerData.phone,
+                    address: [p.address, p.city].filter(Boolean).join(', ') || providerData.address
+                  };
+                }
+              } catch (_) {}
+            }
+
+            const clientAddress = [user.profile?.address, user.profile?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente';
 
             openInvoiceViewer({
-              invoiceNumber: invoice.invoiceNumber || `TR-${String(rentalId).slice(-6)}`,
-              issueDate: invoice.issueDate ? formatDate(invoice.issueDate.split('T')[0]) : '14 oct 2026',
+              rawInvoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber || targetRental?.rentalCode || `TR-${String(rentalId).slice(-6)}`,
+              issueDate: invoice.issueDate ? formatDate(invoice.issueDate.split('T')[0]) : formatDate(targetRental?.startDate),
               client: {
-                name: user.profile?.fullName || user.username || 'Cliente ToolRent',
-                taxId: user.profile?.documentNumber || '1.032.456.789',
-                email: user.email || 'cliente@toolrent.com',
+                name: user.profile?.fullName || user.username || 'Cliente Registrado',
+                taxId: user.profile?.documentNumber ? `${user.profile.documentType || 'CC'} ${user.profile.documentNumber}` : '1018234567',
+                email: user.email || 'cliente@constructora.com',
                 phone: user.profile?.phone || '+57 300 123 4567',
-                address: user.profile?.address || 'Bucaramanga, Santander'
+                address: clientAddress
               },
-              provider: {
-                name: 'Construcciones del Norte S.A.S.',
-                taxId: '901.234.567-8',
-                email: 'contacto@cnorte.com',
-                phone: '+57 317 654 3210',
-                address: 'Av. 27 # 45-12, Floridablanca, Santander'
-              },
+              provider: providerData,
               items: [
                 {
                   name: toolName,
@@ -261,8 +285,8 @@ export async function renderClientDashboard() {
               total: invoice.totalBilled,
               paymentMethod: 'Tarjeta de Crédito / Pasarela Segura',
               bank: 'Bancolombia S.A.',
-              reference: invoice.invoiceNumber,
-              paymentDate: formatDate(invoice.issueDate?.split('T')[0] || '2026-10-14')
+              reference: invoice.invoiceNumber || targetRental?.rentalCode,
+              paymentDate: formatDate(invoice.issueDate?.split('T')[0] || targetRental?.startDate || '2026-10-14')
             });
           } catch (e) {
             showToast('No se encontró factura emitida para esta reserva aún.', 'error');
