@@ -13,57 +13,57 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
 
   function renderView() {
     content.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 min-h-[580px] max-h-[85vh] overflow-hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 max-h-[88vh] overflow-hidden">
         
         <!-- Left Side: Auth Form -->
-        <div class="p-6 sm:p-8 flex flex-col justify-between bg-white overflow-y-auto">
+        <div class="p-5 sm:p-7 flex flex-col justify-between bg-white overflow-y-auto max-h-[88vh]">
           <div>
-            <!-- ToolRent Brand Header -->
-            <div class="flex items-center gap-3 mb-5">
-              ${renderToolRentMark('w-9 h-9')}
+            <!-- Brand Header -->
+            <div class="flex items-center gap-2.5 mb-4 select-none">
+              ${renderToolRentMark('w-8 h-8')}
               <div>
-                <span class="text-xl font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
-                <p class="text-[10px] text-slate-500 leading-tight">Herramientas y maquinaria para construir grandes proyectos</p>
+                <span class="text-lg font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
+                <p class="text-[10px] text-slate-500 leading-tight">Plataforma de alquiler de maquinaria y herramientas</p>
               </div>
             </div>
 
-            <!-- Tab Switcher (Pill style) -->
-            <div class="flex bg-slate-100 p-1 rounded-xl mb-5 max-w-xs">
-              <button type="button" id="auth-tab-login" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                currentTab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            <!-- Tab Switcher (Corporate Segmented Pill) -->
+            <div class="flex bg-slate-100 p-1 rounded-xl mb-4 max-w-xs border border-slate-200/80">
+              <button type="button" id="auth-tab-login" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                currentTab === 'login' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
               }">
-                Login
+                Iniciar sesión
               </button>
-              <button type="button" id="auth-tab-register" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                currentTab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              <button type="button" id="auth-tab-register" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                currentTab === 'register' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
               }">
-                Registro
+                Crear cuenta
               </button>
             </div>
 
-            <!-- Header Titles -->
-            <div class="mb-4">
-              <h2 class="text-xl font-bold text-slate-900 font-display">
-                ${currentTab === 'login' ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta empresarial o personal'}
+            <!-- Header Title -->
+            <div class="mb-3.5">
+              <h2 class="text-lg font-bold text-slate-900 font-display">
+                ${currentTab === 'login' ? 'Acceso a la plataforma' : 'Registro de usuario'}
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">
                 ${currentTab === 'login'
-                  ? 'Ingresa tus credenciales para acceder a la plataforma y gestionar tus alquileres.'
-                  : 'Únete a ToolRent y comienza a alquilar o publicar equipos de construcción en todo Colombia.'}
+                  ? 'Ingresa tus credenciales corporativas para gestionar tus reservas.'
+                  : 'Ingresa los datos básicos para habilitar tu cuenta en ToolRent.'}
               </p>
             </div>
 
             <!-- Form -->
-            <form id="toolrent-auth-form" class="space-y-3" novalidate>
+            <form id="toolrent-auth-form" class="space-y-2.5" novalidate>
               ${currentTab === 'login' ? `
                 <!-- Login Fields -->
                 <div>
-                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Usuario o Correo electrónico</label>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Usuario o Correo corporativo</label>
                   <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       ${renderIcon('Mail', 'w-4 h-4')}
                     </span>
-                    <input type="text" id="login-username" required placeholder="ej. carlos_gomez o cliente@correo.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                    <input type="text" id="login-username" required autocomplete="username" placeholder="ej. carlos_gomez o cliente@empresa.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
                   </div>
                 </div>
 
@@ -73,147 +73,103 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       ${renderIcon('Lock', 'w-4 h-4')}
                     </span>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-9 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-                    <button type="button" id="btn-toggle-login-pass" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                    <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-9 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                    <button type="button" id="btn-toggle-login-pass" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
                       ${renderIcon('Eye', 'w-4 h-4')}
                     </button>
                   </div>
                 </div>
               ` : `
-                <!-- Registration Fields -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <!-- Registration: Credenciales de acceso -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nombre de usuario *</label>
-                    <div class="relative">
-                      <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                        ${renderIcon('User', 'w-3.5 h-3.5')}
-                      </span>
-                      <input type="text" id="reg-username" required maxlength="30" autocomplete="username" placeholder="ej. carlos_gomez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-                    </div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Nombre de usuario *</label>
+                    <input type="text" id="reg-username" required maxlength="30" autocomplete="username" placeholder="ej. carlos_gomez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
                   </div>
 
                   <div>
-                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Correo electrónico *</label>
-                    <div class="relative">
-                      <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                        ${renderIcon('Mail', 'w-3.5 h-3.5')}
-                      </span>
-                      <input type="email" id="reg-email" required maxlength="60" autocomplete="email" placeholder="carlos@empresa.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-                    </div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Correo electrónico *</label>
+                    <input type="email" id="reg-email" required maxlength="60" autocomplete="email" placeholder="carlos@empresa.com" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Contraseña segura *</label>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Contraseña *</label>
                   <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                      ${renderIcon('Lock', 'w-3.5 h-3.5')}
-                    </span>
-                    <input type="password" id="reg-password" required maxlength="50" autocomplete="new-password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-8 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-                    <button type="button" id="btn-toggle-reg-pass" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600">
+                    <input type="password" id="reg-password" required maxlength="50" autocomplete="new-password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+                    <button type="button" id="btn-toggle-reg-pass" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
                       ${renderIcon('Eye', 'w-3.5 h-3.5')}
                     </button>
                   </div>
                 </div>
 
-                <!-- Explicit Role Selection with Radio Labels -->
-                <div class="pt-1 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <label class="block text-[11px] font-bold text-slate-800 uppercase tracking-wider">
-                      ¿Qué tipo de cuenta deseas crear? *
-                    </label>
-                    <span id="role-active-indicator" class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      selectedRole === 'ROLE_PROVEEDOR' ? 'bg-orange-100 text-[#ea580c] border border-orange-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
-                    }">
-                      ${selectedRole === 'ROLE_PROVEEDOR' ? '🏢 Proveedor Seleccionado' : '👤 Cliente Seleccionado'}
-                    </span>
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-2.5" id="role-cards-wrapper">
+                <!-- Selector de Rol Corporativo (Minimalista, sin emojis) -->
+                <div class="pt-1 space-y-1">
+                  <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo de cuenta *</label>
+                  <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200/80 gap-1 select-none" id="role-selector-wrapper">
                     
-                    <!-- Option Cliente -->
-                    <label id="role-card-client" class="border-2 ${
-                      selectedRole === 'ROLE_CLIENTE' ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none">
-                      <div class="flex items-center justify-between mb-2">
-                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_CLIENTE' ? 'text-[#ea580c]' : 'text-slate-500'}">
-                          ${renderIcon('User', 'w-5 h-5')}
-                        </div>
-                        <input type="radio" name="accountRole" value="ROLE_CLIENTE" ${selectedRole === 'ROLE_CLIENTE' ? 'checked' : ''} class="w-4 h-4 text-[#ea580c] focus:ring-[#ea580c] cursor-pointer" />
-                      </div>
-                      <div>
-                        <div class="text-xs font-bold text-slate-900">Cliente Arrendatario</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5 leading-snug">Quiero alquilar herramientas y maquinaria para mis obras</div>
-                      </div>
-                    </label>
+                    <button 
+                      type="button" 
+                      id="role-btn-client" 
+                      class="py-1.5 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        selectedRole === 'ROLE_CLIENTE'
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }"
+                    >
+                      ${renderIcon('User', 'w-3.5 h-3.5 text-slate-400')}
+                      <span>Cliente (Alquilar)</span>
+                    </button>
 
-                    <!-- Option Proveedor -->
-                    <label id="role-card-provider" class="border-2 ${
-                      selectedRole === 'ROLE_PROVEEDOR' ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none">
-                      <div class="flex items-center justify-between mb-2">
-                        <div class="role-icon-wrapper ${selectedRole === 'ROLE_PROVEEDOR' ? 'text-[#ea580c]' : 'text-slate-500'}">
-                          ${renderIcon('Building2', 'w-5 h-5')}
-                        </div>
-                        <input type="radio" name="accountRole" value="ROLE_PROVEEDOR" ${selectedRole === 'ROLE_PROVEEDOR' ? 'checked' : ''} class="w-4 h-4 text-[#ea580c] focus:ring-[#ea580c] cursor-pointer" />
-                      </div>
-                      <div>
-                        <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <span>Proveedor Aliado</span>
-                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c]">Empresas</span>
-                        </div>
-                        <div class="text-[10px] text-slate-500 mt-0.5 leading-snug">Quiero publicar equipos y generar ingresos por alquiler</div>
-                      </div>
-                    </label>
+                    <button 
+                      type="button" 
+                      id="role-btn-provider" 
+                      class="py-1.5 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        selectedRole === 'ROLE_PROVEEDOR'
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }"
+                    >
+                      ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400')}
+                      <span>Proveedor (Publicar)</span>
+                    </button>
 
-                  </div>
-
-                  <!-- Role Description Callout -->
-                  <div id="role-info-callout" class="p-2.5 rounded-xl text-[11px] leading-relaxed transition-all ${
-                    selectedRole === 'ROLE_PROVEEDOR'
-                      ? 'bg-orange-50 text-orange-950 border border-orange-200/90'
-                      : 'bg-blue-50 text-blue-950 border border-blue-200/90'
-                  }">
-                    ${selectedRole === 'ROLE_PROVEEDOR'
-                      ? '<strong>🏢 Cuenta de Proveedor:</strong> Registrarás tu empresa con Razón Social y NIT. Tendrás acceso directo al <strong>Panel de Proveedor</strong> para publicar herramientas, fijar precios diarios y cobrar alquileres.'
-                      : '<strong>👤 Cuenta de Cliente:</strong> Registrarás tu cuenta personal para buscar equipos, reservar en línea y recibir facturas electrónicas oficiales.'
-                    }
                   </div>
                 </div>
 
-                <!-- Dynamic Profile Fields Container -->
-                <div id="dynamic-profile-fields" class="space-y-2 pt-2 border-t border-slate-100">
+                <!-- Campos de Perfil Simplificados -->
+                <div id="dynamic-profile-fields" class="space-y-2 pt-1 border-t border-slate-100">
                   ${renderProfileFieldsHTML(selectedRole)}
                 </div>
               `}
 
               <div id="auth-error-msg" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg"></div>
 
-              <button type="submit" id="auth-submit-btn" class="btn-primary w-full !py-2.5 text-xs font-semibold shadow-sm mt-3">
+              <button type="submit" id="auth-submit-btn" class="w-full py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer mt-2">
                 ${currentTab === 'login' 
                   ? 'Iniciar sesión' 
-                  : (selectedRole === 'ROLE_PROVEEDOR' ? '🏢 Registrar y Crear Cuenta de Proveedor Aliado' : '👤 Registrar y Crear Cuenta de Cliente Arrendatario')}
+                  : (selectedRole === 'ROLE_PROVEEDOR' ? 'Crear cuenta de Proveedor' : 'Crear cuenta de Cliente')}
               </button>
             </form>
           </div>
 
           <!-- Bottom Footer Link -->
-          <div class="text-center text-xs text-slate-500 pt-3 border-t border-slate-100 mt-3">
+          <div class="text-center text-xs text-slate-500 pt-3 border-t border-slate-100 mt-2">
             ${currentTab === 'login'
-              ? '¿No tienes una cuenta? <button type="button" id="btn-switch-tab" class="font-semibold text-brand-600 hover:text-brand-700">Regístrate</button>'
-              : '¿Ya tienes una cuenta? <button type="button" id="btn-switch-tab" class="font-semibold text-brand-600 hover:text-brand-700">Inicia sesión</button>'}
+              ? '¿No tienes una cuenta? <button type="button" id="btn-switch-tab" class="font-semibold text-[#ea580c] hover:underline cursor-pointer">Regístrate</button>'
+              : '¿Ya tienes una cuenta? <button type="button" id="btn-switch-tab" class="font-semibold text-[#ea580c] hover:underline cursor-pointer">Inicia sesión</button>'}
           </div>
         </div>
 
-        <!-- Right Side: Heavy Machinery Hero Showcase matching img/web/login.png -->
+        <!-- Right Side: Heavy Machinery Hero Showcase -->
         <div class="relative hidden md:block overflow-hidden bg-slate-900 select-none">
           <img src="${loginImg}" class="w-full h-full object-cover object-center" alt="ToolRent Maquinaria y Equipos" />
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent flex flex-col justify-end p-8 text-white">
-            <h2 class="text-xl lg:text-2xl font-extrabold leading-tight font-display mb-2 text-white">
-              La maquinaria que tu proyecto necesita, cuando la necesitas.
-            </h2>
-            <p class="text-xs text-slate-200 max-w-sm">
-              Alquila equipos de construcción con respaldo contractual, facturación legal y disponibilidad en tiempo real.
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent flex flex-col justify-end p-8 text-white">
+            <h3 class="text-xl font-bold leading-tight font-display mb-1.5 text-white">
+              Alquiler industrial con garantía y contrato digital
+            </h3>
+            <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
+              Disponibilidad inmediata, entrega en obra y facturación electrónica oficial en toda Colombia.
             </p>
           </div>
         </div>
@@ -221,85 +177,65 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       </div>
     `;
 
-    // Dynamic Profile Fields Generator
+    // Dynamic Profile Fields Generator (Simplificado & Corporativo)
     function renderProfileFieldsHTML(role) {
       if (role === 'ROLE_CLIENTE') {
         return `
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nombre y Apellidos completos *</label>
-            <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Carlos Gómez Pérez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-            <p class="text-[10px] text-slate-400 mt-0.5">Solo letras y espacios (máx. 60 caracteres)</p>
-          </div>
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Tipo Doc *</label>
-              <select id="reg-docType" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-brand-500">
-                <option value="CC">C.C.</option>
-                <option value="CE">C.E.</option>
-                <option value="NIT">NIT</option>
-                <option value="PASAPORTE">Pasaporte</option>
-              </select>
-            </div>
-            <div class="col-span-2">
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Número de documento *</label>
-              <input type="text" id="reg-docNumber" required maxlength="20" inputmode="numeric" placeholder="ej. 1020304050" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono móvil *</label>
-              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3001234567" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Nombre y Apellidos *</label>
+              <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Carlos Gómez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad *</label>
-              <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Bogotá" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Teléfono de contacto *</label>
+              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3001234567" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
           </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de entrega *</label>
-            <input type="text" id="reg-address" required maxlength="100" autocomplete="street-address" placeholder="ej. Cra 7 # 120-45" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Documento de identidad *</label>
+              <input type="text" id="reg-docNumber" required maxlength="20" inputmode="numeric" placeholder="C.C. o NIT (ej. 1020304050)" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Ciudad de operación *</label>
+              <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Bogotá" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            </div>
           </div>
         `;
       } else {
         return `
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Razón Social / Nombre Comercial *</label>
-            <input type="text" id="reg-companyName" required maxlength="80" autocomplete="organization" placeholder="ej. Maquinaria y Equipos del Norte S.A.S." class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-          </div>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">NIT / RUT *</label>
-              <input type="text" id="reg-taxId" required maxlength="20" inputmode="numeric" placeholder="ej. 901.234.567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Razón Social / Empresa *</label>
+              <input type="text" id="reg-companyName" required maxlength="80" autocomplete="organization" placeholder="ej. Maquinaria y Equipos S.A.S." class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono corporativo *</label>
-              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3109876543" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">NIT o RUT *</label>
+              <input type="text" id="reg-taxId" required maxlength="20" inputmode="numeric" placeholder="ej. 901234567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Contacto / Representante *</label>
-              <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Laura Sánchez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
-              <p class="text-[10px] text-slate-400 mt-0.5">Solo letras y espacios (sin números)</p>
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Contacto o Representante *</label>
+              <input type="text" id="reg-fullName" required maxlength="60" autocomplete="name" placeholder="ej. Laura Sánchez" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad de sede *</label>
-              <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Medellín" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+              <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Teléfono corporativo *</label>
+              <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3109876543" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de despacho / Bodega *</label>
-            <input type="text" id="reg-address" required maxlength="100" autocomplete="street-address" placeholder="ej. Zona Industrial Calle 15 # 40-10" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+            <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Ciudad de sede principal *</label>
+            <input type="text" id="reg-city" required maxlength="40" autocomplete="address-level2" placeholder="ej. Medellín" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
           </div>
         `;
       }
     }
 
-    // Input sanitizers & character-type filters
+    // Input sanitizers
     function bindInputFilters(root) {
       if (!root) return;
 
-      // 1. Username: no spaces, only alphanumeric, dot, underscore, dash, max 30 chars
       const userInput = root.querySelector('#reg-username');
       if (userInput && !userInput._filterBound) {
         userInput._filterBound = true;
@@ -309,7 +245,6 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         });
       }
 
-      // 2. Email: no spaces, max 60 chars
       const emailInput = root.querySelector('#reg-email');
       if (emailInput && !emailInput._filterBound) {
         emailInput._filterBound = true;
@@ -319,7 +254,6 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         });
       }
 
-      // 3. Password: max 50 chars
       const passInput = root.querySelector('#reg-password');
       if (passInput && !passInput._filterBound) {
         passInput._filterBound = true;
@@ -328,17 +262,6 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         });
       }
 
-      // 4. Phone: only digits, +, spaces, hyphens. Max 15 chars. (Rejects letters like edd and symbols like /*)
-      const phoneInput = root.querySelector('#reg-phone');
-      if (phoneInput && !phoneInput._filterBound) {
-        phoneInput._filterBound = true;
-        phoneInput.addEventListener('input', (e) => {
-          const clean = e.target.value.replace(/[^0-9+\s-]/g, '').slice(0, 15);
-          if (e.target.value !== clean) e.target.value = clean;
-        });
-      }
-
-      // 5. Contact / Full Name: only letters, accents, spaces, apostrophes. (Rejects digits like 0201321 and symbols)
       const nameInput = root.querySelector('#reg-fullName');
       if (nameInput && !nameInput._filterBound) {
         nameInput._filterBound = true;
@@ -348,17 +271,24 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         });
       }
 
-      // 6. City: only letters, accents, spaces, hyphens. (Rejects semicolons like Cale;as, digits, etc.)
-      const cityInput = root.querySelector('#reg-city');
-      if (cityInput && !cityInput._filterBound) {
-        cityInput._filterBound = true;
-        cityInput.addEventListener('input', (e) => {
-          const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s-]/g, '').slice(0, 40);
+      const phoneInput = root.querySelector('#reg-phone');
+      if (phoneInput && !phoneInput._filterBound) {
+        phoneInput._filterBound = true;
+        phoneInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^0-9+\s()-]/g, '').slice(0, 15);
           if (e.target.value !== clean) e.target.value = clean;
         });
       }
 
-      // 7. NIT / RUT: only numbers, dots, hyphens. Max 20 chars.
+      const docInput = root.querySelector('#reg-docNumber');
+      if (docInput && !docInput._filterBound) {
+        docInput._filterBound = true;
+        docInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-Z0-9.-]/g, '').slice(0, 20);
+          if (e.target.value !== clean) e.target.value = clean;
+        });
+      }
+
       const taxInput = root.querySelector('#reg-taxId');
       if (taxInput && !taxInput._filterBound) {
         taxInput._filterBound = true;
@@ -368,32 +298,11 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         });
       }
 
-      // 8. Document number: only numbers, letters, hyphens. Max 20 chars.
-      const docInput = root.querySelector('#reg-docNumber');
-      if (docInput && !docInput._filterBound) {
-        docInput._filterBound = true;
-        docInput.addEventListener('input', (e) => {
-          const clean = e.target.value.replace(/[^0-9A-Za-z-]/g, '').slice(0, 20);
-          if (e.target.value !== clean) e.target.value = clean;
-        });
-      }
-
-      // 9. Company Name: letters, numbers, spaces, dots, hyphens, commas, &, apostrophe. Max 80 chars.
-      const companyInput = root.querySelector('#reg-companyName');
-      if (companyInput && !companyInput._filterBound) {
-        companyInput._filterBound = true;
-        companyInput.addEventListener('input', (e) => {
-          const clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,&'-]/g, '').slice(0, 80);
-          if (e.target.value !== clean) e.target.value = clean;
-        });
-      }
-
-      // 10. Address: letters, numbers, spaces, #, -, ., ,, / Max 100 chars.
-      const addressInput = root.querySelector('#reg-address');
-      if (addressInput && !addressInput._filterBound) {
-        addressInput._filterBound = true;
-        addressInput.addEventListener('input', (e) => {
-          const clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s#.,\/-]/g, '').slice(0, 100);
+      const cityInput = root.querySelector('#reg-city');
+      if (cityInput && !cityInput._filterBound) {
+        cityInput._filterBound = true;
+        cityInput.addEventListener('input', (e) => {
+          const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]/g, '').slice(0, 40);
           if (e.target.value !== clean) e.target.value = clean;
         });
       }
@@ -417,90 +326,18 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       if (pass) pass.type = pass.type === 'password' ? 'text' : 'password';
     });
 
-    // Role selector in register tab
-    function updateRoleUI() {
-      const clientCard = content.querySelector('#role-card-client');
-      const providerCard = content.querySelector('#role-card-provider');
-      const indicator = content.querySelector('#role-active-indicator');
-      const callout = content.querySelector('#role-info-callout');
-      const submitBtn = content.querySelector('#auth-submit-btn');
-      if (!clientCard || !providerCard) return;
-
-      const isClient = selectedRole === 'ROLE_CLIENTE';
-
-      // Update Client Card
-      clientCard.className = `border-2 ${
-        isClient
-          ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none`;
-
-      const clientRadio = clientCard.querySelector('input[type="radio"]');
-      if (clientRadio) clientRadio.checked = isClient;
-
-      const clientIcon = clientCard.querySelector('.role-icon-wrapper');
-      if (clientIcon) clientIcon.className = `role-icon-wrapper ${isClient ? 'text-[#ea580c]' : 'text-slate-500'}`;
-
-      // Update Provider Card
-      providerCard.className = `border-2 ${
-        !isClient
-          ? 'border-[#ea580c] bg-orange-50/40 shadow-xs ring-2 ring-[#ea580c]/20'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      } rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all select-none`;
-
-      const providerRadio = providerCard.querySelector('input[type="radio"]');
-      if (providerRadio) providerRadio.checked = !isClient;
-
-      const providerIcon = providerCard.querySelector('.role-icon-wrapper');
-      if (providerIcon) providerIcon.className = `role-icon-wrapper ${!isClient ? 'text-[#ea580c]' : 'text-slate-500'}`;
-
-      // Update Indicator Badge
-      if (indicator) {
-        indicator.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${
-          !isClient ? 'bg-orange-100 text-[#ea580c] border border-orange-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
-        }`;
-        indicator.textContent = !isClient ? '🏢 Proveedor Seleccionado' : '👤 Cliente Seleccionado';
+    // Role switcher events
+    content.querySelector('#role-btn-client')?.addEventListener('click', () => {
+      if (selectedRole !== 'ROLE_CLIENTE') {
+        selectedRole = 'ROLE_CLIENTE';
+        renderView();
       }
-
-      // Update Callout
-      if (callout) {
-        callout.className = `p-2.5 rounded-xl text-[11px] leading-relaxed transition-all ${
-          !isClient ? 'bg-orange-50 text-orange-950 border border-orange-200/90' : 'bg-blue-50 text-blue-950 border border-blue-200/90'
-        }`;
-        callout.innerHTML = !isClient
-          ? '<strong>🏢 Cuenta de Proveedor:</strong> Registrarás tu empresa con Razón Social y NIT. Tendrás acceso directo al <strong>Panel de Proveedor</strong> para publicar herramientas, fijar precios diarios y cobrar alquileres.'
-          : '<strong>👤 Cuenta de Cliente:</strong> Registrarás tu cuenta personal para buscar equipos, reservar en línea y recibir facturas electrónicas oficiales.';
-      }
-
-      // Update Submit Button Label
-      if (submitBtn && currentTab === 'register') {
-        submitBtn.textContent = !isClient 
-          ? '🏢 Registrar y Crear Cuenta de Proveedor Aliado' 
-          : '👤 Registrar y Crear Cuenta de Cliente Arrendatario';
-      }
-
-      // Update dynamic fields
-      const dynContainer = content.querySelector('#dynamic-profile-fields');
-      if (dynContainer) {
-        dynContainer.innerHTML = renderProfileFieldsHTML(selectedRole);
-        bindInputFilters(content);
-      }
-    }
-
-    content.querySelectorAll('input[name="accountRole"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        selectedRole = e.target.value;
-        updateRoleUI();
-      });
     });
-
-    content.querySelector('#role-card-client')?.addEventListener('click', () => {
-      selectedRole = 'ROLE_CLIENTE';
-      updateRoleUI();
-    });
-    content.querySelector('#role-card-provider')?.addEventListener('click', () => {
-      selectedRole = 'ROLE_PROVEEDOR';
-      updateRoleUI();
+    content.querySelector('#role-btn-provider')?.addEventListener('click', () => {
+      if (selectedRole !== 'ROLE_PROVEEDOR') {
+        selectedRole = 'ROLE_PROVEEDOR';
+        renderView();
+      }
     });
 
     // Form submit
@@ -550,64 +387,46 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       }
     } else {
       // REGISTRATION VALIDATION
-      selectedRole = content.querySelector('input[name="accountRole"]:checked')?.value || selectedRole;
       const username = content.querySelector('#reg-username')?.value.trim();
       const email = content.querySelector('#reg-email')?.value.trim();
       const password = content.querySelector('#reg-password')?.value;
       const fullName = content.querySelector('#reg-fullName')?.value.trim();
       const phone = content.querySelector('#reg-phone')?.value.trim();
       const city = content.querySelector('#reg-city')?.value.trim();
-      const address = content.querySelector('#reg-address')?.value.trim();
 
-      // Client-side validations
       if (!username || username.length < 3 || username.length > 30) {
         errorBox.textContent = 'El nombre de usuario debe tener entre 3 y 30 caracteres.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-        errorBox.textContent = 'El nombre de usuario no puede contener espacios ni caracteres especiales (solo letras, números, guiones y puntos).';
+        errorBox.textContent = 'El nombre de usuario no puede contener espacios ni caracteres especiales.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 60) {
-        errorBox.textContent = 'Por favor ingresa un correo electrónico válido (máx. 60 caracteres).';
+        errorBox.textContent = 'Por favor ingresa un correo electrónico válido.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!password || password.length < 6 || password.length > 50) {
-        errorBox.textContent = 'La contraseña debe contener entre 6 y 50 caracteres.';
+        errorBox.textContent = 'La contraseña debe contener al menos 6 caracteres.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!fullName || fullName.length < 3 || fullName.length > 60) {
-        errorBox.textContent = 'El nombre o persona de contacto es obligatorio (entre 3 y 60 caracteres).';
-        errorBox.classList.remove('hidden');
-        return;
-      }
-      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/.test(fullName)) {
-        errorBox.textContent = 'El nombre o persona de contacto solo puede contener letras y espacios (no se permiten números ni caracteres especiales).';
+        errorBox.textContent = 'El nombre o persona de contacto es obligatorio (mínimo 3 caracteres).';
         errorBox.classList.remove('hidden');
         return;
       }
       const phoneDigits = phone ? phone.replace(/\D/g, '') : '';
       if (!phone || phoneDigits.length < 7 || phoneDigits.length > 15) {
-        errorBox.textContent = 'El teléfono debe contener entre 7 y 15 dígitos numéricos (ej. 3001234567 o +57 3001234567).';
+        errorBox.textContent = 'El teléfono debe contener entre 7 y 15 dígitos numéricos.';
         errorBox.classList.remove('hidden');
         return;
       }
       if (!city || city.length < 2 || city.length > 40) {
-        errorBox.textContent = 'La ciudad es obligatoria (entre 2 y 40 caracteres).';
-        errorBox.classList.remove('hidden');
-        return;
-      }
-      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s-]+$/.test(city)) {
-        errorBox.textContent = 'La ciudad solo puede contener letras (sin números ni caracteres como punto y coma).';
-        errorBox.classList.remove('hidden');
-        return;
-      }
-      if (!address || address.length < 5 || address.length > 100) {
-        errorBox.textContent = 'La dirección es obligatoria (entre 5 y 100 caracteres).';
+        errorBox.textContent = 'La ciudad es obligatoria.';
         errorBox.classList.remove('hidden');
         return;
       }
@@ -616,9 +435,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       let documentNumber = '';
       let companyName = '';
       let taxId = '';
+      const address = `${city}, Colombia`;
 
       if (selectedRole === 'ROLE_CLIENTE') {
-        documentType = content.querySelector('#reg-docType')?.value || 'CC';
         documentNumber = content.querySelector('#reg-docNumber')?.value.trim();
         if (!documentNumber || documentNumber.length < 5 || documentNumber.length > 20) {
           errorBox.textContent = 'El número de documento debe tener entre 5 y 20 caracteres.';
@@ -629,12 +448,12 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         companyName = content.querySelector('#reg-companyName')?.value.trim();
         taxId = content.querySelector('#reg-taxId')?.value.trim();
         if (!companyName || companyName.length < 3 || companyName.length > 80) {
-          errorBox.textContent = 'La razón social de la empresa debe tener entre 3 y 80 caracteres.';
+          errorBox.textContent = 'La razón social o nombre de la empresa es obligatorio.';
           errorBox.classList.remove('hidden');
           return;
         }
         if (!taxId || taxId.length < 5 || taxId.length > 20) {
-          errorBox.textContent = 'El NIT o RUT de la empresa debe tener entre 5 y 20 caracteres (ej. 901.234.567-8).';
+          errorBox.textContent = 'El NIT o RUT de la empresa es obligatorio (ej. 901234567-8).';
           errorBox.classList.remove('hidden');
           return;
         }
@@ -649,12 +468,12 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           role: selectedRole,
           fullName,
           documentType,
-          documentNumber,
+          documentNumber: documentNumber || `CLI-${Date.now().toString().slice(-6)}`,
           phone,
           address,
           city,
-          companyName,
-          taxId
+          companyName: companyName || fullName,
+          taxId: taxId || documentNumber || '900000000-1'
         });
 
         showToast(`¡Cuenta ${selectedRole === 'ROLE_PROVEEDOR' ? 'de Proveedor' : 'de Cliente'} creada exitosamente!`, 'success');
