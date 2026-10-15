@@ -9,6 +9,7 @@ import java.util.UUID;
 public interface ClientProfileRepository {
     Optional<ClientProfile> findById(UUID id);
     Optional<ClientProfile> findByUserId(UUID userId);
+    boolean existsByDocumentNumber(String documentNumber);
     List<ClientProfile> findAll();
     ClientProfile save(ClientProfile profile);
     void deleteById(UUID id);

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface SpringDataClientProfileRepository extends JpaRepository<ClientProfileJpaEntity, UUID> {
     Optional<ClientProfileJpaEntity> findByUserId(UUID userId);
+    boolean existsByDocumentNumber(String documentNumber);
 }
