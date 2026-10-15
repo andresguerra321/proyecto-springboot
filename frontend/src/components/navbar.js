@@ -110,27 +110,23 @@ export function renderNavbar(activeRoute = 'catalog') {
             ` : ''}
           </nav>
 
-          <!-- 3. Right: Search Bar, Notifications & User Session Controls -->
+          <!-- 3. Right: Search Bar (Catalog Only), Notifications & User Session Controls -->
           <div class="flex items-center gap-3 lg:gap-4 flex-shrink-0">
             
-            <!-- Live Spring Boot Engine Status Indicator -->
-            <div id="backend-health-indicator" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 select-none transition-all" title="Verificando conexión con Spring Boot en http://localhost:8085...">
-              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-              <span>Conectando...</span>
-            </div>
-
-            <!-- Rounded Pill Search Bar -->
-            <div class="hidden sm:flex items-center relative w-44 md:w-52 lg:w-60">
-              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                ${renderIcon('Search', 'w-4 h-4')}
-              </span>
-              <input 
-                type="text" 
-                id="navbar-global-search" 
-                placeholder="Buscar herramientas, equipos..." 
-                class="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-[#FF5A1F] rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-xs" 
-              />
-            </div>
+            ${activeRoute === 'catalog' ? `
+              <!-- Rounded Pill Search Bar (Exclusivo para la vista de Catálogo) -->
+              <div class="hidden sm:flex items-center relative w-44 md:w-52 lg:w-60">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  ${renderIcon('Search', 'w-4 h-4')}
+                </span>
+                <input 
+                  type="text" 
+                  id="navbar-global-search" 
+                  placeholder="Buscar herramientas, equipos..." 
+                  class="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-[#FF5A1F] rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-xs" 
+                />
+              </div>
+            ` : ''}
 
             <!-- Notifications Bell with Popover Menu -->
             <div class="relative" id="notifications-wrapper">
@@ -263,18 +259,20 @@ export function renderNavbar(activeRoute = 'catalog') {
 
       <!-- Mobile Navigation Drawer -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1 shadow-lg animate-in fade-in duration-150">
-        <!-- Mobile Search Input -->
-        <div class="relative py-1 mb-2">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            ${renderIcon('Search', 'w-4 h-4')}
-          </span>
-          <input 
-            type="text" 
-            id="mobile-global-search" 
-            placeholder="Buscar herramientas..." 
-            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#FF5A1F]" 
-          />
-        </div>
+        <!-- Mobile Search Input (Exclusivo para la vista de Catálogo) -->
+        ${activeRoute === 'catalog' ? `
+          <div class="relative py-1 mb-2">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              ${renderIcon('Search', 'w-4 h-4')}
+            </span>
+            <input 
+              type="text" 
+              id="mobile-global-search" 
+              placeholder="Buscar herramientas..." 
+              class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#FF5A1F]" 
+            />
+          </div>
+        ` : ''}
 
         <a href="#/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'home' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
           ${renderIcon('Home', 'w-4 h-4')}
@@ -473,18 +471,6 @@ export function renderNavbar(activeRoute = 'catalog') {
   handleSearchSubmit(container.querySelector('#navbar-global-search'));
   handleSearchSubmit(container.querySelector('#mobile-global-search'));
 
-  // Real-time Spring Boot Engine connection verification
-  api.checkHealth().then(isHealthy => {
-    const badge = container.querySelector('#backend-health-indicator');
-    if (!badge) return;
-    if (isHealthy) {
-      badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs select-none transition-all';
-      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Spring Boot 8085</span>`;
-      badge.title = 'Backend Spring Boot 3 + PostgreSQL en http://localhost:8085 (Conectado y Operativo)';
-    } else {
-      badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs select-none transition-all';
-      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Backend Desconectado</span>`;
-      badge.title = 'No se pudo conectar a http://localhost:8085. Inicia el backend con docker-compose up -d o ./mvnw spring-boot:run.';
-    }
-  });
+  // Silent background health verification
+  api.checkHealth().catch(() => {});
 }
