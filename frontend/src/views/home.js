@@ -150,8 +150,8 @@ export async function renderHomeView() {
             alt="Excavadora Caterpillar en obra de construcción" 
             class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
           />
-          <!-- Fusión suave y limpia: blanco sólido en textos a la izquierda, transición transparente sobre la maquinaria a la derecha -->
-          <div class="absolute inset-0 bg-gradient-to-r from-white from-28% via-white/85 via-45% to-transparent to-68% pointer-events-none"></div>
+          <!-- Fusión suave con 30% menos de opacidad y transición a partir del 52% (después de la mitad) -->
+          <div class="absolute inset-0 bg-gradient-to-r from-white/70 from-0% via-white/50 via-52% to-transparent to-72% pointer-events-none"></div>
         </div>
 
         <!-- Contenedor alineado con el resto de la web: Estructura intuitiva y clean -->
