@@ -143,15 +143,29 @@ export async function renderHomeView() {
       <!-- 1. HERO BANNER FULL-BLEED (Limpio, sin recuadros forzados, palabras clave y fondo integrado) -->
       <!-- ============================================================== -->
       <section class="relative w-full bg-white border-b border-slate-200/80 overflow-hidden min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
-        <!-- Imagen de fondo HD de extremo a extremo: Maquinaria nítida a la derecha, transición integrada a la izquierda -->
+        <!-- Imagen de fondo HD de extremo a extremo: Maquinaria nítida a la derecha, transición con neblina a la izquierda -->
         <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
           <img 
             src="${heroCatImg}" 
             alt="Excavadora Caterpillar en obra de construcción" 
             class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
           />
-          <!-- Fusión suave con 30% menos de opacidad y transición a partir del 52% (después de la mitad) -->
-          <div class="absolute inset-0 bg-gradient-to-r from-white/70 from-0% via-white/50 via-52% to-transparent to-72% pointer-events-none"></div>
+          
+          <!-- Capa 1: Desenfoque de neblina atmosférica (solo del recuadro hacia la izquierda, difuminando estructuras de fondo) -->
+          <div 
+            class="absolute inset-0 pointer-events-none hidden sm:block" 
+            style="mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);"
+          ></div>
+
+          <!-- Capa 2: Neblina blanca densa a la izquierda para optimizar el buscador interactivo, con transición suave que llega a 100% transparencia en el borde del recuadro -->
+          <div 
+            class="absolute inset-0 pointer-events-none sm:hidden" 
+            style="background: linear-gradient(to bottom, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 60%, rgba(255,255,255,0.2) 85%, transparent 100%);"
+          ></div>
+          <div 
+            class="absolute inset-0 pointer-events-none hidden sm:block" 
+            style="background: linear-gradient(to right, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 36%, rgba(255,255,255,0.55) 43%, rgba(255,255,255,0.15) 47%, transparent 50%);"
+          ></div>
         </div>
 
         <!-- Contenedor alineado con el resto de la web: Estructura intuitiva y clean -->
