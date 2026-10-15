@@ -25,39 +25,9 @@ export function renderNavbar(activeRoute = 'catalog') {
         ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">${renderIcon('Building2', 'w-3 h-3')} Proveedor Aliado</span>`
         : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">${renderIcon('CheckCircle2', 'w-3 h-3')} Cliente Verificado</span>`);
 
-  const isHome = activeRoute === 'home';
-
   container.innerHTML = `
-    <header class="sticky top-0 z-40 transition-all duration-300 relative ${
-      isHome 
-        ? 'bg-transparent border-b border-slate-200/40' 
-        : 'bg-white border-b border-slate-200/90 shadow-xs'
-    }">
-      ${isHome ? `
-        <!-- Onda de Glassmorfismo en la barra superior (blanco en extremos, transparente sobre la excavadora, reintegración gradual) -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden select-none">
-          <!-- Capa de difuminado óptico de fondo -->
-          <div class="absolute inset-0 backdrop-blur-md"></div>
-          
-          <!-- Gradiente de reintegración suave a los costados -->
-          <div class="absolute inset-0 bg-gradient-to-r from-white from-20% via-white/15 via-48% to-white to-76%"></div>
-
-          <!-- Onda orgánica SVG que esculpe la silueta de la barra blanca integrándose con el fondo -->
-          <svg class="absolute inset-0 w-full h-full opacity-90" viewBox="0 0 1440 80" fill="none" preserveAspectRatio="none">
-            <!-- Bloque izquierdo blanco (ToolRent) que ondula suavemente hacia el centro -->
-            <path d="M0,0 L320,0 C360,0 380,25 410,50 C440,75 480,80 540,80 L0,80 Z" fill="#ffffff" />
-            <path d="M320,0 C360,0 380,25 410,50 C440,75 480,80 540,80" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
-            
-            <!-- Bloque derecho blanco (Avatar y Notificaciones) que se reintegra gradualmente -->
-            <path d="M840,80 C900,80 940,75 970,50 C1000,25 1020,0 1060,0 L1440,0 L1440,80 L840,80 Z" fill="#ffffff" />
-            <path d="M840,80 C900,80 940,75 970,50 C1000,25 1020,0 1060,0" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
-          </svg>
-
-          <!-- Borde inferior sutil con degradado -->
-          <div class="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-slate-200 via-white/50 to-slate-200"></div>
-        </div>
-      ` : ''}
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20 py-3 gap-4 lg:gap-8">
           
           <!-- 1. Logo & Brand Mark -->
@@ -68,76 +38,73 @@ export function renderNavbar(activeRoute = 'catalog') {
             </span>
           </a>
 
-          <!-- 2. Dynamic, Role-Aware Navigation Links (Onda Glassmorphism en Inicio, Catálogo, Mis Alquileres) -->
-          <nav class="hidden md:flex items-center gap-1 lg:gap-2 ${
-            isHome ? 'px-3.5 py-1.5 rounded-full bg-white/30 backdrop-blur-lg border border-white/60 shadow-xs' : ''
-          }">
-            <!-- Inicio (Landing Page) -->
-            <a href="#/" class="relative px-3.5 py-2 text-sm font-semibold transition-all ${
+          <!-- 2. Floating Menu Pill (Banner pequeño con colores resaltantes y estilo clean) -->
+          <nav class="hidden md:flex items-center gap-1 p-1 bg-slate-100/90 rounded-full border border-slate-200/80 shadow-xs">
+            <!-- Inicio -->
+            <a href="#/" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
               activeRoute === 'home'
-                ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
+                ? 'bg-[#ea580c] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }">
               Inicio
             </a>
 
             <!-- Catálogo de Equipos -->
-            <a href="#/catalog" class="relative px-3.5 py-2 text-sm font-semibold transition-all ${
+            <a href="#/catalog" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
               activeRoute === 'catalog'
-                ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
+                ? 'bg-[#ea580c] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }">
               Catálogo
             </a>
 
             ${!isAuth ? `
-              <!-- Guest Partner Invitation Link -->
+              <!-- Aliados CTA -->
               <button 
                 id="btn-guest-provider-cta" 
                 type="button" 
-                class="group px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-[#FF5A1F] hover:bg-orange-50/60 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                class="group px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Publica y monetiza tus herramientas en ToolRent"
               >
-                ${renderIcon('Building2', 'w-4 h-4 text-slate-400 group-hover:text-[#FF5A1F] transition-colors')}
-                <span>¿Tienes equipos? Publica aquí</span>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-orange-100 text-[#ea580c] group-hover:bg-[#FF5A1F] group-hover:text-white transition-colors">Aliados</span>
+                ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#ea580c] transition-colors')}
+                <span>¿Tienes equipos?</span>
+                <span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Aliados</span>
               </button>
             ` : ''}
 
             ${isAuth && isClient && !isAdmin ? `
               <!-- Client Rentals Link -->
-              <a href="#/client" class="relative px-3.5 py-2 text-sm font-semibold transition-all flex items-center gap-1.5 ${
+              <a href="#/client" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeRoute === 'client'
-                  ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
+                  ? 'bg-[#ea580c] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               }">
-                ${renderIcon('ClipboardList', 'w-4 h-4 text-slate-400')}
+                ${renderIcon('ClipboardList', 'w-3.5 h-3.5')}
                 <span>Mis Alquileres</span>
               </a>
             ` : ''}
 
             ${isAuth && isProvider && !isAdmin ? `
               <!-- Provider Portal Link -->
-              <a href="#/provider" class="relative px-3.5 py-2 text-sm font-semibold transition-all flex items-center gap-1.5 ${
+              <a href="#/provider" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeRoute === 'provider'
-                  ? 'text-slate-900 font-bold after:absolute after:bottom-0 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#FF5A1F] after:rounded-full'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl'
+                  ? 'bg-[#ea580c] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               }">
-                ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
-                <span>Panel de Proveedor</span>
+                ${renderIcon('Building2', 'w-3.5 h-3.5')}
+                <span>Panel Proveedor</span>
               </a>
             ` : ''}
 
             ${isAuth && isAdmin ? `
               <!-- Protected Admin Console Link -->
-              <a href="#/admin" class="relative px-3.5 py-2 text-sm font-semibold transition-all flex items-center gap-1.5 rounded-xl ${
+              <a href="#/admin" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeRoute === 'admin'
-                  ? 'bg-amber-100/80 text-amber-900 font-bold border border-amber-300 shadow-xs'
-                  : 'text-amber-800 bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-amber-800 bg-amber-50 hover:bg-amber-100'
               }">
-                ${renderIcon('ShieldCheck', 'w-4 h-4 text-amber-600')}
-                <span>Administración</span>
-                <span class="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-amber-200/90 text-amber-900">Admin</span>
+                ${renderIcon('ShieldCheck', 'w-3.5 h-3.5')}
+                <span>Admin</span>
               </a>
             ` : ''}
           </nav>
