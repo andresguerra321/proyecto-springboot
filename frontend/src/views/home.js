@@ -257,122 +257,108 @@ export async function renderHomeView() {
         </section>
 
         <!-- ============================================================== -->
-        <!-- 2. ALQUILER ACTIVO DEL CLIENTE (Solo si existe)                -->
+        <!-- ============================================================== -->
+        <!-- 2. ALQUILER ACTIVO DEL CLIENTE (Estética Apple / Linear / Stripe) -->
         <!-- ============================================================== -->
         ${isAuth && activeRental ? `
-          <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+          <section class="group relative bg-white rounded-[24px] border border-zinc-200/80 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.08)] transition-all duration-300 p-6 sm:p-7">
             
-            <!-- Top Status Strip -->
-            <div class="px-6 sm:px-8 py-3 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex flex-wrap items-center gap-2.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Alquiler Activo en Obra
+            <!-- Barra Superior Minimalista (Sin fondo oscuro) -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-zinc-100">
+              <div class="flex items-center gap-3">
+                <!-- Estado único y sobrio -->
+                <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Activo en obra
                 </span>
-                <span class="font-mono text-xs font-bold text-orange-400 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/10">
-                  ${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}
-                </span>
-                <span class="text-xs text-slate-400 hidden sm:inline">·</span>
-                <span class="text-xs text-slate-300">
-                  ${activeRental.status === 'CONFIRMED' ? 'Confirmado para entrega' : (activeRental.status === 'ACTIVE' ? 'En uso en obra' : 'En proceso')}
-                </span>
+                <span class="text-zinc-300">|</span>
+                <span class="font-mono text-xs text-zinc-400 tracking-wide">${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}</span>
+                <span class="text-zinc-300 hidden sm:inline">·</span>
+                <span class="text-xs text-zinc-500 hidden sm:inline">Confirmado para entrega</span>
               </div>
 
-              <div class="text-xs text-slate-300 flex items-center gap-2">
-                ${renderIcon('Calendar', 'w-3.5 h-3.5 text-orange-400')}
-                <span>Período: <strong class="text-white font-semibold">${formatDate(activeRental.startDate)}</strong> → <strong class="text-white font-semibold">${formatDate(activeRental.endDate)}</strong></span>
-                <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-semibold text-slate-200">
-                  ${activeRental.totalDays || 1} días
-                </span>
+              <!-- Fechas limpias sin iconos naranjas -->
+              <div class="flex items-center gap-2 text-xs text-zinc-500">
+                <span>${formatDate(activeRental.startDate)} – ${formatDate(activeRental.endDate)}</span>
+                <span class="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-medium">${activeRental.totalDays || 1} días</span>
               </div>
             </div>
 
-            <!-- Cockpit Body -->
-            <div class="p-6 sm:p-8 space-y-6">
-              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <!-- Cuerpo Principal en 3 Columnas Equilibradas -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              
+              <!-- 1. Producto (5 columnas) -->
+              <div class="lg:col-span-5 flex items-center gap-5">
+                <div class="w-20 h-20 rounded-2xl bg-[#F5F5F7] border border-zinc-200/50 overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
+                  <img 
+                    src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
+                    alt="${activeTool?.name || 'Equipo alquilado'}" 
+                    class="w-full h-full object-cover rounded-xl select-none" 
+                  />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-1">
+                    ${activeTool?.brand || 'Bosch'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
+                  </p>
+                  <h3 class="text-lg font-semibold text-[#1D1D1F] tracking-tight truncate">
+                    ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Martillo Demoledor Hexagonal 30kg'}
+                  </h3>
+                  <p class="text-xs text-zinc-500 mt-1">
+                    Por <span class="text-zinc-700 font-medium">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- 2. Progreso Minimalista sin caja envolvente (4 columnas) -->
+              <div class="lg:col-span-4 lg:px-4">
+                <div class="flex items-center justify-between text-xs mb-2.5">
+                  <span class="font-medium text-[#1D1D1F]">En proceso de despacho</span>
+                  <span class="text-zinc-400 font-normal">Paso 2 de 4</span>
+                </div>
                 
-                <!-- Tool & Provider info (5 cols) -->
-                <div class="lg:col-span-5 flex items-start gap-4">
-                  <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-100 border border-slate-200/80 overflow-hidden flex-shrink-0 shadow-2xs">
-                    <img 
-                      src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
-                      alt="${activeTool?.name || 'Equipo alquilado'}" 
-                      class="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div class="space-y-1">
-                    <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      ${activeTool?.brand || 'Industrial'} · ${activeTool?.categoryName || 'Maquinaria'}
-                    </div>
-                    <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-snug font-display">
-                      ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Martillo Demoledor Hexagonal 30kg'}
-                    </h3>
-                    <p class="text-xs text-slate-600 flex items-center gap-1.5 pt-0.5">
-                      ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400')}
-                      <span>Proveedor: <strong class="text-slate-800">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</strong></span>
-                    </p>
-                  </div>
+                <!-- Barra ultrafina estilo Apple -->
+                <div class="w-full h-1 bg-zinc-100 rounded-full overflow-hidden mb-3">
+                  <div class="h-full bg-[#1D1D1F] rounded-full transition-all duration-500" style="width: 50%"></div>
                 </div>
 
-                <!-- Operational Stepper (4 cols) -->
-                <div class="lg:col-span-4 px-4 py-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-2.5">
-                  <div class="flex items-center justify-between text-[11px] font-bold text-slate-600">
-                    <span class="flex items-center gap-1.5">
-                      ${renderIcon('Truck', 'w-3.5 h-3.5 text-[#FF5A1F]')}
-                      Fase Operativa
-                    </span>
-                    <span class="text-emerald-700 font-extrabold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      Paso 2 de 4
-                    </span>
-                  </div>
-                  
-                  <!-- Stepper Bar -->
-                  <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
-                    <div class="w-1/2 bg-[#FF5A1F] rounded-full"></div>
-                  </div>
-
-                  <!-- 4 Milestones -->
-                  <div class="grid grid-cols-4 gap-1 text-center text-[10px] text-slate-500 pt-0.5">
-                    <div class="font-bold text-emerald-700">1. Confirmado</div>
-                    <div class="font-bold text-[#FF5A1F]">2. Despacho</div>
-                    <div class="text-slate-400">3. En Obra</div>
-                    <div class="text-slate-400">4. Retorno</div>
-                  </div>
+                <!-- Etiquetas monocromáticas con jerarquía por peso -->
+                <div class="grid grid-cols-4 text-[11px] text-zinc-400">
+                  <span class="text-zinc-500">Confirmado</span>
+                  <span class="text-[#1D1D1F] font-semibold">Despacho</span>
+                  <span class="text-center">En obra</span>
+                  <span class="text-right">Retorno</span>
                 </div>
-
-                <!-- Total & Action CTAs (3 cols) -->
-                <div class="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-3 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                  <div class="text-left lg:text-right">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Liquidado</span>
-                    <span class="text-xl sm:text-2xl font-black text-slate-900 font-display">
-                      ${formatCurrency(activeRental.totalAmount || activeRental.subtotal || 255000)}
-                    </span>
-                    <span class="text-[10px] text-slate-500 block">IVA y depósito incluidos</span>
-                  </div>
-
-                  <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                    <button 
-                      id="btn-active-rental-invoice" 
-                      type="button" 
-                      class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      ${renderIcon('FileText', 'w-4 h-4 text-[#FF5A1F]')}
-                      <span>Factura DIAN</span>
-                    </button>
-
-                    <a 
-                      href="#/client" 
-                      class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs active:scale-95 inline-flex items-center justify-center gap-1.5"
-                    >
-                      <span>Gestionar</span>
-                      <span>&rarr;</span>
-                    </a>
-                  </div>
-                </div>
-
               </div>
-            </div>
 
+              <!-- 3. Precio y Acciones (3 columnas) -->
+              <div class="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-zinc-100">
+                <div class="lg:text-right">
+                  <p class="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Total liquidado</p>
+                  <p class="text-2xl font-semibold text-[#1D1D1F] tracking-tight tabular-nums mt-0.5">
+                    ${formatCurrency(activeRental.totalAmount || activeRental.subtotal || 820000)}
+                  </p>
+                  <p class="text-[11px] text-zinc-400">IVA y depósito incluidos</p>
+                </div>
+
+                <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                  <button 
+                    id="btn-active-rental-invoice" 
+                    type="button" 
+                    class="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-medium bg-[#F5F5F7] text-[#1D1D1F] hover:bg-zinc-200/80 transition-colors cursor-pointer"
+                  >
+                    Factura
+                  </button>
+                  <a 
+                    href="#/client" 
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[#1D1D1F] text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <span>Gestionar</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </div>
+              </div>
+
+            </div>
           </section>
         ` : ''}
 
