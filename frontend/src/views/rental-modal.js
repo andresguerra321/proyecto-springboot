@@ -472,16 +472,16 @@ export async function openCheckoutModal(tool, rentalData) {
         <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Tarjeta (Simulado)</label>
-            <input type="text" maxlength="19" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="4532 •••• •••• 8892" />
+            <input type="text" maxlength="19" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="4532 •••• •••• 8892" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vencimiento</label>
-              <input type="text" maxlength="5" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="12/28" />
+              <input type="text" maxlength="5" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="12/28" />
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">CVC / CVV</label>
-              <input type="password" maxlength="4" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="892" />
+              <input type="password" maxlength="4" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="892" />
             </div>
           </div>
         </div>
@@ -512,7 +512,7 @@ export async function openCheckoutModal(tool, rentalData) {
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">Email Registrado en PSE</label>
-              <input type="email" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500" value="${auth.getUser()?.email || 'cliente@toolrent.com'}" />
+              <input type="email" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500" value="${auth.getUser()?.email || 'cliente@toolrent.com'}" />
             </div>
           </div>
         </div>
@@ -533,7 +533,7 @@ export async function openCheckoutModal(tool, rentalData) {
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Comprobante / Transacción</label>
-            <input type="text" id="transfer-ref" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="TRF-${Date.now().toString().slice(-6)}" />
+            <input type="text" id="transfer-ref" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="TRF-${Date.now().toString().slice(-6)}" />
           </div>
         </div>
       `;

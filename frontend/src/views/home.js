@@ -193,7 +193,7 @@ export async function renderHomeView() {
             </div>
 
             <!-- Buscador Unificado con Sistema Responsive Eficiente (Sin recuadros anidados) -->
-            <form id="hero-availability-form" class="bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-lg">
+            <form id="hero-availability-form" autocomplete="off" class="bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-lg">
               <div class="grid grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
                 
                 <!-- Categoría: full width en móviles/tablets (col-span-2), 4 cols en desktop -->

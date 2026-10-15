@@ -277,6 +277,11 @@ export async function renderCatalogView() {
                   <input 
                     type="text" 
                     id="search-in-results" 
+                    name="toolrent_catalog_filter"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                    spellcheck="false"
                     value="${searchQuery}" 
                     placeholder="Buscar en resultados..." 
                     class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F]/20 transition-all shadow-xs"
