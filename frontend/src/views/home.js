@@ -151,8 +151,8 @@ export async function renderHomeView() {
               alt="Excavadora Caterpillar en obra" 
               class="w-full h-full object-cover object-[center_right] md:object-right select-none"
             />
-            <!-- Gradiente enfocado exclusivamente en la zona del texto para dejar la máquina nítida y contrastada -->
-            <div class="absolute inset-0 bg-gradient-to-b md:bg-gradient-to-r from-white from-40% md:from-42% via-white/85 via-54% to-transparent to-68% pointer-events-none"></div>
+            <!-- Gradiente adaptativo: capa blanca protectora en móviles (<1024px) para 100% legibilidad, y gradiente nítido en desktop -->
+            <div class="absolute inset-0 bg-white/95 sm:bg-white/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-white lg:from-42% lg:via-white/85 lg:via-54% lg:to-transparent lg:to-68% pointer-events-none"></div>
           </div>
 
           <!-- Contenido acotado a la izquierda para no invadir las orugas ni la cabina -->
@@ -180,7 +180,7 @@ export async function renderHomeView() {
                 <div class="grid grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
                   
                   <!-- Categoría: full width en móviles/tablets (col-span-2), 4 cols en desktop -->
-                  <div class="col-span-2 lg:col-span-4 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
+                  <div class="col-span-2 lg:col-span-4 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
                     <label for="hero-search-category" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Categoría
                     </label>
@@ -196,7 +196,7 @@ export async function renderHomeView() {
                   </div>
 
                   <!-- Fecha Entrega: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                  <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                  <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
                     <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                       Entrega
                     </label>
@@ -210,7 +210,7 @@ export async function renderHomeView() {
                   </div>
 
                   <!-- Fecha Devolución: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                  <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                  <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
                     <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                       Retorno
                     </label>
@@ -261,8 +261,8 @@ export async function renderHomeView() {
         ${isAuth && activeRental ? `
           <section class="group relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.08)] transition-all duration-300 p-5 sm:p-7">
             
-            <!-- Barra Superior Minimalista (Sin letreros/pegatinas toscas) -->
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-100">
+            <!-- Barra Superior Minimalista con flex-wrap y gap-y-2 para móvil -->
+            <div class="flex flex-wrap items-center justify-between gap-y-2 gap-x-4 pb-4 mb-5 border-b border-slate-100">
               <div class="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs">
                 <!-- Estado limpio con indicador pulsante orgánico -->
                 <span class="inline-flex items-center gap-1.5 font-medium text-emerald-600">
@@ -276,7 +276,7 @@ export async function renderHomeView() {
               </div>
 
               <!-- Fechas limpias sin cajas de colores innecesarias -->
-              <div class="flex items-center gap-2 text-xs text-slate-500">
+              <div class="flex items-center gap-2 text-xs text-slate-500 flex-shrink-0">
                 <span class="font-normal text-slate-600">${formatDate(activeRental.startDate)} &ndash; ${formatDate(activeRental.endDate)}</span>
                 <span class="text-slate-300 font-light select-none">&bull;</span>
                 <span class="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">${activeRental.totalDays || 1} días</span>
@@ -308,7 +308,7 @@ export async function renderHomeView() {
                 </div>
               </div>
 
-              <!-- 2. Progreso Minimalista: Textos con justify-between matemáticamente simétricos -->
+              <!-- 2. Progreso Minimalista: Textos en text-[10px] sm:text-[11px] para celulares de 375px -->
               <div class="md:col-span-12 lg:col-span-4 lg:px-2 order-3 lg:order-2 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
                 <div class="flex items-center justify-between text-xs mb-2">
                   <span class="font-semibold text-slate-900">En proceso de despacho</span>
@@ -321,7 +321,7 @@ export async function renderHomeView() {
                 </div>
 
                 <!-- 4 Pasos simétricos de extremo a extremo con justify-between -->
-                <div class="flex items-center justify-between w-full mt-2 text-[11px] text-slate-400 select-none">
+                <div class="flex items-center justify-between w-full mt-2 text-[10px] sm:text-[11px] text-slate-400 select-none">
                   <span class="text-slate-600 font-medium">Confirmado</span>
                   <span class="text-[#ea580c] font-bold">Despacho</span>
                   <span class="text-slate-400 font-normal">En obra</span>
@@ -329,9 +329,9 @@ export async function renderHomeView() {
                 </div>
               </div>
 
-              <!-- 3. Precio y Acciones: Botón Gestionar en negro grafito (Estilo Apple / Linear) -->
-              <div class="md:col-span-5 lg:col-span-3 flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 order-2 lg:order-3">
-                <div class="md:text-right">
+              <!-- 3. Precio y Acciones: items-start sm:items-end text-left sm:text-right con touch-targets de 42px -->
+              <div class="md:col-span-5 lg:col-span-3 flex flex-col sm:flex-row md:flex-col items-start sm:items-end justify-between gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 order-2 lg:order-3">
+                <div class="text-left sm:text-right">
                   <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total liquidado</p>
                   <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums mt-0.5 font-display">
                     ${formatCurrency(activeRental.totalAmount || activeRental.subtotal || 820000)}
@@ -343,13 +343,13 @@ export async function renderHomeView() {
                   <button 
                     id="btn-active-rental-invoice" 
                     type="button" 
-                    class="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
+                    class="flex-1 sm:flex-initial min-h-[42px] px-4 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
                   >
                     Factura
                   </button>
                   <a 
                     href="#/client" 
-                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-initial min-h-[42px] inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
                   >
                     <span>Gestionar</span>
                     <span aria-hidden="true">&rarr;</span>

@@ -327,7 +327,7 @@ export async function renderAdminDashboard() {
                   <th class="py-3 px-4">Rol</th>
                   <th class="py-3 px-4">Fecha de registro</th>
                   <th class="py-3 px-4">Estado</th>
-                  <th class="py-3 px-6 text-right">Acciones</th>
+                  <th class="py-3 px-6 text-right whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-slate-700" id="users-table-body">
@@ -359,7 +359,7 @@ export async function renderAdminDashboard() {
                   <th class="py-3 px-4">Categoría</th>
                   <th class="py-3 px-4">Precio diario</th>
                   <th class="py-3 px-4">Estado</th>
-                  <th class="py-3 px-6 text-right">Acciones</th>
+                  <th class="py-3 px-6 text-right whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-slate-700">
@@ -391,7 +391,7 @@ export async function renderAdminDashboard() {
                           </span>
                         `}
                       </td>
-                      <td class="py-3 px-6 text-right">
+                      <td class="py-3 px-6 text-right whitespace-nowrap">
                         <a href="#/product/${t.id}" class="inline-flex p-1.5 text-slate-400 hover:text-brand-600 rounded-lg transition-colors mr-1" title="Ver detalle">
                           ${renderIcon('ExternalLink', 'w-4 h-4')}
                         </a>
@@ -648,7 +648,7 @@ export async function renderAdminDashboard() {
           </td>
           <td class="py-3 px-4 text-slate-500">${u.date}</td>
           <td class="py-3 px-4">${statusBadge}</td>
-          <td class="py-3 px-6 text-right">
+          <td class="py-3 px-6 text-right whitespace-nowrap">
             <button class="btn-edit-user p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors mr-1" data-id="${u.id}">
               ${renderIcon('Edit', 'w-4 h-4')}
             </button>
