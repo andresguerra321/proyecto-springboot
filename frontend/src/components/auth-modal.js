@@ -1,7 +1,8 @@
 import auth from '../auth/state.js';
 import modal from './modal.js';
 import showToast from './toast.js';
-import loginImg from '../assets/login-showcase.jpg';
+import loginShowcaseImg from '../assets/login-showcase.jpg';
+import loginAccessImg from '../assets/login-access.jpg';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
 export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE') {
@@ -225,14 +226,21 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
   }
 
   function renderView() {
+    const isLogin = currentTab === 'login';
+    const activeShowcaseImg = isLogin ? loginAccessImg : loginShowcaseImg;
+    const activeShowcaseTitle = isLogin ? 'Acceso a la plataforma' : 'Gestión y alquiler de maquinaria pesada';
+    const activeShowcaseDesc = isLogin 
+      ? 'Gestiona reservas, consulta disponibilidad y administra tus alquileres en tiempo real.'
+      : 'Equipos de construcción certificados, disponibilidad inmediata y entrega coordinada en obra.';
+
     content.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 max-h-[88vh] overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 overflow-hidden w-full">
         
-        <!-- Left Side: Auth Form -->
-        <div class="p-5 sm:p-7 flex flex-col justify-between bg-white overflow-y-auto max-h-[88vh]">
+        <!-- Left Side: Auth Form (7 cols on desktop, full width on mobile/tablet) -->
+        <div class="lg:col-span-7 p-6 sm:p-7 flex flex-col justify-center bg-white ${!isLogin ? 'max-h-[85vh] overflow-y-auto' : ''}">
           <div>
             <!-- Brand Header -->
-            <div class="flex items-center gap-2.5 mb-4 select-none">
+            <div class="flex items-center gap-2.5 mb-3.5 select-none">
               ${renderToolRentMark('w-8 h-8')}
               <div>
                 <span class="text-lg font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
@@ -241,7 +249,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
             </div>
 
             <!-- Tab Switcher (Corporate Segmented Pill) -->
-            <div class="flex bg-slate-100 p-1 rounded-xl mb-4 max-w-xs border border-slate-200/80">
+            <div class="flex bg-slate-100 p-1 rounded-xl mb-3.5 max-w-xs border border-slate-200/80">
               <button type="button" id="auth-tab-login" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 currentTab === 'login' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
               }">
@@ -255,7 +263,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
             </div>
 
             <!-- Header Title -->
-            <div class="mb-3.5">
+            <div class="mb-3">
               <h2 class="text-lg font-bold text-slate-900 font-display">
                 ${currentTab === 'login' ? 'Acceso a la plataforma' : 'Registro de usuario'}
               </h2>
@@ -376,15 +384,15 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           </div>
         </div>
 
-        <!-- Right Side: Heavy Machinery Hero Showcase -->
-        <div class="relative hidden md:block overflow-hidden bg-slate-900 select-none">
-          <img src="${loginImg}" class="w-full h-full object-cover object-center" alt="ToolRent Maquinaria y Equipos" />
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-8 text-white">
-            <h3 class="text-xl font-bold leading-tight font-display mb-1.5 text-white">
-              Gestión y alquiler de maquinaria pesada
+        <!-- Right Side: Dedicated Showcase (5 cols on desktop, hidden on mobile/tablet to avoid overflow) -->
+        <div class="lg:col-span-5 relative hidden lg:block overflow-hidden bg-slate-900 select-none min-h-[460px]">
+          <img src="${activeShowcaseImg}" class="w-full h-full object-cover object-center transition-all duration-300" alt="ToolRent Maquinaria y Equipos" />
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-7 text-white">
+            <h3 class="text-lg font-bold leading-tight font-display mb-1.5 text-white">
+              ${activeShowcaseTitle}
             </h3>
             <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
-              Equipos de construcción certificados, disponibilidad inmediata y entrega coordinada en obra.
+              ${activeShowcaseDesc}
             </p>
           </div>
         </div>
@@ -769,7 +777,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
   modal.open({
     title: '',
     content,
-    maxWidth: 'max-w-4xl',
+    maxWidth: 'max-w-md sm:max-w-xl lg:max-w-4xl',
     hideHeader: true
   });
 }
