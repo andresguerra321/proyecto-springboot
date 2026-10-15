@@ -5,7 +5,7 @@ import { renderIcon } from '../utils/icons.js';
 import { openRentalModal, openRentalInvoiceModal } from './rental-modal.js';
 
 // Assets
-import heroCatImg from '../assets/index-hero-cat.png';
+import heroCatImg from '../assets/hero-excavator-hd.jpg';
 import catCleanMovimiento from '../assets/cat-clean-movimiento.jpg';
 import catCleanHerramientas from '../assets/cat-clean-herramientas.jpg';
 import catCleanConstruccion from '../assets/cat-clean-construccion.jpg';
@@ -138,122 +138,126 @@ export async function renderHomeView() {
 
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-16">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-12 sm:space-y-14">
-        
-        <!-- ============================================================== -->
-        <!-- 1. HERO CON BÚSQUEDA POR FECHAS (Sistema Responsive Proporcional) -->
-        <!-- ============================================================== -->
-        <section class="relative bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden min-h-[420px] sm:min-h-[460px] lg:min-h-[500px] flex items-center">
-          <!-- Imagen de fondo de extremo a extremo sin neblina sobre la máquina -->
-          <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
-            <img 
-              src="${heroCatImg}" 
-              alt="Excavadora Caterpillar en obra" 
-              class="w-full h-full object-cover object-[center_right] md:object-right select-none"
-            />
-            <!-- Gradiente adaptativo: capa blanca protectora en móviles (<1024px) para 100% legibilidad, y gradiente nítido en desktop -->
-            <div class="absolute inset-0 bg-white/95 sm:bg-white/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-white lg:from-42% lg:via-white/85 lg:via-54% lg:to-transparent lg:to-68% pointer-events-none"></div>
-          </div>
+      
+      <!-- ============================================================== -->
+      <!-- 1. HERO BANNER FULL-BLEED (Recubre toda la pantalla de extremo a extremo) -->
+      <!-- ============================================================== -->
+      <section class="relative w-full bg-white border-b border-slate-200/80 overflow-hidden min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
+        <!-- Imagen de fondo HD de extremo a extremo sin desenfoque ni recortes forzados -->
+        <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
+          <img 
+            src="${heroCatImg}" 
+            alt="Excavadora Caterpillar en obra de construcción" 
+            class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
+          />
+          <!-- Gradiente adaptativo: capa protectora en móvil y fusión suave en desktop hacia la derecha -->
+          <div class="absolute inset-0 bg-white/95 sm:bg-white/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-white lg:from-38% lg:via-white/85 lg:via-52% lg:to-transparent lg:to-68% pointer-events-none"></div>
+        </div>
 
-          <!-- Contenido acotado a la izquierda para no invadir las orugas ni la cabina -->
-          <div class="relative z-10 w-full p-5 sm:p-8 lg:p-12">
-            <div class="max-w-xl lg:max-w-[560px] space-y-5 sm:space-y-6">
-              
-              <!-- Kicker sobrio & minimalista con micro-indicador ToolRent -->
-              <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase select-none">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]"></span>
-                <span>Renta Industrial en Colombia</span>
-              </div>
-
-              <!-- Titular Editorial con escala fluida -->
-              <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.12] text-slate-900 font-display">
-                El equipo que necesitas,<br />
-                <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
-              </h1>
-
-              <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal max-w-lg">
-                Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
-              </p>
-
-              <!-- Buscador Unificado con Sistema Responsive Eficiente -->
-              <form id="hero-availability-form" class="bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-lg">
-                <div class="grid grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
-                  
-                  <!-- Categoría: full width en móviles/tablets (col-span-2), 4 cols en desktop -->
-                  <div class="col-span-2 lg:col-span-4 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
-                    <label for="hero-search-category" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Categoría
-                    </label>
-                    <select id="hero-search-category" class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer truncate">
-                      <option value="">Todas las categorías</option>
-                      <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
-                      <option value="demolición">Demolición y Perforación (Martillos)</option>
-                      <option value="concreto">Hormigón y Concreto (Mezcladoras)</option>
-                      <option value="elevación">Elevación y Andamiaje</option>
-                      <option value="generador">Generación de Energía</option>
-                      <option value="compactadora">Compactación de Suelos</option>
-                    </select>
-                  </div>
-
-                  <!-- Fecha Entrega: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                  <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
-                    <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
-                      Entrega
-                    </label>
-                    <input 
-                      type="date" 
-                      id="hero-search-start" 
-                      value="${startFormatted}" 
-                      min="${today.toISOString().split('T')[0]}" 
-                      class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
-                    />
-                  </div>
-
-                  <!-- Fecha Devolución: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                  <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
-                    <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
-                      Retorno
-                    </label>
-                    <input 
-                      type="date" 
-                      id="hero-search-end" 
-                      value="${endFormatted}" 
-                      min="${startFormatted}" 
-                      class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
-                    />
-                  </div>
-
-                  <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap para que jamás se parta -->
-                  <div class="col-span-2 lg:col-span-2 flex items-center">
-                    <button 
-                      type="submit" 
-                      class="w-full h-full min-h-[46px] sm:min-h-[50px] px-5 sm:px-6 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-semibold whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors shadow-sm active:scale-98 cursor-pointer"
-                    >
-                      <span>Buscar</span>
-                      <span aria-hidden="true">&rarr;</span>
-                    </button>
-                  </div>
-
-                </div>
-              </form>
-
-              <!-- Filtros rápidos inferiores neutralizados para respetar la regla del 10% de acentos -->
-              <div class="flex flex-wrap items-center gap-2 text-xs pt-0.5">
-                <span class="text-slate-400 font-medium mr-1">Filtros rápidos:</span>
-                <a href="#/catalog" class="px-3 py-1 rounded-lg bg-slate-100/90 text-slate-700 font-semibold hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                  Catálogo completo &rarr;
-                </a>
-                <a href="#/catalog?q=excavadora" class="px-3 py-1 rounded-lg bg-slate-100/80 text-slate-600 font-medium hover:bg-slate-200/80 hover:text-slate-900 transition-colors">
-                  Maquinaria pesada
-                </a>
-                <a href="#/catalog?q=concreto" class="px-3 py-1 rounded-lg bg-slate-100/80 text-slate-600 font-medium hover:bg-slate-200/80 hover:text-slate-900 transition-colors">
-                  Equipos para hormigón
-                </a>
-              </div>
-
+        <!-- Contenedor alineado con el resto de la web -->
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+          <div class="max-w-xl lg:max-w-[560px] space-y-5 sm:space-y-6">
+            
+            <!-- Kicker sobrio & minimalista con micro-indicador ToolRent -->
+            <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase select-none">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]"></span>
+              <span>Renta Industrial en Colombia</span>
             </div>
+
+            <!-- Titular Editorial con escala fluida -->
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.12] text-slate-900 font-display">
+              El equipo que necesitas,<br />
+              <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
+            </h1>
+
+            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal max-w-lg">
+              Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
+            </p>
+
+            <!-- Buscador Unificado con Sistema Responsive Eficiente -->
+            <form id="hero-availability-form" class="bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-lg">
+              <div class="grid grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
+                
+                <!-- Categoría: full width en móviles/tablets (col-span-2), 4 cols en desktop -->
+                <div class="col-span-2 lg:col-span-4 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3 sm:px-3.5 py-2 border border-slate-200/80 transition-colors flex flex-col justify-center">
+                  <label for="hero-search-category" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Categoría
+                  </label>
+                  <select id="hero-search-category" class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer truncate">
+                    <option value="">Todas las categorías</option>
+                    <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
+                    <option value="demolición">Demolición y Perforación (Martillos)</option>
+                    <option value="concreto">Hormigón y Concreto (Mezcladoras)</option>
+                    <option value="elevación">Elevación y Andamiaje</option>
+                    <option value="generador">Generación de Energía</option>
+                    <option value="compactadora">Compactación de Suelos</option>
+                  </select>
+                </div>
+
+                <!-- Fecha Entrega: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
+                <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                  <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
+                    Entrega
+                  </label>
+                  <input 
+                    type="date" 
+                    id="hero-search-start" 
+                    value="${startFormatted}" 
+                    min="${today.toISOString().split('T')[0]}" 
+                    class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
+                  />
+                </div>
+
+                <!-- Fecha Devolución: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
+                <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                  <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
+                    Retorno
+                  </label>
+                  <input 
+                    type="date" 
+                    id="hero-search-end" 
+                    value="${endFormatted}" 
+                    min="${startFormatted}" 
+                    class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
+                  />
+                </div>
+
+                <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap para que jamás se parta -->
+                <div class="col-span-2 lg:col-span-2 flex items-center">
+                  <button 
+                    type="submit" 
+                    class="w-full h-full min-h-[46px] sm:min-h-[50px] px-5 sm:px-6 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-semibold whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                  >
+                    <span>Buscar</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </button>
+                </div>
+
+              </div>
+            </form>
+
+            <!-- Filtros rápidos inferiores neutralizados para respetar la regla del 10% de acentos -->
+            <div class="flex flex-wrap items-center gap-2 text-xs pt-0.5">
+              <span class="text-slate-400 font-medium mr-1">Filtros rápidos:</span>
+              <a href="#/catalog" class="px-3 py-1 rounded-lg bg-slate-100/90 text-slate-700 font-semibold hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                Catálogo completo &rarr;
+              </a>
+              <a href="#/catalog?q=excavadora" class="px-3 py-1 rounded-lg bg-slate-100/80 text-slate-600 font-medium hover:bg-slate-200/80 hover:text-slate-900 transition-colors">
+                Maquinaria pesada
+              </a>
+              <a href="#/catalog?q=concreto" class="px-3 py-1 rounded-lg bg-slate-100/80 text-slate-600 font-medium hover:bg-slate-200/80 hover:text-slate-900 transition-colors">
+                Equipos para hormigón
+              </a>
+            </div>
+
           </div>
-        </section>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- SECCIONES PRINCIPALES DENTRO DEL CONTENEDOR CENTRADO           -->
+      <!-- ============================================================== -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 space-y-12 sm:space-y-14">
 
         <!-- ============================================================== -->
         <!-- 2. ALQUILER ACTIVO DEL CLIENTE (Estética Minimalista Ejecutiva) -->
