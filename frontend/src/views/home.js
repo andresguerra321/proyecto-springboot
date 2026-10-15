@@ -143,114 +143,107 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 1. HERO CON BÚSQUEDA POR FECHAS (Matching img/INDEX.png)        -->
         <!-- ============================================================== -->
-        <section class="relative rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-12 items-center">
+        <section class="relative bg-white rounded-[28px] border border-zinc-200/80 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] p-4 sm:p-6 lg:p-8 overflow-hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             
-            <!-- Left Column: Copy & Availability Tool -->
-            <div class="lg:col-span-7 p-6 sm:p-10 lg:p-12 space-y-6 z-10">
+            <!-- Columna Izquierda: Copy Editorial + Buscador Unificado (7 columnas) -->
+            <div class="lg:col-span-7 py-2 sm:px-2">
               
-              <div class="space-y-3">
-                <h1 class="text-3xl sm:text-4xl lg:text-[44px] font-black text-slate-900 font-display tracking-tight leading-[1.12]">
-                  El equipo que necesitas, cuando lo necesitas.
-                </h1>
-                
-                <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-xl">
-                  Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en tu obra y contrato 100% digital.
-                </p>
+              <!-- Kicker minimalista superior -->
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] mb-6">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#1D1D1F]"></span>
+                <span class="text-[11px] font-medium tracking-wide text-zinc-600 uppercase">
+                  Renta Industrial en Colombia
+                </span>
               </div>
 
-              <!-- Console: Disponibilidad Inmediata -->
-              <div class="bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3.5">
-                <div class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  ${renderIcon('Calendar', 'w-4 h-4 text-[#FF5A1F]')}
-                  <span>Consultar disponibilidad inmediata en obra</span>
+              <!-- Titular con contraste tipográfico estilo Apple -->
+              <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-0.03em] leading-[1.08] text-[#1D1D1F]">
+                El equipo que necesitas,<br />
+                <span class="text-[#86868B]">cuando lo necesitas.</span>
+              </h1>
+
+              <p class="mt-4 text-base sm:text-[17px] text-zinc-500 leading-relaxed max-w-xl font-normal">
+                Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
+              </p>
+
+              <!-- Buscador Unificado en una sola barra limpia (Sin cajas anidadas) -->
+              <form id="hero-availability-form" class="mt-8 bg-[#F5F5F7] p-2 rounded-2xl border border-zinc-200/60">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  
+                  <!-- Categoría (5 cols) -->
+                  <div class="sm:col-span-5 bg-white rounded-xl px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                    <label for="hero-search-category" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                      Categoría
+                    </label>
+                    <select id="hero-search-category" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none cursor-pointer truncate">
+                      <option value="">Todas las categorías</option>
+                      <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
+                      <option value="demolición">Demolición y Perforación (Martillos)</option>
+                      <option value="concreto">Hormigón y Concreto (Mezcladoras)</option>
+                      <option value="elevación">Elevación y Andamiaje</option>
+                      <option value="generador">Generación de Energía</option>
+                      <option value="compactadora">Compactación de Suelos</option>
+                    </select>
+                  </div>
+
+                  <!-- Fecha Entrega (2.5 cols) -->
+                  <div class="sm:col-span-2 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                    <label for="hero-search-start" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                      Entrega
+                    </label>
+                    <input type="date" id="hero-search-start" value="${startFormatted}" min="${today.toISOString().split('T')[0]}" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none tabular-nums cursor-pointer" />
+                  </div>
+
+                  <!-- Fecha Devolución (2.5 cols) -->
+                  <div class="sm:col-span-2 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                    <label for="hero-search-end" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                      Retorno
+                    </label>
+                    <input type="date" id="hero-search-end" value="${endFormatted}" min="${startFormatted}" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none tabular-nums cursor-pointer" />
+                  </div>
+
+                  <!-- Botón Acción (3 cols) -->
+                  <div class="sm:col-span-3 h-full">
+                    <button type="submit" class="w-full h-full min-h-[52px] rounded-xl bg-[#1D1D1F] hover:bg-zinc-800 text-white text-xs font-medium transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer">
+                      <span>Buscar</span>
+                      <span aria-hidden="true">&rarr;</span>
+                    </button>
+                  </div>
+
                 </div>
+              </form>
 
-                <form id="hero-availability-form" class="space-y-3">
-                  <!-- Row 1: Tipo de equipo -->
-                  <div class="space-y-1">
-                    <label for="hero-search-category" class="block text-xs font-semibold text-slate-600">Tipo de maquinaria o herramienta</label>
-                    <div class="relative">
-                      <select 
-                        id="hero-search-category" 
-                        class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all appearance-none cursor-pointer shadow-2xs pr-10"
-                      >
-                        <option value="">Todas las categorías de maquinaria</option>
-                        <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
-                        <option value="demolición">Demolición y Perforación (Martillos)</option>
-                        <option value="concreto">Hormigón y Concreto (Mezcladoras, Allanadoras)</option>
-                        <option value="elevación">Elevación y Andamiaje (Plataformas, Torres)</option>
-                        <option value="generador">Generación de Energía (Plantas diésel)</option>
-                        <option value="compactadora">Compactación de Suelos (Ranas, Placas)</option>
-                      </select>
-                      <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                        ${renderIcon('ChevronDown', 'w-3.5 h-3.5')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Row 2: Fechas y Botón CTA -->
-                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                    <div class="space-y-1">
-                      <label for="hero-search-start" class="block text-xs font-semibold text-slate-600">Fecha de entrega</label>
-                      <input 
-                        type="date" 
-                        id="hero-search-start" 
-                        value="${startFormatted}" 
-                        min="${today.toISOString().split('T')[0]}"
-                        class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
-                      />
-                    </div>
-
-                    <div class="space-y-1">
-                      <label for="hero-search-end" class="block text-xs font-semibold text-slate-600">Devolución</label>
-                      <input 
-                        type="date" 
-                        id="hero-search-end" 
-                        value="${endFormatted}" 
-                        min="${startFormatted}"
-                        class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-2xs cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <button 
-                        type="submit" 
-                        class="btn-primary w-full !py-2.5 !px-4 text-xs font-bold whitespace-nowrap shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                      >
-                        <span>Ver disponibles</span>
-                        <span>&rarr;</span>
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              <!-- Quick action links -->
-              <div class="flex flex-wrap items-center gap-4 text-xs font-semibold">
-                <a href="#/catalog" class="text-[#FF5A1F] hover:text-[#e04e18] flex items-center gap-1.5 transition-colors">
-                  <span>Explorar catálogo completo</span>
-                  <span>&rarr;</span>
+              <!-- Accesos rápidos inferiores como píldoras minimalistas -->
+              <div class="mt-5 flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-zinc-400 mr-1">Acceso rápido:</span>
+                <a href="#/catalog" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-[#1D1D1F] font-medium hover:bg-zinc-200/70 transition-colors">
+                  Catálogo completo &rarr;
                 </a>
-                <span class="text-slate-300">·</span>
-                <a href="#/catalog?q=excavadora" class="text-slate-500 hover:text-slate-800 transition-colors">
+                <a href="#/catalog?q=excavadora" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-200/70 transition-colors">
                   Maquinaria pesada
                 </a>
-                <span class="text-slate-300">·</span>
-                <a href="#/catalog?q=concreto" class="text-slate-500 hover:text-slate-800 transition-colors">
+                <a href="#/catalog?q=concreto" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-200/70 transition-colors">
                   Equipos para hormigón
                 </a>
               </div>
+
             </div>
 
-            <!-- Right Column: Hero Excavator Imagery with Gradient Blend -->
-            <div class="lg:col-span-5 relative h-64 sm:h-80 lg:h-[500px] flex items-center justify-end overflow-hidden">
-              <img 
-                src="${heroCatImg}" 
-                alt="Excavadoras CAT en ToolRent" 
-                class="w-full h-full object-cover object-center lg:object-right select-none pointer-events-none" 
-              />
-              <div class="hidden lg:block absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none"></div>
+            <!-- Columna Derecha: Fotografía Enmarcada Nítida (Sin neblina blanca) (5 columnas) -->
+            <div class="lg:col-span-5 h-full">
+              <div class="relative h-[320px] sm:h-[380px] lg:h-[420px] w-full rounded-[20px] overflow-hidden bg-zinc-100">
+                <img 
+                  src="${heroCatImg}" 
+                  alt="Excavadora Caterpillar en obra" 
+                  class="w-full h-full object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 select-none"
+                />
+                <!-- Sutil viñeta inferior de cristal líquido -->
+                <div class="absolute bottom-3 left-3 right-3 px-4 py-2.5 rounded-xl bg-black/45 backdrop-blur-md border border-white/15 flex items-center justify-between text-white text-xs">
+                  <span class="font-medium">Flota pesada certificada</span>
+                  <span class="text-white/80 font-mono">Disponibilidad 24/7</span>
+                </div>
+              </div>
             </div>
 
           </div>
