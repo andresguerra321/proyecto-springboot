@@ -779,6 +779,87 @@ function showSuccessModal(rental, payment, tool, rentalData) {
 }
 
 /**
+ * Helper to fetch invoice + provider data and display official invoice
+ */
+export async function openRentalInvoiceModal(rentalId, targetRental = null, selectedTool = null) {
+  try {
+    const user = auth.getUser();
+    const invoice = await api.get(`/billing/invoices/rental/${rentalId}`);
+    
+    let toolName = selectedTool?.name || 'Equipo Industrial Certificado';
+    let dailyPrice = selectedTool?.dailyPrice || invoice.subtotal;
+    let providerId = selectedTool?.providerId;
+
+    if (!selectedTool && targetRental?.items?.[0]?.toolId) {
+      try {
+        const t = await api.get(`/tools/${targetRental.items[0].toolId}`);
+        if (t) {
+          toolName = t.name;
+          dailyPrice = t.dailyPrice;
+          providerId = t.providerId;
+        }
+      } catch (_) {}
+    }
+
+    let providerData = {
+      name: 'Proveedor Autorizado ToolRent S.A.S.',
+      taxId: '901.458.789-1',
+      email: 'contacto@toolrent.com',
+      phone: '+57 (1) 745-8900',
+      address: 'Zona Industrial, Colombia'
+    };
+
+    if (providerId) {
+      try {
+        const p = await api.get(`/providers/${providerId}`);
+        if (p) {
+          providerData = {
+            name: p.companyName || providerData.name,
+            taxId: p.taxId || providerData.taxId,
+            email: p.email || 'contacto@proveedor.com',
+            phone: p.phone || providerData.phone,
+            address: [p.address, p.city].filter(Boolean).join(', ') || providerData.address
+          };
+        }
+      } catch (_) {}
+    }
+
+    const clientAddress = [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente';
+
+    openInvoiceViewer({
+      rawInvoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber || targetRental?.rentalCode || `TR-${String(rentalId).slice(-6)}`,
+      issueDate: invoice.issueDate ? formatDate(invoice.issueDate.split('T')[0]) : formatDate(targetRental?.startDate),
+      client: {
+        name: user?.profile?.fullName || user?.username || 'Cliente Registrado',
+        taxId: user?.profile?.documentNumber ? `${user.profile.documentType || 'CC'} ${user.profile.documentNumber}` : '1018234567',
+        email: user?.email || 'cliente@constructora.com',
+        phone: user?.profile?.phone || '+57 300 123 4567',
+        address: clientAddress
+      },
+      provider: providerData,
+      items: [
+        {
+          name: toolName,
+          days: targetRental?.totalDays || 1,
+          dailyPrice: dailyPrice,
+          subtotal: invoice.subtotal
+        }
+      ],
+      subtotal: invoice.subtotal,
+      tax: invoice.taxAmount,
+      total: invoice.totalBilled,
+      paymentMethod: 'Tarjeta de Crédito / Pasarela Segura',
+      bank: 'Bancolombia S.A.',
+      reference: invoice.invoiceNumber || targetRental?.rentalCode,
+      paymentDate: formatDate(invoice.issueDate?.split('T')[0] || targetRental?.startDate || '2026-10-14')
+    });
+  } catch (err) {
+    showToast('No se encontró factura emitida para esta reserva aún.', 'error');
+  }
+}
+
+/**
  * Step 4: Clean Official Invoice Viewer matching `img/Minimal ToolRent Rental Invoice Viewer.png`
  */
 export function openInvoiceViewer(invoice) {

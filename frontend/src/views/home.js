@@ -2,8 +2,10 @@ import api from '../api/client.js';
 import auth from '../auth/state.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
-import { openRentalModal, openInvoiceViewer } from './rental-modal.js';
+import { openRentalModal, openInvoiceViewer, openRentalInvoiceModal } from './rental-modal.js';
 import { openAuthModal } from '../components/auth-modal.js';
+import modal from '../components/modal.js';
+import showToast from '../components/toast.js';
 
 // Assets
 import heroCatImg from '../assets/index-hero-cat.png';
@@ -85,6 +87,7 @@ export async function renderHomeView() {
   let allTools = [];
   let activeRental = null;
   let activeTool = null;
+  let activeProvider = null;
   const isAuth = auth.isAuthenticated();
   const user = auth.getUser();
 
@@ -108,6 +111,11 @@ export async function renderHomeView() {
       if (activeRental && activeRental.items?.[0]) {
         const itemToolId = activeRental.items[0].toolId;
         activeTool = allTools.find(t => String(t.id) === String(itemToolId)) || null;
+        if (activeTool?.providerId) {
+          try {
+            activeProvider = await api.get(`/providers/${activeTool.providerId}`);
+          } catch (_) {}
+        }
       }
     }
   } catch (err) {
@@ -305,75 +313,124 @@ export async function renderHomeView() {
         </section>
 
         <!-- ============================================================== -->
-        <!-- 03. MI ALQUILER ACTIVO (Personalizado según sesión)             -->
+        <!-- 03. MI ALQUILER ACTIVO (Rediseño Práctico de Producto Digital)  -->
         <!-- ============================================================== -->
         ${isAuth && activeRental ? `
-          <section class="bg-white rounded-2xl border-2 border-emerald-500/30 p-6 sm:p-7 shadow-sm space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2.5">
-                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">
-                  Mi Alquiler en Curso
+          <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+            
+            <!-- Top Status Bar -->
+            <div class="px-6 sm:px-8 py-3.5 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-2.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Alquiler Activo en Obra
                 </span>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  Reserva #${activeRental.id} · ${activeRental.status === 'CONFIRMED' ? 'Confirmado' : (activeRental.status === 'ACTIVE' ? 'En Obra' : 'Procesando')}
+                <span class="font-mono text-xs font-bold text-orange-400 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/10">
+                  ${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}
+                </span>
+                <span class="text-xs text-slate-400 hidden md:inline">·</span>
+                <span class="text-xs text-slate-300">
+                  ${activeRental.status === 'CONFIRMED' ? 'Confirmado para entrega' : (activeRental.status === 'ACTIVE' ? 'En uso en terreno' : 'Procesando')}
                 </span>
               </div>
-              <div class="text-xs text-slate-500">
-                Entrega: <strong class="text-slate-800 font-bold">${formatDate(activeRental.startDate)}</strong> | Devolución: <strong class="text-slate-800 font-bold">${formatDate(activeRental.endDate)}</strong>
+
+              <div class="text-xs text-slate-300 flex items-center gap-2">
+                ${renderIcon('Calendar', 'w-3.5 h-3.5 text-orange-400')}
+                <span>Período: <strong class="text-white font-semibold">${formatDate(activeRental.startDate)}</strong> → <strong class="text-white font-semibold">${formatDate(activeRental.endDate)}</strong></span>
+                <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-semibold text-slate-200">
+                  ${activeRental.totalDays || 1} días
+                </span>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              <!-- Left Machine Info -->
-              <div class="md:col-span-7 flex items-center gap-4">
-                <div class="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 shadow-2xs">
-                  <img 
-                    src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
-                    alt="${activeTool?.name || 'Equipo alquilado'}" 
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div class="space-y-1">
-                  <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    ${activeTool?.brand || 'Certificado'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
+            <!-- Main Content Area -->
+            <div class="p-6 sm:p-8 space-y-6">
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                
+                <!-- Left: Tool & Provider Info (5 cols) -->
+                <div class="lg:col-span-5 flex items-start gap-4">
+                  <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-100 border border-slate-200/80 overflow-hidden flex-shrink-0 shadow-2xs">
+                    <img 
+                      src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
+                      alt="${activeTool?.name || 'Equipo alquilado'}" 
+                      class="w-full h-full object-cover"
+                    />
                   </div>
-                  <h3 class="text-lg font-bold text-slate-900 leading-snug">
-                    ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Allanadora de Concreto 36" (Helicóptero)'}
-                  </h3>
-                  <p class="text-xs text-slate-600">
-                    Proveedor asignado: <strong class="text-slate-800">${activeTool?.providerName || 'Equipos y Maquinaria de Colombia'}</strong>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Right Actions & Total -->
-              <div class="md:col-span-5 flex flex-wrap items-center justify-start md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                <div class="text-left md:text-right mr-3">
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Liquidado</div>
-                  <div class="text-base font-black text-slate-900 font-mono">
-                    ${formatCurrency(activeRental.totalAmount || activeRental.totalPrice || 450000)}
+                  <div class="space-y-1">
+                    <div class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span>${activeTool?.brand || 'Industrial'}</span>
+                      <span>·</span>
+                      <span>${activeTool?.categoryName || 'Maquinaria Pesada'}</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-snug font-display">
+                      ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Martillo Demoledor Hexagonal 30kg'}
+                    </h3>
+                    <p class="text-xs text-slate-600 flex items-center gap-1.5 pt-0.5">
+                      ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400')}
+                      <span>Proveedor: <strong class="text-slate-800">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</strong></span>
+                    </p>
                   </div>
                 </div>
 
-                <button 
-                  id="btn-active-rental-detail" 
-                  type="button" 
-                  class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  ${renderIcon('FileText', 'w-4 h-4 text-slate-500')}
-                  <span>Ver Detalle</span>
-                </button>
+                <!-- Center: Operational Stepper / Timeline (4 cols) -->
+                <div class="lg:col-span-4 px-4 py-3.5 bg-[#f8fafc] rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <span class="flex items-center gap-1.5">
+                      ${renderIcon('Truck', 'w-3.5 h-3.5 text-[#FF5A1F]')}
+                      Fase Operativa
+                    </span>
+                    <span class="text-emerald-700 font-extrabold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Paso 2 de 4
+                    </span>
+                  </div>
+                  
+                  <!-- Progress Bar -->
+                  <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
+                    <div class="w-1/2 bg-[#FF5A1F] rounded-full"></div>
+                  </div>
 
-                <a 
-                  href="#/client" 
-                  class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs active:scale-95 inline-flex items-center gap-1.5"
-                >
-                  <span>Extender o Gestionar</span>
-                  <span>&rarr;</span>
-                </a>
+                  <!-- 4 Mini Steps -->
+                  <div class="grid grid-cols-4 gap-1 text-center text-[10px] text-slate-500 pt-0.5">
+                    <div class="font-bold text-emerald-700">1. Confirmado</div>
+                    <div class="font-bold text-[#FF5A1F]">2. Despacho</div>
+                    <div class="text-slate-400">3. En Obra</div>
+                    <div class="text-slate-400">4. Retorno</div>
+                  </div>
+                </div>
+
+                <!-- Right: Price & Quick Action Buttons (3 cols) -->
+                <div class="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-3 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                  <div class="text-left lg:text-right">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Liquidado</span>
+                    <span class="text-xl sm:text-2xl font-black text-slate-900 font-display">
+                      ${formatCurrency(activeRental.totalAmount || activeRental.subtotal || 255000)}
+                    </span>
+                    <span class="text-[10px] text-slate-500 block">IVA y custodia incluidos</span>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    <button 
+                      id="btn-active-rental-invoice" 
+                      type="button" 
+                      class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      ${renderIcon('FileText', 'w-4 h-4 text-[#FF5A1F]')}
+                      <span>Factura DIAN</span>
+                    </button>
+
+                    <a 
+                      href="#/client" 
+                      class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs active:scale-95 inline-flex items-center justify-center gap-1.5"
+                    >
+                      <span>Gestionar</span>
+                      <span>&rarr;</span>
+                    </a>
+                  </div>
+                </div>
+
               </div>
             </div>
+
           </section>
         ` : (!isAuth ? `
           <!-- Discreet Guest Reservation Prompt -->
@@ -383,8 +440,8 @@ export async function renderHomeView() {
                 ${renderIcon('Clock', 'w-5 h-5')}
               </div>
               <div>
-                <h4 class="text-xs sm:text-sm font-bold text-slate-900">¿Ya tienes un alquiler o reserva en curso?</h4>
-                <p class="text-xs text-slate-500">Inicia sesión para revisar la fecha de entrega, inspección técnica y comprobante con IVA.</p>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-900">¿Ya tienes un alquiler o contrato en curso?</h4>
+                <p class="text-xs text-slate-500">Inicia sesión para supervisar el despacho a obra, descargar tu factura electrónica y gestionar actas de entrega.</p>
               </div>
             </div>
             <button 
@@ -457,42 +514,130 @@ export async function renderHomeView() {
         </section>
 
         <!-- ============================================================== -->
-        <!-- 05. STATS BANNER (Matching img/INDEX.png)                       -->
+        <!-- 05. CENTRO DE GESTIÓN Y RECURSOS DEL CLIENTE                  -->
         <!-- ============================================================== -->
-        <section class="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 shadow-2xs">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <!-- Left Side with Orange Bar -->
-            <div class="lg:col-span-5 flex items-start gap-4">
-              <div class="w-1 h-12 bg-[#FF5A1F] rounded-full flex-shrink-0 mt-0.5"></div>
+        <section class="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-2xs space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-slate-100">
+            <div class="flex items-start gap-4">
+              <div class="w-1.5 h-12 bg-[#FF5A1F] rounded-full flex-shrink-0 mt-0.5"></div>
               <div class="space-y-1">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-sans">
-                  POR QUÉ ELEGIR TOOLRENT
+                <span class="text-xs font-bold uppercase tracking-wider text-[#FF5A1F] font-sans flex items-center gap-1.5">
+                  ${renderIcon('Layers', 'w-3.5 h-3.5')}
+                  Accesos y Recursos de Gestión
                 </span>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display tracking-tight leading-tight">
-                  Más que un alquiler, es una solución.
+                  Herramientas clave para tus proyectos
                 </h2>
+                <p class="text-xs sm:text-sm text-slate-500 max-w-2xl">
+                  Accesos directos para agilizar la supervisión de obra, facturación electrónica tributaria y soporte en terreno.
+                </p>
               </div>
             </div>
 
-            <!-- Right Side: 4 Stat Metrics -->
-            <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:divide-x divide-slate-100">
-              <div class="sm:px-6 first:pl-0 space-y-0.5">
-                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">+200</div>
-                <div class="text-xs text-slate-500 font-medium">Equipos disponibles</div>
+            <a 
+              href="#/client" 
+              class="text-xs sm:text-sm font-bold text-slate-700 hover:text-[#FF5A1F] transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto group"
+            >
+              <span>Ir a mi panel de cliente</span>
+              <span class="transition-transform group-hover:translate-x-1">&rarr;</span>
+            </a>
+          </div>
+
+          <!-- 4 High-Utility Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            
+            <!-- Card 1: Facturación y Comprobantes DIAN -->
+            <div class="p-5 rounded-2xl bg-[#f8fafc] border border-slate-200/80 hover:border-emerald-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+              <div class="space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center">
+                  ${renderIcon('FileText', 'w-5 h-5')}
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors font-display">
+                    Facturación Electrónica DIAN
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Descarga comprobantes oficiales con IVA desglosado para deducciones tributarias en tus centros de costos.
+                  </p>
+                </div>
               </div>
-              <div class="sm:px-6 space-y-0.5">
-                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">98%</div>
-                <div class="text-xs text-slate-500 font-medium">Clientes satisfechos</div>
-              </div>
-              <div class="sm:px-6 space-y-0.5">
-                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">+15</div>
-                <div class="text-xs text-slate-500 font-medium">Ciudades en Colombia</div>
-              </div>
-              <div class="sm:px-6 last:pr-0 space-y-0.5">
-                <div class="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">24/7</div>
-                <div class="text-xs text-slate-500 font-medium">Soporte técnico</div>
+              <div class="pt-4 mt-3 border-t border-slate-200/60">
+                <a href="#/client" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1">
+                  <span>Consultar facturación</span>
+                  <span>&rarr;</span>
+                </a>
               </div>
             </div>
+
+            <!-- Card 2: Guía de Inspección y Retorno -->
+            <div class="p-5 rounded-2xl bg-[#f8fafc] border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+              <div class="space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center">
+                  ${renderIcon('ClipboardCheck', 'w-5 h-5')}
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors font-display">
+                    Guía de Entrega y Devolución
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Paso a paso de inspección técnica en obra para garantizar la devolución inmediata del 100% de tu depósito.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-4 mt-3 border-t border-slate-200/60">
+                <button id="btn-utility-return-guide" type="button" class="text-xs font-bold text-blue-700 hover:text-blue-800 inline-flex items-center gap-1 cursor-pointer">
+                  <span>Ver checklist técnico</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 3: Calculadora de Días y Presupuesto -->
+            <div class="p-5 rounded-2xl bg-[#f8fafc] border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+              <div class="space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#FF5A1F] border border-orange-200/80 flex items-center justify-center">
+                  ${renderIcon('Calculator', 'w-5 h-5')}
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 group-hover:text-[#FF5A1F] transition-colors font-display">
+                    Cotizador de Días y Presupuesto
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Simula costos de alquiler con calendario de obra, tarifas por jornada e IVA del 19% sin compromiso.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-4 mt-3 border-t border-slate-200/60">
+                <a href="#/catalog" class="text-xs font-bold text-[#FF5A1F] hover:text-[#e04e18] inline-flex items-center gap-1">
+                  <span>Calcular en catálogo</span>
+                  <span>&rarr;</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Card 4: Asistencia Técnica en Terreno -->
+            <div class="p-5 rounded-2xl bg-[#f8fafc] border border-slate-200/80 hover:border-purple-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+              <div class="space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-200/80 flex items-center justify-center">
+                  ${renderIcon('Wrench', 'w-5 h-5')}
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 group-hover:text-purple-700 transition-colors font-display">
+                    Soporte Técnico en Obra
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Atención directa a imprevistos mecánicos en obra con garantía de reemplazo prioritario en menos de 4h.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-4 mt-3 border-t border-slate-200/60">
+                <button id="btn-utility-support-modal" type="button" class="text-xs font-bold text-purple-700 hover:text-purple-800 inline-flex items-center gap-1 cursor-pointer">
+                  <span>Solicitar asistencia técnica</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -713,12 +858,156 @@ export async function renderHomeView() {
     openAuthModal('login');
   });
 
-  // 3. Active rental detail button
-  container.querySelector('#btn-active-rental-detail')?.addEventListener('click', () => {
-    window.location.hash = '#/client';
+  // 3. Active rental invoice button (Direct official invoice modal)
+  container.querySelector('#btn-active-rental-invoice')?.addEventListener('click', () => {
+    if (activeRental) {
+      openRentalInvoiceModal(activeRental.id, activeRental, activeTool);
+    }
   });
 
-  // 4. "Reservar ahora" buttons on Section 06
+  // 4. Client Utilities Modals
+  // Utility 2: Protocolo de Devolución e Inspección
+  container.querySelector('#btn-utility-return-guide')?.addEventListener('click', () => {
+    const guideContent = document.createElement('div');
+    guideContent.className = 'p-6 sm:p-8 space-y-6 bg-white text-slate-800';
+    guideContent.innerHTML = `
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+          ${renderIcon('ClipboardCheck', 'w-3.5 h-3.5')}
+          Protocolo Técnico de Devolución
+        </div>
+        <h3 class="text-xl font-black text-slate-900 font-display">
+          Guía de Entrega e Inspección de Maquinaria
+        </h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Sigue esta lista de verificación al finalizar tu jornada de alquiler para asegurar la aprobación inmediata del acta técnica y el reintegro automático del 100% de tu depósito en custodia.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+            Limpieza General
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            Retirar lodo, exceso de polvo o restos de concreto fresco antes de la recolección del transporte.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+            Nivel de Fluidos
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            Equipos a combustión deben retornar con el mismo nivel de combustible y aceite con el que fueron entregados.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+            Accesorios y Piezas
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            Verificar brocas, cinceles, mangueras hidráulicas, llaves de ajuste y cargadores de baterías incluidos.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+            Acta Digital de Cierre
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            El transportador y supervisor firman el acta de recepción digital. La plataforma libera el depósito en 24h.
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button id="btn-close-return-modal" type="button" class="btn-primary !py-2.5 !px-6 text-xs font-bold cursor-pointer">
+          Entendido
+        </button>
+      </div>
+    `;
+    guideContent.querySelector('#btn-close-return-modal')?.addEventListener('click', () => modal.close());
+    modal.open({
+      title: '',
+      content: guideContent,
+      maxWidth: 'max-w-xl',
+      hideHeader: true
+    });
+  });
+
+  // Utility 4: Asistencia Técnica en Obra
+  container.querySelector('#btn-utility-support-modal')?.addEventListener('click', () => {
+    const supportContent = document.createElement('div');
+    supportContent.className = 'p-6 sm:p-8 space-y-6 bg-white text-slate-800';
+    supportContent.innerHTML = `
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
+          ${renderIcon('Wrench', 'w-3.5 h-3.5')}
+          Soporte Operativo en Obra
+        </div>
+        <h3 class="text-xl font-black text-slate-900 font-display">
+          Asistencia Técnica Inmediata ToolRent
+        </h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Si experimentas problemas de arranque, descalibración o falla mecánica en terreno, nuestro equipo técnico de guardia te asiste de forma prioritaria.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <a href="tel:+576017458900" class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition-all group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+              ${renderIcon('PhoneCall', 'w-5 h-5')}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">Línea Directa de Guardia (24/7)</div>
+              <div class="text-xs text-slate-500 font-mono">+57 (601) 745-8900</div>
+            </div>
+          </div>
+          <span class="text-xs font-bold text-purple-700 group-hover:translate-x-0.5 transition-transform">Llamar &rarr;</span>
+        </a>
+
+        <a href="https://wa.me/573176543210?text=Hola%20ToolRent,%20requiero%20asistencia%20t%C3%A9cnica%20en%20obra" target="_blank" class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition-all group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              ${renderIcon('MessageSquare', 'w-5 h-5')}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">WhatsApp Técnico de Urgencias</div>
+              <div class="text-xs text-slate-500 font-mono">+57 317 654 3210</div>
+            </div>
+          </div>
+          <span class="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">Chatear &rarr;</span>
+        </a>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-orange-50 border border-orange-200/80 text-[11px] text-orange-800 leading-relaxed flex items-start gap-2.5">
+        ${renderIcon('ShieldCheck', 'w-4 h-4 text-[#FF5A1F] flex-shrink-0 mt-0.5')}
+        <span><strong>Garantía de Continuidad de Obra:</strong> Si el equipo no puede calibrarse in situ, ToolRent envía una unidad de sustitución en menos de 4 horas hábiles.</span>
+      </div>
+
+      <div class="pt-1 flex justify-end">
+        <button id="btn-close-support-modal" type="button" class="px-5 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 cursor-pointer">
+          Cerrar
+        </button>
+      </div>
+    `;
+    supportContent.querySelector('#btn-close-support-modal')?.addEventListener('click', () => modal.close());
+    modal.open({
+      title: '',
+      content: supportContent,
+      maxWidth: 'max-w-lg',
+      hideHeader: true
+    });
+  });
+
+  // 5. "Reservar ahora" buttons on Section 06
   container.querySelectorAll('.btn-featured-reserve').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
