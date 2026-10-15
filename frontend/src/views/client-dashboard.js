@@ -4,7 +4,7 @@ import showToast from '../components/toast.js';
 import { formatCurrency, formatDate, getRentalStatusBadge } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
-import { openInvoiceViewer, openCheckoutModal } from './rental-modal.js';
+import { openInvoiceViewer, openCheckoutModal, openRentalInvoiceModal } from './rental-modal.js';
 export async function renderClientDashboard() {
   const container = document.getElementById('app-content');
   if (!container) return;
@@ -227,70 +227,9 @@ export async function renderClientDashboard() {
         btn.addEventListener('click', async () => {
           const rentalId = btn.dataset.rentalId;
           const targetRental = rentals.find(r => r.id === rentalId);
-          
-          try {
-            const invoice = await api.get(`/billing/invoices/rental/${rentalId}`);
-            const firstItem = targetRental?.items?.[0];
-            const targetTool = tools.find(t => t.id === firstItem?.toolId);
-            const toolName = targetTool?.name || toolMap.get(firstItem?.toolId) || 'Equipo Industrial Certificado';
-
-            // Resolve real provider data dynamically
-            let providerData = {
-              name: 'Proveedor Autorizado ToolRent S.A.S.',
-              taxId: '901.458.789-1',
-              email: 'contacto@toolrent.com',
-              phone: '+57 (1) 745-8900',
-              address: 'Zona Industrial, Colombia'
-            };
-
-            if (targetTool?.providerId) {
-              try {
-                const p = await api.get(`/providers/${targetTool.providerId}`);
-                if (p) {
-                  providerData = {
-                    name: p.companyName || providerData.name,
-                    taxId: p.taxId || providerData.taxId,
-                    email: p.email || 'contacto@proveedor.com',
-                    phone: p.phone || providerData.phone,
-                    address: [p.address, p.city].filter(Boolean).join(', ') || providerData.address
-                  };
-                }
-              } catch (_) {}
-            }
-
-            const clientAddress = [user.profile?.address, user.profile?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente';
-
-            openInvoiceViewer({
-              rawInvoiceId: invoice.id,
-              invoiceNumber: invoice.invoiceNumber || targetRental?.rentalCode || `TR-${String(rentalId).slice(-6)}`,
-              issueDate: invoice.issueDate ? formatDate(invoice.issueDate.split('T')[0]) : formatDate(targetRental?.startDate),
-              client: {
-                name: user.profile?.fullName || user.username || 'Cliente Registrado',
-                taxId: user.profile?.documentNumber ? `${user.profile.documentType || 'CC'} ${user.profile.documentNumber}` : '1018234567',
-                email: user.email || 'cliente@constructora.com',
-                phone: user.profile?.phone || '+57 300 123 4567',
-                address: clientAddress
-              },
-              provider: providerData,
-              items: [
-                {
-                  name: toolName,
-                  days: targetRental?.totalDays || 1,
-                  dailyPrice: firstItem?.dailyPrice || invoice.subtotal,
-                  subtotal: invoice.subtotal
-                }
-              ],
-              subtotal: invoice.subtotal,
-              tax: invoice.taxAmount,
-              total: invoice.totalBilled,
-              paymentMethod: 'Tarjeta de Crédito / Pasarela Segura',
-              bank: 'Bancolombia S.A.',
-              reference: invoice.invoiceNumber || targetRental?.rentalCode,
-              paymentDate: formatDate(invoice.issueDate?.split('T')[0] || targetRental?.startDate || '2026-10-14')
-            });
-          } catch (e) {
-            showToast('No se encontró factura emitida para esta reserva aún.', 'error');
-          }
+          const firstItem = targetRental?.items?.[0];
+          const targetTool = tools.find(t => t.id === firstItem?.toolId);
+          openRentalInvoiceModal(rentalId, targetRental, targetTool);
         });
       });
 
