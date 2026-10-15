@@ -1,7 +1,7 @@
 import auth from '../auth/state.js';
 import modal from './modal.js';
 import showToast from './toast.js';
-import loginImg from '../assets/login.png';
+import loginImg from '../assets/login-showcase.jpg';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 
 export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE') {
@@ -379,12 +379,12 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         <!-- Right Side: Heavy Machinery Hero Showcase -->
         <div class="relative hidden md:block overflow-hidden bg-slate-900 select-none">
           <img src="${loginImg}" class="w-full h-full object-cover object-center" alt="ToolRent Maquinaria y Equipos" />
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent flex flex-col justify-end p-8 text-white">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-8 text-white">
             <h3 class="text-xl font-bold leading-tight font-display mb-1.5 text-white">
-              Alquiler industrial con garantía y contrato digital
+              Gestión y alquiler de maquinaria pesada
             </h3>
             <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
-              Disponibilidad inmediata, entrega en obra y facturación electrónica oficial en toda Colombia.
+              Equipos de construcción certificados, disponibilidad inmediata y entrega coordinada en obra.
             </p>
           </div>
         </div>
