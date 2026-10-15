@@ -46,11 +46,24 @@ public class AuthUseCase {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new BusinessRuleViolationException("Username is already taken");
+        // Validación de seguridad e inyección de datos
+        validateFieldSafety("nombre de usuario", request.username());
+        validateFieldSafety("correo electrónico", request.email());
+        validateFieldSafety("nombre", request.fullName());
+        validateFieldSafety("razón social", request.companyName());
+        validateFieldSafety("teléfono", request.phone());
+        validateFieldSafety("documento", request.documentNumber());
+        validateFieldSafety("NIT/RUT", request.taxId());
+        validateFieldSafety("ciudad", request.city());
+
+        String cleanUsername = request.username() != null ? request.username().trim() : "";
+        String cleanEmail = request.email() != null ? request.email().trim().toLowerCase() : "";
+
+        if (userRepository.existsByUsername(cleanUsername)) {
+            throw new BusinessRuleViolationException("El nombre de usuario ya está en uso. Por favor elige otro.");
         }
-        if (userRepository.existsByEmail(request.email())) {
-            throw new BusinessRuleViolationException("Email is already taken");
+        if (userRepository.existsByEmail(cleanEmail)) {
+            throw new BusinessRuleViolationException("El correo electrónico ya está registrado. Si ya tienes cuenta, inicia sesión.");
         }
 
         Set<Role> roles = request.roles() != null ? request.roles().stream()
@@ -87,8 +100,8 @@ public class AuthUseCase {
 
         User newUser = new User(
                 UUID.randomUUID(),
-                request.username(),
-                request.email(),
+                cleanUsername,
+                cleanEmail,
                 passwordEncoder.encode(request.password()),
                 true,
                 roles
@@ -99,14 +112,19 @@ public class AuthUseCase {
         // Crear automáticamente el perfil comercial según el rol (Garantiza integridad relacional 100%)
         if (roles.contains(Role.ROLE_PROVEEDOR)) {
             String compName = (request.companyName() != null && !request.companyName().isBlank())
-                    ? request.companyName()
-                    : ((request.fullName() != null && !request.fullName().isBlank()) ? request.fullName() : request.username() + " Equipos");
+                    ? request.companyName().trim()
+                    : ((request.fullName() != null && !request.fullName().isBlank()) ? request.fullName().trim() : cleanUsername + " Equipos");
             String taxId = (request.taxId() != null && !request.taxId().isBlank())
-                    ? request.taxId()
+                    ? request.taxId().trim()
                     : "NIT-" + (100000000L + Math.abs(newUser.getId().getLeastSignificantBits() % 900000000L)) + "-1";
-            String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone() : "3001234567";
-            String address = (request.address() != null && !request.address().isBlank()) ? request.address() : "Bogotá D.C.";
-            String city = (request.city() != null && !request.city().isBlank()) ? request.city() : "Bogotá";
+            
+            if (providerProfileRepository.existsByTaxId(taxId)) {
+                throw new BusinessRuleViolationException("El NIT o RUT ya se encuentra registrado por otro proveedor.");
+            }
+
+            String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone().trim() : "3001234567";
+            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
+            String city = (request.city() != null && !request.city().isBlank()) ? request.city().trim() : "Bogotá";
 
             ProviderProfile providerProfile = new ProviderProfile(
                     UUID.randomUUID(),
@@ -124,17 +142,22 @@ public class AuthUseCase {
         } else {
             // ROLE_CLIENTE o cualquier otro rol de usuario
             String fullName = (request.fullName() != null && !request.fullName().isBlank())
-                    ? request.fullName()
-                    : request.username();
+                    ? request.fullName().trim()
+                    : cleanUsername;
             String docType = (request.documentType() != null && !request.documentType().isBlank())
-                    ? request.documentType()
+                    ? request.documentType().trim()
                     : "CC";
             String docNumber = (request.documentNumber() != null && !request.documentNumber().isBlank())
-                    ? request.documentNumber()
+                    ? request.documentNumber().trim()
                     : "CLI-" + (1000000000L + Math.abs(newUser.getId().getLeastSignificantBits() % 9000000000L));
-            String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone() : "3001234567";
-            String address = (request.address() != null && !request.address().isBlank()) ? request.address() : "Bogotá D.C.";
-            String city = (request.city() != null && !request.city().isBlank()) ? request.city() : "Bogotá";
+
+            if (clientProfileRepository.existsByDocumentNumber(docNumber)) {
+                throw new BusinessRuleViolationException("El número de documento de identidad ya se encuentra registrado por otro cliente.");
+            }
+
+            String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone().trim() : "3001234567";
+            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
+            String city = (request.city() != null && !request.city().isBlank()) ? request.city().trim() : "Bogotá";
 
             ClientProfile clientProfile = new ClientProfile(
                     UUID.randomUUID(),
@@ -153,6 +176,17 @@ public class AuthUseCase {
 
         String token = jwtTokenPort.generateToken(newUser);
         return new AuthResponse(token, "Bearer", newUser.getUsername());
+    }
+
+    private void validateFieldSafety(String fieldName, String value) {
+        if (value == null || value.isBlank()) return;
+        String lower = value.toLowerCase();
+        if (lower.contains("<script") || lower.contains("javascript:") || lower.contains("onerror=") ||
+            lower.contains("onload=") || lower.contains("<iframe") || lower.contains("union select") ||
+            lower.contains("xp_") || lower.contains("exec(") || lower.contains("execute(") ||
+            lower.contains("--") || lower.contains("/*") || lower.contains("*/") || lower.contains(";--")) {
+            throw new BusinessRuleViolationException("El campo " + fieldName + " contiene caracteres o secuencias no permitidas.");
+        }
     }
 
     @Transactional(readOnly = true)

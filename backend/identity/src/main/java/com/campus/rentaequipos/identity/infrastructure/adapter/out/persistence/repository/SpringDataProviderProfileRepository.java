@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface SpringDataProviderProfileRepository extends JpaRepository<ProviderProfileJpaEntity, UUID> {
     Optional<ProviderProfileJpaEntity> findByUserId(UUID userId);
+    boolean existsByTaxId(String taxId);
 }

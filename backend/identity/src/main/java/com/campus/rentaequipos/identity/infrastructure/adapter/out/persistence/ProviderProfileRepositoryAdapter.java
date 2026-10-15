@@ -31,6 +31,11 @@ public class ProviderProfileRepositoryAdapter implements ProviderProfileReposito
     }
 
     @Override
+    public boolean existsByTaxId(String taxId) {
+        return repository.existsByTaxId(taxId);
+    }
+
+    @Override
     public List<ProviderProfile> findAll() {
         return repository.findAll().stream()
                 .map(this::toDomain)

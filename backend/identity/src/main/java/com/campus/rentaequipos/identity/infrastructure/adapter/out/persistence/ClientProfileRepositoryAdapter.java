@@ -31,6 +31,11 @@ public class ClientProfileRepositoryAdapter implements ClientProfileRepository {
     }
 
     @Override
+    public boolean existsByDocumentNumber(String documentNumber) {
+        return repository.existsByDocumentNumber(documentNumber);
+    }
+
+    @Override
     public List<ClientProfile> findAll() {
         return repository.findAll().stream()
                 .map(this::toDomain)
