@@ -6,7 +6,6 @@ import { openRentalModal, openRentalInvoiceModal } from './rental-modal.js';
 
 // Assets
 import heroCatImg from '../assets/hero-excavator-hd.jpg';
-import heroLeftArchImg from '../assets/hero-left-architecture.jpg';
 import catCleanMovimiento from '../assets/cat-clean-movimiento.jpg';
 import catCleanHerramientas from '../assets/cat-clean-herramientas.jpg';
 import catCleanConstruccion from '../assets/cat-clean-construccion.jpg';
@@ -144,34 +143,29 @@ export async function renderHomeView() {
       <!-- 1. HERO BANNER FULL-BLEED (Limpio, sin recuadros forzados, palabras clave y fondo integrado) -->
       <!-- ============================================================== -->
       <section class="relative w-full bg-white border-b border-slate-200/80 overflow-hidden min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
-        <!-- Fondo Split Hero HD: Zona izquierda con imagen arquitectónica y neblina, zona derecha con imagen de excavadora nítida -->
-        <div class="absolute inset-0 w-full h-full pointer-events-none select-none overflow-hidden">
+        <!-- Imagen de fondo HD de extremo a extremo: Maquinaria nítida a la derecha, transición con neblina a la izquierda -->
+        <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
+          <img 
+            src="${heroCatImg}" 
+            alt="Excavadora Caterpillar en obra de construcción" 
+            class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
+          />
           
-          <!-- Imagen 1 (Zona Izquierda): Edificación moderna con atmósfera de neblina natural -->
-          <div class="absolute inset-0 w-full lg:w-[62%] h-full">
-            <img 
-              src="${heroLeftArchImg}" 
-              alt="Edificación moderna en construcción" 
-              class="w-full h-full object-cover object-left select-none"
-            />
-            <!-- Neblina blanca integrada sobre la imagen izquierda para máximo contraste y legibilidad del buscador -->
-            <div class="absolute inset-0 bg-gradient-to-r from-white/95 via-white/88 to-transparent"></div>
-          </div>
-
-          <!-- Imagen 2 (Zona Derecha): Maquinaria pesada Excavadora Caterpillar nítida con transición suave -->
+          <!-- Capa 1: Desenfoque de neblina atmosférica (solo del recuadro hacia la izquierda, difuminando estructuras de fondo) -->
           <div 
-            class="absolute top-0 right-0 w-full lg:w-[60%] h-full hidden sm:block"
-            style="mask-image: linear-gradient(to right, transparent 0%, black 24%, black 100%); -webkit-mask-image: linear-gradient(to right, transparent 0%, black 24%, black 100%);"
-          >
-            <img 
-              src="${heroCatImg}" 
-              alt="Excavadora Caterpillar en obra de construcción" 
-              class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
-            />
-          </div>
+            class="absolute inset-0 pointer-events-none hidden sm:block" 
+            style="mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);"
+          ></div>
 
-          <!-- Gradiente vertical para dispositivos móviles (< sm) garantizando legibilidad total -->
-          <div class="absolute inset-0 sm:hidden bg-gradient-to-b from-white/95 via-white/90 to-transparent"></div>
+          <!-- Capa 2: Neblina blanca densa a la izquierda para optimizar el buscador interactivo, con transición suave que llega a 100% transparencia en el borde del recuadro -->
+          <div 
+            class="absolute inset-0 pointer-events-none sm:hidden" 
+            style="background: linear-gradient(to bottom, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 60%, rgba(255,255,255,0.2) 85%, transparent 100%);"
+          ></div>
+          <div 
+            class="absolute inset-0 pointer-events-none hidden sm:block" 
+            style="background: linear-gradient(to right, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 36%, rgba(255,255,255,0.55) 43%, rgba(255,255,255,0.15) 47%, transparent 50%);"
+          ></div>
         </div>
 
         <!-- Contenedor alineado con el resto de la web: Estructura intuitiva y clean -->
