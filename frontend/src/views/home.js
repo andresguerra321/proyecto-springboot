@@ -143,40 +143,50 @@ export async function renderHomeView() {
         <!-- ============================================================== -->
         <!-- 1. HERO CON BÚSQUEDA POR FECHAS (Matching img/INDEX.png)        -->
         <!-- ============================================================== -->
-        <section class="relative bg-white rounded-[28px] border border-zinc-200/80 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] p-4 sm:p-6 lg:p-8 overflow-hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            
-            <!-- Columna Izquierda: Copy Editorial + Buscador Unificado (7 columnas) -->
-            <div class="lg:col-span-7 py-2 sm:px-2">
+        <section class="relative bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden min-h-[460px] lg:min-h-[500px] flex items-center">
+          <!-- Imagen de fondo que cubre de forma completa todo ese apartado -->
+          <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
+            <img 
+              src="${heroCatImg}" 
+              alt="Excavadora Caterpillar en obra" 
+              class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
+            />
+            <!-- Gradiente suave lateral para máxima nitidez y legibilidad de los elementos encima -->
+            <div class="absolute inset-0 bg-gradient-to-r from-white via-white/95 via-50% to-transparent pointer-events-none"></div>
+          </div>
+
+          <!-- Contenido encima de la imagen -->
+          <div class="relative z-10 w-full p-6 sm:p-10 lg:p-12">
+            <div class="max-w-2xl space-y-6">
               
-              <!-- Kicker minimalista superior -->
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] mb-6">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#1D1D1F]"></span>
-                <span class="text-[11px] font-medium tracking-wide text-zinc-600 uppercase">
+              <!-- Kicker con paleta oficial ToolRent -->
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/80">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse"></span>
+                <span class="text-[11px] font-bold tracking-wider text-[#ea580c] uppercase">
                   Renta Industrial en Colombia
                 </span>
               </div>
 
-              <!-- Titular con contraste tipográfico estilo Apple -->
-              <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-0.03em] leading-[1.08] text-[#1D1D1F]">
+              <!-- Titular Editorial con la paleta oficial -->
+              <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.08] text-slate-900 font-display">
                 El equipo que necesitas,<br />
-                <span class="text-[#86868B]">cuando lo necesitas.</span>
+                <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
               </h1>
 
-              <p class="mt-4 text-base sm:text-[17px] text-zinc-500 leading-relaxed max-w-xl font-normal">
+              <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
                 Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
               </p>
 
-              <!-- Buscador Unificado en una sola barra limpia (Sin cajas anidadas) -->
-              <form id="hero-availability-form" class="mt-8 bg-[#F5F5F7] p-2 rounded-2xl border border-zinc-200/60">
+              <!-- Buscador Unificado con los recuadros interactivos de calendario -->
+              <form id="hero-availability-form" class="bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-slate-200/90 shadow-lg">
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                   
                   <!-- Categoría (5 cols) -->
-                  <div class="sm:col-span-5 bg-white rounded-xl px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-                    <label for="hero-search-category" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                  <div class="sm:col-span-5 bg-slate-50/90 hover:bg-slate-100/80 rounded-xl px-3.5 py-2 border border-slate-200/80 transition-colors">
+                    <label for="hero-search-category" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Categoría
                     </label>
-                    <select id="hero-search-category" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none cursor-pointer truncate">
+                    <select id="hero-search-category" class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer truncate">
                       <option value="">Todas las categorías</option>
                       <option value="excavadora">Movimiento de tierra (Excavadoras, Retro)</option>
                       <option value="demolición">Demolición y Perforación (Martillos)</option>
@@ -187,26 +197,41 @@ export async function renderHomeView() {
                     </select>
                   </div>
 
-                  <!-- Fecha Entrega (2.5 cols) -->
-                  <div class="sm:col-span-2 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-                    <label for="hero-search-start" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                  <!-- Fecha Entrega (2.5 cols) - CLICKEABLE EN TODO EL RECUADRO -->
+                  <div id="box-search-start" class="sm:col-span-2 bg-slate-50/90 hover:bg-orange-50/60 rounded-xl px-3 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group">
+                    <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                       Entrega
                     </label>
-                    <input type="date" id="hero-search-start" value="${startFormatted}" min="${today.toISOString().split('T')[0]}" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none tabular-nums cursor-pointer" />
+                    <input 
+                      type="date" 
+                      id="hero-search-start" 
+                      value="${startFormatted}" 
+                      min="${today.toISOString().split('T')[0]}" 
+                      class="w-full mt-0.5 bg-transparent text-xs font-bold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
+                    />
                   </div>
 
-                  <!-- Fecha Devolución (2.5 cols) -->
-                  <div class="sm:col-span-2 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-                    <label for="hero-search-end" class="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                  <!-- Fecha Devolución (2.5 cols) - CLICKEABLE EN TODO EL RECUADRO -->
+                  <div id="box-search-end" class="sm:col-span-2 bg-slate-50/90 hover:bg-orange-50/60 rounded-xl px-3 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group">
+                    <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
                       Retorno
                     </label>
-                    <input type="date" id="hero-search-end" value="${endFormatted}" min="${startFormatted}" class="w-full mt-0.5 bg-transparent text-xs font-medium text-[#1D1D1F] focus:outline-none tabular-nums cursor-pointer" />
+                    <input 
+                      type="date" 
+                      id="hero-search-end" 
+                      value="${endFormatted}" 
+                      min="${startFormatted}" 
+                      class="w-full mt-0.5 bg-transparent text-xs font-bold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
+                    />
                   </div>
 
-                  <!-- Botón Acción (3 cols) -->
+                  <!-- Botón Acción (3 cols) - PALETA OFICIAL TOOLRENT -->
                   <div class="sm:col-span-3 h-full">
-                    <button type="submit" class="w-full h-full min-h-[52px] rounded-xl bg-[#1D1D1F] hover:bg-zinc-800 text-white text-xs font-medium transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer">
-                      <span>Buscar</span>
+                    <button 
+                      type="submit" 
+                      class="w-full h-full min-h-[52px] rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-orange-500/25 active:scale-95 cursor-pointer"
+                    >
+                      <span>Buscar equipos</span>
                       <span aria-hidden="true">&rarr;</span>
                     </button>
                   </div>
@@ -214,66 +239,49 @@ export async function renderHomeView() {
                 </div>
               </form>
 
-              <!-- Accesos rápidos inferiores como píldoras minimalistas -->
-              <div class="mt-5 flex flex-wrap items-center gap-2 text-xs">
-                <span class="text-zinc-400 mr-1">Acceso rápido:</span>
-                <a href="#/catalog" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-[#1D1D1F] font-medium hover:bg-zinc-200/70 transition-colors">
+              <!-- Accesos rápidos inferiores con paleta oficial -->
+              <div class="flex flex-wrap items-center gap-2 text-xs pt-1">
+                <span class="text-slate-500 font-medium mr-1">Acceso rápido:</span>
+                <a href="#/catalog" class="px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200/80 text-[#ea580c] font-bold hover:bg-orange-100 transition-colors shadow-2xs">
                   Catálogo completo &rarr;
                 </a>
-                <a href="#/catalog?q=excavadora" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-200/70 transition-colors">
+                <a href="#/catalog?q=excavadora" class="px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200 text-slate-700 font-medium hover:border-[#ea580c] hover:text-[#ea580c] transition-colors shadow-2xs">
                   Maquinaria pesada
                 </a>
-                <a href="#/catalog?q=concreto" class="px-3 py-1 rounded-full bg-[#F5F5F7] text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-200/70 transition-colors">
+                <a href="#/catalog?q=concreto" class="px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200 text-slate-700 font-medium hover:border-[#ea580c] hover:text-[#ea580c] transition-colors shadow-2xs">
                   Equipos para hormigón
                 </a>
               </div>
 
             </div>
-
-            <!-- Columna Derecha: Fotografía Enmarcada Nítida (Sin neblina blanca) (5 columnas) -->
-            <div class="lg:col-span-5 h-full">
-              <div class="relative h-[320px] sm:h-[380px] lg:h-[420px] w-full rounded-[20px] overflow-hidden bg-zinc-100">
-                <img 
-                  src="${heroCatImg}" 
-                  alt="Excavadora Caterpillar en obra" 
-                  class="w-full h-full object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 select-none"
-                />
-                <!-- Sutil viñeta inferior de cristal líquido -->
-                <div class="absolute bottom-3 left-3 right-3 px-4 py-2.5 rounded-xl bg-black/45 backdrop-blur-md border border-white/15 flex items-center justify-between text-white text-xs">
-                  <span class="font-medium">Flota pesada certificada</span>
-                  <span class="text-white/80 font-mono">Disponibilidad 24/7</span>
-                </div>
-              </div>
-            </div>
-
           </div>
         </section>
 
         <!-- ============================================================== -->
         <!-- ============================================================== -->
-        <!-- 2. ALQUILER ACTIVO DEL CLIENTE (Estética Apple / Linear / Stripe) -->
+        <!-- 2. ALQUILER ACTIVO DEL CLIENTE (Paleta Oficial ToolRent)       -->
         <!-- ============================================================== -->
         ${isAuth && activeRental ? `
-          <section class="group relative bg-white rounded-[24px] border border-zinc-200/80 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.08)] transition-all duration-300 p-6 sm:p-7">
+          <section class="group relative bg-white rounded-[24px] border border-slate-200/90 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.08)] transition-all duration-300 p-6 sm:p-7">
             
-            <!-- Barra Superior Minimalista (Sin fondo oscuro) -->
-            <div class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-zinc-100">
+            <!-- Barra Superior Minimalista -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-slate-100">
               <div class="flex items-center gap-3">
                 <!-- Estado único y sobrio -->
-                <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Activo en obra
                 </span>
-                <span class="text-zinc-300">|</span>
-                <span class="font-mono text-xs text-zinc-400 tracking-wide">${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}</span>
-                <span class="text-zinc-300 hidden sm:inline">·</span>
-                <span class="text-xs text-zinc-500 hidden sm:inline">Confirmado para entrega</span>
+                <span class="text-slate-300">|</span>
+                <span class="font-mono text-xs font-bold text-[#ea580c] bg-orange-50 border border-orange-200/80 px-2.5 py-0.5 rounded-md tracking-wide">${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}</span>
+                <span class="text-slate-300 hidden sm:inline">·</span>
+                <span class="text-xs text-slate-500 hidden sm:inline">Confirmado para entrega</span>
               </div>
 
-              <!-- Fechas limpias sin iconos naranjas -->
-              <div class="flex items-center gap-2 text-xs text-zinc-500">
+              <!-- Fechas limpias -->
+              <div class="flex items-center gap-2 text-xs text-slate-500">
                 <span>${formatDate(activeRental.startDate)} – ${formatDate(activeRental.endDate)}</span>
-                <span class="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-medium">${activeRental.totalDays || 1} días</span>
+                <span class="px-2.5 py-0.5 rounded-md bg-orange-50 text-[#ea580c] font-bold border border-orange-200/80">${activeRental.totalDays || 1} días</span>
               </div>
             </div>
 
@@ -282,7 +290,7 @@ export async function renderHomeView() {
               
               <!-- 1. Producto (5 columnas) -->
               <div class="lg:col-span-5 flex items-center gap-5">
-                <div class="w-20 h-20 rounded-2xl bg-[#F5F5F7] border border-zinc-200/50 overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
+                <div class="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-200/70 overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-2xs">
                   <img 
                     src="${activeTool ? getToolImage(activeTool) : catCleanCompactacion}" 
                     alt="${activeTool?.name || 'Equipo alquilado'}" 
@@ -290,60 +298,60 @@ export async function renderHomeView() {
                   />
                 </div>
                 <div class="min-w-0">
-                  <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-1">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.08em] text-[#ea580c] mb-1">
                     ${activeTool?.brand || 'Bosch'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
                   </p>
-                  <h3 class="text-lg font-semibold text-[#1D1D1F] tracking-tight truncate">
+                  <h3 class="text-lg font-bold text-slate-900 tracking-tight truncate font-display">
                     ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Martillo Demoledor Hexagonal 30kg'}
                   </h3>
-                  <p class="text-xs text-zinc-500 mt-1">
-                    Por <span class="text-zinc-700 font-medium">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</span>
+                  <p class="text-xs text-slate-500 mt-1">
+                    Por <span class="text-slate-800 font-semibold">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</span>
                   </p>
                 </div>
               </div>
 
-              <!-- 2. Progreso Minimalista sin caja envolvente (4 columnas) -->
+              <!-- 2. Progreso Minimalista con acento oficial (4 columnas) -->
               <div class="lg:col-span-4 lg:px-4">
                 <div class="flex items-center justify-between text-xs mb-2.5">
-                  <span class="font-medium text-[#1D1D1F]">En proceso de despacho</span>
-                  <span class="text-zinc-400 font-normal">Paso 2 de 4</span>
+                  <span class="font-bold text-slate-900">En proceso de despacho</span>
+                  <span class="text-slate-400 font-medium">Paso 2 de 4</span>
                 </div>
                 
-                <!-- Barra ultrafina estilo Apple -->
-                <div class="w-full h-1 bg-zinc-100 rounded-full overflow-hidden mb-3">
-                  <div class="h-full bg-[#1D1D1F] rounded-full transition-all duration-500" style="width: 50%"></div>
+                <!-- Barra ultrafina en naranja ToolRent -->
+                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                  <div class="h-full bg-[#ea580c] rounded-full transition-all duration-500" style="width: 50%"></div>
                 </div>
 
-                <!-- Etiquetas monocromáticas con jerarquía por peso -->
-                <div class="grid grid-cols-4 text-[11px] text-zinc-400">
-                  <span class="text-zinc-500">Confirmado</span>
-                  <span class="text-[#1D1D1F] font-semibold">Despacho</span>
+                <!-- Etiquetas con jerarquía y color de marca -->
+                <div class="grid grid-cols-4 text-[11px] text-slate-400">
+                  <span class="text-slate-600 font-medium">Confirmado</span>
+                  <span class="text-[#ea580c] font-bold">Despacho</span>
                   <span class="text-center">En obra</span>
                   <span class="text-right">Retorno</span>
                 </div>
               </div>
 
               <!-- 3. Precio y Acciones (3 columnas) -->
-              <div class="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-zinc-100">
+              <div class="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
                 <div class="lg:text-right">
-                  <p class="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Total liquidado</p>
-                  <p class="text-2xl font-semibold text-[#1D1D1F] tracking-tight tabular-nums mt-0.5">
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total liquidado</p>
+                  <p class="text-2xl font-black text-slate-900 tracking-tight tabular-nums mt-0.5 font-display">
                     ${formatCurrency(activeRental.totalAmount || activeRental.subtotal || 820000)}
                   </p>
-                  <p class="text-[11px] text-zinc-400">IVA y depósito incluidos</p>
+                  <p class="text-[11px] text-slate-500 font-medium">IVA y depósito incluidos</p>
                 </div>
 
                 <div class="flex items-center gap-2.5 w-full sm:w-auto">
                   <button 
                     id="btn-active-rental-invoice" 
                     type="button" 
-                    class="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-medium bg-[#F5F5F7] text-[#1D1D1F] hover:bg-zinc-200/80 transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-200 hover:text-[#ea580c] transition-colors cursor-pointer shadow-2xs"
                   >
                     Factura
                   </button>
                   <a 
                     href="#/client" 
-                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[#1D1D1F] text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-sm hover:shadow-orange-500/25 transition-all cursor-pointer"
                   >
                     <span>Gestionar</span>
                     <span aria-hidden="true">&rarr;</span>
@@ -600,6 +608,34 @@ export async function renderHomeView() {
       window.location.hash = queryStr ? `#/catalog?${queryStr}` : '#/catalog';
     });
   }
+
+  // 1.5 Interactive Date Boxes (clicking anywhere in the box opens calendar)
+  const startBox = container.querySelector('#box-search-start');
+  const startInput = container.querySelector('#hero-search-start');
+  const endBox = container.querySelector('#box-search-end');
+  const endInput = container.querySelector('#hero-search-end');
+
+  const triggerPicker = (input) => {
+    try {
+      if (typeof input?.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        input?.focus();
+      }
+    } catch (_) {
+      input?.focus();
+    }
+  };
+
+  startBox?.addEventListener('click', (e) => {
+    if (e.target !== startInput) triggerPicker(startInput);
+  });
+  startInput?.addEventListener('click', () => triggerPicker(startInput));
+
+  endBox?.addEventListener('click', (e) => {
+    if (e.target !== endInput) triggerPicker(endInput);
+  });
+  endInput?.addEventListener('click', () => triggerPicker(endInput));
 
   // 2. Active rental invoice button (Official DIAN invoice modal)
   container.querySelector('#btn-active-rental-invoice')?.addEventListener('click', () => {
