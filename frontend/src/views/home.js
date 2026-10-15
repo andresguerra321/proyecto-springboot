@@ -144,22 +144,22 @@ export async function renderHomeView() {
         <!-- 1. HERO CON BÚSQUEDA POR FECHAS (Sistema Responsive Proporcional) -->
         <!-- ============================================================== -->
         <section class="relative bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden min-h-[420px] sm:min-h-[460px] lg:min-h-[500px] flex items-center">
-          <!-- Imagen de fondo que cubre de forma completa todo ese apartado -->
+          <!-- Imagen de fondo de extremo a extremo sin neblina sobre la máquina -->
           <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
             <img 
               src="${heroCatImg}" 
               alt="Excavadora Caterpillar en obra" 
-              class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
+              class="w-full h-full object-cover object-[center_right] md:object-right select-none"
             />
-            <!-- Gradiente adaptativo: vertical en móviles para contraste impecable, lateral en desktop -->
-            <div class="absolute inset-0 bg-gradient-to-b sm:bg-gradient-to-r from-white via-white/95 sm:via-white/95 via-60% sm:via-55% to-white/40 sm:to-transparent pointer-events-none"></div>
+            <!-- Gradiente enfocado exclusivamente en la zona del texto para dejar la máquina nítida y contrastada -->
+            <div class="absolute inset-0 bg-gradient-to-b md:bg-gradient-to-r from-white from-40% md:from-42% via-white/85 via-54% to-transparent to-68% pointer-events-none"></div>
           </div>
 
-          <!-- Contenido encima de la imagen -->
+          <!-- Contenido acotado a la izquierda para no invadir las orugas ni la cabina -->
           <div class="relative z-10 w-full p-5 sm:p-8 lg:p-12">
-            <div class="max-w-2xl space-y-5 sm:space-y-6">
+            <div class="max-w-xl lg:max-w-[560px] space-y-5 sm:space-y-6">
               
-              <!-- Kicker sobrio & minimalista (sin pegatinas de bordes gruesos) -->
+              <!-- Kicker sobrio & minimalista con micro-indicador ToolRent -->
               <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase select-none">
                 <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]"></span>
                 <span>Renta Industrial en Colombia</span>
@@ -171,7 +171,7 @@ export async function renderHomeView() {
                 <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
               </h1>
 
-              <p class="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed font-normal max-w-xl">
+              <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal max-w-lg">
                 Alquila maquinaria pesada y herramientas certificadas en toda Colombia. Entrega garantizada en obra y contrato 100% digital.
               </p>
 
@@ -223,13 +223,13 @@ export async function renderHomeView() {
                     />
                   </div>
 
-                  <!-- Botón Acción: full width en móviles/tablets (col-span-2), 2 cols en desktop -->
+                  <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap para que jamás se parta -->
                   <div class="col-span-2 lg:col-span-2 flex items-center">
                     <button 
                       type="submit" 
-                      class="w-full h-full min-h-[46px] sm:min-h-[50px] rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-orange-500/25 active:scale-98 cursor-pointer"
+                      class="w-full h-full min-h-[46px] sm:min-h-[50px] px-5 sm:px-6 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-semibold whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     >
-                      <span>Buscar equipos</span>
+                      <span>Buscar</span>
                       <span aria-hidden="true">&rarr;</span>
                     </button>
                   </div>
@@ -237,10 +237,10 @@ export async function renderHomeView() {
                 </div>
               </form>
 
-              <!-- Filtros rápidos inferiores con estética minimalista y limpia -->
+              <!-- Filtros rápidos inferiores neutralizados para respetar la regla del 10% de acentos -->
               <div class="flex flex-wrap items-center gap-2 text-xs pt-0.5">
                 <span class="text-slate-400 font-medium mr-1">Filtros rápidos:</span>
-                <a href="#/catalog" class="px-3 py-1 rounded-lg bg-orange-50/80 text-[#ea580c] font-semibold hover:bg-orange-100 transition-colors">
+                <a href="#/catalog" class="px-3 py-1 rounded-lg bg-slate-100/90 text-slate-700 font-semibold hover:bg-slate-200 hover:text-slate-900 transition-colors">
                   Catálogo completo &rarr;
                 </a>
                 <a href="#/catalog?q=excavadora" class="px-3 py-1 rounded-lg bg-slate-100/80 text-slate-600 font-medium hover:bg-slate-200/80 hover:text-slate-900 transition-colors">
@@ -286,7 +286,7 @@ export async function renderHomeView() {
             <!-- Cuerpo Principal con Grid Proporcional Multi-Dispositivo -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-center">
               
-              <!-- 1. Producto (md: 7 cols, lg: 5 cols) -->
+              <!-- 1. Producto: Subtítulo neutro en slate-400 para dar protagonismo al título -->
               <div class="md:col-span-7 lg:col-span-5 flex items-center gap-4 sm:gap-5">
                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border border-slate-200/70 overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-2xs">
                   <img 
@@ -296,7 +296,7 @@ export async function renderHomeView() {
                   />
                 </div>
                 <div class="min-w-0">
-                  <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.08em] text-[#ea580c] mb-1">
+                  <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1">
                     ${activeTool?.brand || 'Bosch'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
                   </p>
                   <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate font-display">
@@ -308,7 +308,7 @@ export async function renderHomeView() {
                 </div>
               </div>
 
-              <!-- 2. Progreso Minimalista (md: 12 cols span abajo, lg: 4 cols al medio) -->
+              <!-- 2. Progreso Minimalista: Textos con justify-between matemáticamente simétricos -->
               <div class="md:col-span-12 lg:col-span-4 lg:px-2 order-3 lg:order-2 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
                 <div class="flex items-center justify-between text-xs mb-2">
                   <span class="font-semibold text-slate-900">En proceso de despacho</span>
@@ -320,16 +320,16 @@ export async function renderHomeView() {
                   <div class="h-full bg-[#ea580c] rounded-full transition-all duration-500" style="width: 50%"></div>
                 </div>
 
-                <!-- Hitos del proceso -->
-                <div class="grid grid-cols-4 text-[11px] text-slate-400">
+                <!-- 4 Pasos simétricos de extremo a extremo con justify-between -->
+                <div class="flex items-center justify-between w-full mt-2 text-[11px] text-slate-400 select-none">
                   <span class="text-slate-600 font-medium">Confirmado</span>
                   <span class="text-[#ea580c] font-bold">Despacho</span>
-                  <span class="text-center">En obra</span>
-                  <span class="text-right">Retorno</span>
+                  <span class="text-slate-400 font-normal">En obra</span>
+                  <span class="text-slate-400 font-normal">Retorno</span>
                 </div>
               </div>
 
-              <!-- 3. Precio y Acciones (md: 5 cols a la derecha, lg: 3 cols) -->
+              <!-- 3. Precio y Acciones: Botón Gestionar en negro grafito (Estilo Apple / Linear) -->
               <div class="md:col-span-5 lg:col-span-3 flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 order-2 lg:order-3">
                 <div class="md:text-right">
                   <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total liquidado</p>
@@ -339,17 +339,17 @@ export async function renderHomeView() {
                   <p class="text-[10px] text-slate-400 font-medium">IVA y depósito incluidos</p>
                 </div>
 
-                <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="flex items-center gap-2.5 w-full sm:w-auto">
                   <button 
                     id="btn-active-rental-invoice" 
                     type="button" 
-                    class="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-200 hover:text-[#ea580c] transition-colors cursor-pointer shadow-2xs"
+                    class="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
                   >
                     Factura
                   </button>
                   <a 
                     href="#/client" 
-                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-xs hover:shadow-orange-500/25 transition-all cursor-pointer"
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
                   >
                     <span>Gestionar</span>
                     <span aria-hidden="true">&rarr;</span>
