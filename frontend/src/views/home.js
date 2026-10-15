@@ -715,9 +715,7 @@ export async function renderHomeView() {
 
   // 3. Active rental detail button
   container.querySelector('#btn-active-rental-detail')?.addEventListener('click', () => {
-    if (activeRental) {
-      openInvoiceViewer(activeRental);
-    }
+    window.location.hash = '#/client';
   });
 
   // 4. "Reservar ahora" buttons on Section 06

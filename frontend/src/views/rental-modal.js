@@ -972,11 +972,20 @@ export function openInvoiceViewer(invoice) {
   });
 
   content.querySelector('#invoice-btn-download')?.addEventListener('click', () => {
-    showToast('Descargando factura en formato PDF oficial...', 'success');
+    if (invoice.rawInvoiceId) {
+      window.open(`http://localhost:8085/api/v1/billing/invoices/${invoice.rawInvoiceId}/html`, '_blank');
+    } else {
+      showToast('Descargando comprobante fiscal...', 'success');
+      window.print();
+    }
   });
 
   content.querySelector('#invoice-btn-print')?.addEventListener('click', () => {
-    window.print();
+    if (invoice.rawInvoiceId) {
+      window.open(`http://localhost:8085/api/v1/billing/invoices/${invoice.rawInvoiceId}/html`, '_blank');
+    } else {
+      window.print();
+    }
   });
 
   modal.open({
