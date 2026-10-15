@@ -25,9 +25,39 @@ export function renderNavbar(activeRoute = 'catalog') {
         ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">${renderIcon('Building2', 'w-3 h-3')} Proveedor Aliado</span>`
         : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">${renderIcon('CheckCircle2', 'w-3 h-3')} Cliente Verificado</span>`);
 
+  const isHome = activeRoute === 'home';
+
   container.innerHTML = `
-    <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header class="sticky top-0 z-40 transition-all duration-300 relative ${
+      isHome 
+        ? 'bg-transparent border-b border-slate-200/40' 
+        : 'bg-white border-b border-slate-200/90 shadow-xs'
+    }">
+      ${isHome ? `
+        <!-- Onda de Glassmorfismo en la barra superior (blanco en extremos, transparente sobre la excavadora, reintegración gradual) -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden select-none">
+          <!-- Capa de difuminado óptico de fondo -->
+          <div class="absolute inset-0 backdrop-blur-md"></div>
+          
+          <!-- Gradiente de reintegración suave a los costados -->
+          <div class="absolute inset-0 bg-gradient-to-r from-white from-20% via-white/15 via-48% to-white to-76%"></div>
+
+          <!-- Onda orgánica SVG que esculpe la silueta de la barra blanca integrándose con el fondo -->
+          <svg class="absolute inset-0 w-full h-full opacity-90" viewBox="0 0 1440 80" fill="none" preserveAspectRatio="none">
+            <!-- Bloque izquierdo blanco (ToolRent) que ondula suavemente hacia el centro -->
+            <path d="M0,0 L320,0 C360,0 380,25 410,50 C440,75 480,80 540,80 L0,80 Z" fill="#ffffff" />
+            <path d="M320,0 C360,0 380,25 410,50 C440,75 480,80 540,80" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+            
+            <!-- Bloque derecho blanco (Avatar y Notificaciones) que se reintegra gradualmente -->
+            <path d="M840,80 C900,80 940,75 970,50 C1000,25 1020,0 1060,0 L1440,0 L1440,80 L840,80 Z" fill="#ffffff" />
+            <path d="M840,80 C900,80 940,75 970,50 C1000,25 1020,0 1060,0" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+          </svg>
+
+          <!-- Borde inferior sutil con degradado -->
+          <div class="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-slate-200 via-white/50 to-slate-200"></div>
+        </div>
+      ` : ''}
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="flex items-center justify-between h-20 py-3 gap-4 lg:gap-8">
           
           <!-- 1. Logo & Brand Mark -->
@@ -38,8 +68,10 @@ export function renderNavbar(activeRoute = 'catalog') {
             </span>
           </a>
 
-          <!-- 2. Dynamic, Role-Aware Navigation Links -->
-          <nav class="hidden md:flex items-center gap-1 lg:gap-2">
+          <!-- 2. Dynamic, Role-Aware Navigation Links (Onda Glassmorphism en Inicio, Catálogo, Mis Alquileres) -->
+          <nav class="hidden md:flex items-center gap-1 lg:gap-2 ${
+            isHome ? 'px-3.5 py-1.5 rounded-full bg-white/30 backdrop-blur-lg border border-white/60 shadow-xs' : ''
+          }">
             <!-- Inicio (Landing Page) -->
             <a href="#/" class="relative px-3.5 py-2 text-sm font-semibold transition-all ${
               activeRoute === 'home'
