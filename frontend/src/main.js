@@ -150,4 +150,20 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Tu sesión ha finalizado. Por favor ingresa de nuevo.', 'warning');
     window.location.hash = '#/catalog';
   });
+
+  // Global enhancer: Suppress ugly native browser history dropdown popups on search/filter inputs
+  document.addEventListener('focusin', (e) => {
+    const target = e.target;
+    if (target && target.tagName === 'INPUT') {
+      const isSearchOrFilter = target.type === 'search' || 
+        /search|filter|buscar|query|q/i.test(target.id || target.name || target.className || target.placeholder);
+      if (isSearchOrFilter && !target.hasAttribute('autocomplete')) {
+        target.setAttribute('autocomplete', 'off');
+        target.setAttribute('autocorrect', 'off');
+        target.setAttribute('autocapitalize', 'off');
+        target.setAttribute('spellcheck', 'false');
+      }
+    }
+  }, true);
 });
+

@@ -106,7 +106,7 @@ export async function renderAdminDashboard() {
           </div>
           <div class="flex items-center gap-3">
             <div class="relative hidden sm:block">
-              <input type="text" id="admin-global-search" placeholder="Buscar en el panel de administración..." class="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs w-72 focus:outline-none focus:border-brand-500 transition-colors" />
+              <input type="text" id="admin-global-search" name="admin_global_search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar en el panel de administración..." class="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs w-72 focus:outline-none focus:border-brand-500 transition-colors" />
               <div class="absolute left-3 top-2.5 text-slate-400">
                 ${renderIcon('Search', 'w-3.5 h-3.5')}
               </div>
@@ -287,7 +287,7 @@ export async function renderAdminDashboard() {
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
               <div class="relative flex-1 sm:w-64">
-                <input type="text" id="user-search-input" placeholder="Buscar usuario..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
+                <input type="text" id="user-search-input" name="admin_user_search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar usuario..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors" />
                 <div class="absolute left-2.5 top-2 text-slate-400">
                   ${renderIcon('Search', 'w-3.5 h-3.5')}
                 </div>
