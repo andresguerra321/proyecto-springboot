@@ -5,7 +5,6 @@ import bannerWebImg from '../assets/banner-web.png';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { animateStaggerIn } from '../utils/animations.js';
-import { createDateRangeCalendar } from '../components/date-range-calendar.js';
 
 export async function renderCatalogView() {
   if (auth.isAuthenticated() && auth.isProvider() && !auth.isAdmin()) {
@@ -34,7 +33,6 @@ export async function renderCatalogView() {
 
   let allTools = [];
   let categories = [];
-  let calendarInstance = null;
 
   async function fetchAndApplyAvailability(start, end) {
     if (!start || !end) return;
@@ -304,61 +302,6 @@ export async function renderCatalogView() {
           
           <!-- Left Sidebar Filters -->
           <aside class="space-y-6 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
-            
-            <!-- Período de Alquiler Filter (Dual-Month Calendar Integration) -->
-            <div class="relative">
-              <div class="flex items-center justify-between pb-2.5 select-none">
-                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  ${renderIcon('Calendar', 'w-3.5 h-3.5 text-[#ea580c]')} Período de Alquiler
-                </h3>
-                ${filterStart ? `
-                  <button type="button" id="btn-sidebar-clear-dates" class="text-[10px] text-[#ea580c] hover:text-[#c2410c] font-bold cursor-pointer">
-                    Limpiar
-                  </button>
-                ` : ''}
-              </div>
-
-              <div id="btn-open-sidebar-calendar" class="p-2.5 rounded-xl border transition-all cursor-pointer ${
-                filterStart ? 'bg-orange-50/80 border-[#ea580c]/60 shadow-2xs' : 'bg-slate-50 border-slate-200 hover:border-[#ea580c]'
-              }">
-                <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  <span>Fechas Activas:</span>
-                  ${filterStart ? `<span class="text-emerald-700 font-bold">Verificado</span>` : ''}
-                </div>
-                <div class="text-xs font-bold text-slate-800 mt-0.5 truncate" id="sidebar-dates-label">
-                  ${filterStart && filterEnd ? `${formatDate(filterStart)} - ${formatDate(filterEnd)}` : 'Cualquier fecha'}
-                </div>
-                <div class="text-[10px] text-[#ea580c] font-medium mt-1 flex items-center gap-1">
-                  ${renderIcon('Clock', 'w-3 h-3')}
-                  <span>${filterStart ? 'Filtrando stock real en DB' : 'Click para fijar fechas (2 meses)'}</span>
-                </div>
-              </div>
-
-              <!-- Sidebar Popover Calendar (2-Month Dual Calendar) -->
-              <div id="sidebar-calendar-popover" class="hidden absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 w-full sm:w-[580px] md:w-[620px] max-w-[calc(100vw-2rem)] backdrop-blur-md">
-                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-display">
-                    ${renderIcon('Calendar', 'w-4 h-4 text-[#ea580c]')} Selecciona Período de Alquiler (2 Meses)
-                  </span>
-                  <button type="button" id="btn-close-sidebar-calendar" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
-                    ${renderIcon('X', 'w-4 h-4')}
-                  </button>
-                </div>
-
-                <div id="sidebar-calendar-mount"></div>
-
-                <div class="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between">
-                  <span id="sidebar-calendar-summary" class="text-[11px] font-medium text-slate-600">
-                    ${filterStart && filterEnd ? `${formatDate(filterStart)} al ${formatDate(filterEnd)}` : 'Selecciona fechas en el calendario'}
-                  </span>
-                  <button type="button" id="btn-apply-sidebar-calendar" class="px-4 py-1.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer">
-                    Aplicar al Catálogo
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="border-t border-slate-100"></div>
 
             <!-- Category Radio/Check Filters -->
             <div>
@@ -573,79 +516,15 @@ export async function renderCatalogView() {
   const priceMaxBox = container.querySelector('#price-max-box');
   const searchInput = container.querySelector('#catalog-search-input');
   const clearSearchBtn = container.querySelector('#btn-clear-catalog-search');
-  const searchShortcut = container.querySelector('#catalog-search-shortcut');
-  const sidebarPopover = container.querySelector('#sidebar-calendar-popover');
-  const sidebarCalMount = container.querySelector('#sidebar-calendar-mount');
-
-  // Mount 2-month calendar into sidebar popover
-  let tempStart = filterStart || '';
-  let tempEnd = filterEnd || '';
-
-  if (sidebarCalMount) {
-    calendarInstance = createDateRangeCalendar({
-      initialStartDate: filterStart || undefined,
-      initialEndDate: filterEnd || undefined,
-      onChange: ({ startDate: ns, endDate: ne, days: nd }) => {
-        tempStart = ns;
-        tempEnd = ne;
-        const sumEl = container.querySelector('#sidebar-calendar-summary');
-        if (sumEl) sumEl.textContent = `${nd} días (${formatDate(ns)} al ${formatDate(ne)})`;
-      }
-    });
-    sidebarCalMount.appendChild(calendarInstance.getElement());
-  }
-
-  function toggleSidebarCalendar(open) {
-    if (!sidebarPopover) return;
-    if (open) {
-      sidebarPopover.classList.remove('hidden');
-    } else {
-      sidebarPopover.classList.add('hidden');
-    }
-  }
-
-  container.querySelector('#btn-open-sidebar-calendar')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isHidden = sidebarPopover?.classList.contains('hidden');
-    toggleSidebarCalendar(isHidden);
-  });
-
-  container.querySelector('#btn-close-sidebar-calendar')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleSidebarCalendar(false);
-  });
-
-  container.querySelector('#btn-apply-sidebar-calendar')?.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    toggleSidebarCalendar(false);
-    if (tempStart && tempEnd) {
-      filterStart = tempStart;
-      filterEnd = tempEnd;
-      await fetchAndApplyAvailability(filterStart, filterEnd);
-      updateDatesUI();
-      renderProductsGrid();
-    }
-  });
-
   const handleClearDates = () => {
     filterStart = '';
     filterEnd = '';
-    tempStart = '';
-    tempEnd = '';
     resetAvailabilityToBase();
     updateDatesUI();
     renderProductsGrid();
   };
 
-  container.querySelector('#btn-sidebar-clear-dates')?.addEventListener('click', handleClearDates);
   container.querySelector('#btn-banner-clear-dates')?.addEventListener('click', handleClearDates);
-
-  document.addEventListener('click', (e) => {
-    if (sidebarPopover && !sidebarPopover.classList.contains('hidden')) {
-      const isInside = sidebarPopover.contains(e.target) || container.querySelector('#btn-open-sidebar-calendar')?.contains(e.target);
-      if (!isInside) toggleSidebarCalendar(false);
-    }
-  });
 
   function updateDatesUI() {
     const label = container.querySelector('#sidebar-dates-label');
