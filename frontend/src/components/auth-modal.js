@@ -77,13 +77,13 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Documento de identidad *</label>
-            <input type="text" id="reg-docNumber" required maxlength="20" inputmode="numeric" placeholder="C.C. o Documento (ej. 1020304050)" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            <input type="text" id="reg-docNumber" required maxlength="10" inputmode="numeric" placeholder="Cédula (6 a 10 dígitos, ej. 1020304050)" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono de contacto *</label>
-            <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3001234567" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            <input type="tel" id="reg-phone" required maxlength="10" inputmode="tel" autocomplete="tel" placeholder="ej. 3001234567 (10 dígitos)" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad de operación *</label>
@@ -100,7 +100,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">NIT o RUT *</label>
-            <input type="text" id="reg-taxId" required maxlength="20" inputmode="numeric" placeholder="ej. 901234567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            <input type="text" id="reg-taxId" required maxlength="12" inputmode="numeric" placeholder="ej. 901234567-8" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -110,7 +110,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono corporativo *</label>
-            <input type="tel" id="reg-phone" required maxlength="15" inputmode="tel" autocomplete="tel" placeholder="ej. 3109876543" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            <input type="tel" id="reg-phone" required maxlength="10" inputmode="tel" autocomplete="tel" placeholder="ej. 3109876543 (10 dígitos)" class="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
           </div>
         </div>
         <div>
@@ -164,62 +164,66 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       });
     }
 
-    // Register: Full Name / Representative (Letters, Spanish accents, spaces, dots, hyphens only. No digits, max 60)
+    // Register: Full Name / Representative (ONLY letters, Spanish accents and spaces. No digits, no dots, no dashes, max 60)
     const nameInput = root.querySelector('#reg-fullName');
     if (nameInput && !nameInput._filterBound) {
       nameInput._filterBound = true;
       nameInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]/g, '').slice(0, 60);
+        const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, '').slice(0, 60);
         if (e.target.value !== clean) e.target.value = clean;
       });
     }
 
-    // Register: Company Name (Letters, numbers, spanish accents, spaces, dots, commas, ampersand, hyphens, slashes)
+    // Register: Company Name (Letters, numbers, spanish accents, spaces, and dot/hyphen for corporate initials. Max 80)
     const companyInput = root.querySelector('#reg-companyName');
     if (companyInput && !companyInput._filterBound) {
       companyInput._filterBound = true;
       companyInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,&/-]/g, '').slice(0, 80);
+        let clean = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.&-]/g, '').slice(0, 80);
+        // Avoid sequences of dots or hyphens
+        clean = clean.replace(/[.-]{2,}/g, '.');
         if (e.target.value !== clean) e.target.value = clean;
       });
     }
 
-    // Register: Phone (Digits and +, -, (, ), max 15)
+    // Register: Phone (Strictly 10 digits in Colombia, e.g. 3001234567)
     const phoneInput = root.querySelector('#reg-phone');
     if (phoneInput && !phoneInput._filterBound) {
       phoneInput._filterBound = true;
       phoneInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^0-9+\s()-]/g, '').slice(0, 15);
+        const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
         if (e.target.value !== clean) e.target.value = clean;
       });
     }
 
-    // Register: Document Number (Digits and hyphen only, max 20)
+    // Register: Document Number (Strictly 6 to 10 digits, e.g. 1020304050)
     const docInput = root.querySelector('#reg-docNumber');
     if (docInput && !docInput._filterBound) {
       docInput._filterBound = true;
       docInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^0-9-]/g, '').slice(0, 20);
+        const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
         if (e.target.value !== clean) e.target.value = clean;
       });
     }
 
-    // Register: Tax ID / NIT (Digits and hyphen only, max 20)
+    // Register: Tax ID / NIT (Digits and single hyphen, max 12 chars, e.g. 901234567-8)
     const taxInput = root.querySelector('#reg-taxId');
     if (taxInput && !taxInput._filterBound) {
       taxInput._filterBound = true;
       taxInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^0-9-]/g, '').slice(0, 20);
-        if (e.target.value !== clean) e.target.value = clean;
+        let val = e.target.value.replace(/[^0-9-]/g, '').slice(0, 12);
+        const parts = val.split('-');
+        if (parts.length > 2) val = parts[0] + '-' + parts.slice(1).join('').replace(/-/g, '');
+        if (e.target.value !== val) e.target.value = val;
       });
     }
 
-    // Register: City (Letters, spanish accents, spaces, dots, hyphens only, max 40)
+    // Register: City (ONLY letters, spanish accents and spaces. No numbers, no dots, no dashes, max 40)
     const cityInput = root.querySelector('#reg-city');
     if (cityInput && !cityInput._filterBound) {
       cityInput._filterBound = true;
       cityInput.addEventListener('input', (e) => {
-        const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]/g, '').slice(0, 40);
+        const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, '').slice(0, 40);
         if (e.target.value !== clean) e.target.value = clean;
       });
     }
@@ -596,13 +600,13 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         phone = phoneInput?.value.trim() || '';
         city = cityInput?.value.trim() || '';
 
-        // Full name check
+        // Full name check (Strictly letters and spaces)
         if (!fullName || fullName.length < 3 || fullName.length > 60) {
           showError('El nombre y apellidos deben tener entre 3 y 60 caracteres.', nameInput);
           return;
         }
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]+$/.test(fullName)) {
-          showError('El nombre solo puede contener letras y espacios.', nameInput);
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{3,60}$/.test(fullName) || (fullName.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length < 3) {
+          showError('El nombre solo puede contener letras y espacios (sin puntos, guiones ni caracteres especiales).', nameInput);
           return;
         }
         const threatName = detectSecurityThreat('Nombre y Apellidos', fullName);
@@ -611,10 +615,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           return;
         }
 
-        // Document number check
-        const docClean = documentNumber.replace(/\D/g, '');
-        if (!documentNumber || docClean.length < 6 || documentNumber.length > 20) {
-          showError('El número de documento de identidad debe contener entre 6 y 20 dígitos numéricos.', docInput);
+        // Document number check (Strictly 6 to 10 digits)
+        if (!/^\d{6,10}$/.test(documentNumber)) {
+          showError('El documento de identidad debe contener entre 6 y 10 dígitos numéricos (sin letras ni caracteres especiales).', docInput);
           return;
         }
         const threatDoc = detectSecurityThreat('Documento de identidad', documentNumber);
@@ -623,10 +626,9 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           return;
         }
 
-        // Phone check
-        const phoneDigits = phone.replace(/\D/g, '');
-        if (!phone || phoneDigits.length < 7 || phoneDigits.length > 15) {
-          showError('El teléfono de contacto debe contener entre 7 y 15 dígitos.', phoneInput);
+        // Phone check (Strictly 10 digits)
+        if (!/^\d{10}$/.test(phone)) {
+          showError('El teléfono de contacto debe contener exactamente 10 dígitos numéricos (ej. 3001234567).', phoneInput);
           return;
         }
         const threatPhone = detectSecurityThreat('Teléfono', phone);
@@ -635,13 +637,13 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           return;
         }
 
-        // City check
-        if (!city || city.length < 2 || city.length > 40) {
-          showError('La ciudad de operación es obligatoria (mínimo 2 caracteres).', cityInput);
+        // City check (Strictly letters and spaces)
+        if (!city || city.length < 3 || city.length > 40) {
+          showError('La ciudad de operación debe tener entre 3 y 40 caracteres.', cityInput);
           return;
         }
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]+$/.test(city)) {
-          showError('La ciudad solo puede contener letras y espacios.', cityInput);
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{3,40}$/.test(city) || (city.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length < 3) {
+          showError('La ciudad solo puede contener letras y espacios (sin números, puntos ni caracteres especiales, ej. Bogotá).', cityInput);
           return;
         }
         const threatCity = detectSecurityThreat('Ciudad', city);
@@ -669,16 +671,20 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           showError('La Razón Social / Empresa debe tener entre 3 y 80 caracteres.', companyInput);
           return;
         }
+        const compAlpha = (companyName.match(/[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
+        if (compAlpha < 3 || /^[.\s-]+$/.test(companyName)) {
+          showError('La Razón Social debe contener al menos 3 caracteres alfanuméricos legibles (no puede ser solo puntos o símbolos).', companyInput);
+          return;
+        }
         const threatComp = detectSecurityThreat('Razón Social', companyName);
         if (threatComp) {
           showError(threatComp, companyInput);
           return;
         }
 
-        // Tax ID / NIT
-        const taxDigits = taxId.replace(/\D/g, '');
-        if (!taxId || taxDigits.length < 7 || taxId.length > 20) {
-          showError('El NIT o RUT de la empresa es obligatorio (ej. 901234567-8).', taxInput);
+        // Tax ID / NIT (8 to 10 digits, optional -X)
+        if (!/^\d{8,10}(-\d)?$/.test(taxId)) {
+          showError('El NIT o RUT de la empresa debe tener entre 8 y 10 dígitos (ej. 901234567-8). No puede terminar con guion suelto.', taxInput);
           return;
         }
         const threatTax = detectSecurityThreat('NIT o RUT', taxId);
@@ -687,25 +693,24 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           return;
         }
 
-        // Contact / Representative
+        // Contact / Representative (Strictly letters and spaces)
         if (!fullName || fullName.length < 3 || fullName.length > 60) {
           showError('El nombre del contacto o representante debe tener entre 3 y 60 caracteres.', repInput);
           return;
         }
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]+$/.test(fullName)) {
-          showError('El nombre del representante solo puede contener letras y espacios.', repInput);
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{3,60}$/.test(fullName) || (fullName.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length < 3) {
+          showError('El nombre del representante solo puede contener letras y espacios (sin puntos ni caracteres especiales).', repInput);
           return;
         }
-        const threatRep = detectSecurityThreat('Contacto o Representante', fullName);
+        const threatRep = detectSecurityThreat('Contacto o Representative', fullName);
         if (threatRep) {
           showError(threatRep, repInput);
           return;
         }
 
-        // Corporate Phone
-        const phoneDigits = phone.replace(/\D/g, '');
-        if (!phone || phoneDigits.length < 7 || phoneDigits.length > 15) {
-          showError('El teléfono corporativo debe contener entre 7 y 15 dígitos.', phoneInput);
+        // Corporate Phone (Strictly 10 digits)
+        if (!/^\d{10}$/.test(phone)) {
+          showError('El teléfono corporativo debe contener exactamente 10 dígitos numéricos (ej. 3109876543).', phoneInput);
           return;
         }
         const threatPhone = detectSecurityThreat('Teléfono corporativo', phone);
@@ -714,13 +719,13 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
           return;
         }
 
-        // City
-        if (!city || city.length < 2 || city.length > 40) {
-          showError('La ciudad de sede principal es obligatoria (mínimo 2 caracteres).', cityInput);
+        // City (Strictly letters and spaces)
+        if (!city || city.length < 3 || city.length > 40) {
+          showError('La ciudad de sede principal debe tener entre 3 y 40 caracteres.', cityInput);
           return;
         }
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.-]+$/.test(city)) {
-          showError('La ciudad solo puede contener letras y espacios.', cityInput);
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{3,40}$/.test(city) || (city.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length < 3) {
+          showError('La ciudad solo puede contener letras y espacios (sin puntos, guiones ni caracteres especiales, ej. Bogotá).', cityInput);
           return;
         }
         const threatCity = detectSecurityThreat('Ciudad', city);

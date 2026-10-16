@@ -14,9 +14,17 @@ public record ToolRequest(
         String description,
         BigDecimal dailyPrice,
         BigDecimal replacementValue,
+        String status,
         List<ImageRequest> images,
         List<SpecificationRequest> specifications
 ) {
+    public ToolRequest(UUID providerId, UUID categoryId, String name, String brand, String model,
+                       String serialNumber, String description, BigDecimal dailyPrice, BigDecimal replacementValue,
+                       List<ImageRequest> images, List<SpecificationRequest> specifications) {
+        this(providerId, categoryId, name, brand, model, serialNumber, description, dailyPrice, replacementValue, null, images, specifications);
+    }
+
     public record ImageRequest(String imageUrl, boolean isPrimary) {}
     public record SpecificationRequest(String specName, String specValue) {}
 }
+

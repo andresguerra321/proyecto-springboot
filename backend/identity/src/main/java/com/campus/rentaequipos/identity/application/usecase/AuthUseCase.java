@@ -114,17 +114,50 @@ public class AuthUseCase {
             String compName = (request.companyName() != null && !request.companyName().isBlank())
                     ? request.companyName().trim()
                     : ((request.fullName() != null && !request.fullName().isBlank()) ? request.fullName().trim() : cleanUsername + " Equipos");
+            
+            if (compName.length() < 3 || compName.replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]", "").length() < 3) {
+                throw new BusinessRuleViolationException("La razón social debe contener al menos 3 caracteres alfanuméricos legibles (no puede ser solo puntos o símbolos).");
+            }
+
             String taxId = (request.taxId() != null && !request.taxId().isBlank())
                     ? request.taxId().trim()
                     : "NIT-" + (100000000L + Math.abs(newUser.getId().getLeastSignificantBits() % 900000000L)) + "-1";
             
+            if (request.taxId() != null && !request.taxId().isBlank()) {
+                String t = request.taxId().trim();
+                if (!t.matches("^\\d{8,10}(-\\d)?$")) {
+                    throw new BusinessRuleViolationException("El NIT o RUT debe tener entre 8 y 10 dígitos numéricos (con dígito de verificación opcional, ej. 901234567-8).");
+                }
+            }
+
             if (providerProfileRepository.existsByTaxId(taxId)) {
                 throw new BusinessRuleViolationException("El NIT o RUT ya se encuentra registrado por otro proveedor.");
             }
 
+            if (request.phone() != null && !request.phone().isBlank()) {
+                String p = request.phone().trim();
+                if (!p.matches("^\\d{10}$")) {
+                    throw new BusinessRuleViolationException("El número de teléfono debe contener exactamente 10 dígitos numéricos (ej. 3001234567).");
+                }
+            }
+
             String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone().trim() : "3001234567";
-            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
+
+            if (request.city() != null && !request.city().isBlank()) {
+                String c = request.city().trim();
+                if (!c.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,40}$") || c.replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]", "").length() < 3) {
+                    throw new BusinessRuleViolationException("La ciudad solo puede contener letras y espacios (entre 3 y 40 caracteres, ej. Bogotá).");
+                }
+            }
             String city = (request.city() != null && !request.city().isBlank()) ? request.city().trim() : "Bogotá";
+
+            if (request.address() != null && !request.address().isBlank()) {
+                String a = request.address().trim();
+                if (a.length() < 5 || a.length() > 100 || a.replaceAll("[^a-zA-Z0-9]", "").length() < 4) {
+                    throw new BusinessRuleViolationException("La dirección debe tener un formato válido de al menos 5 caracteres (ej. Calle 100 # 15-20).");
+                }
+            }
+            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
 
             ProviderProfile providerProfile = new ProviderProfile(
                     UUID.randomUUID(),
@@ -144,6 +177,11 @@ public class AuthUseCase {
             String fullName = (request.fullName() != null && !request.fullName().isBlank())
                     ? request.fullName().trim()
                     : cleanUsername;
+
+            if (fullName.length() < 3 || fullName.replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]", "").length() < 3) {
+                throw new BusinessRuleViolationException("El nombre del cliente debe contener al menos 3 caracteres alfanuméricos legibles (no puede ser solo puntos o símbolos).");
+            }
+
             String docType = (request.documentType() != null && !request.documentType().isBlank())
                     ? request.documentType().trim()
                     : "CC";
@@ -151,13 +189,41 @@ public class AuthUseCase {
                     ? request.documentNumber().trim()
                     : "CLI-" + (1000000000L + Math.abs(newUser.getId().getLeastSignificantBits() % 9000000000L));
 
+            if (request.documentNumber() != null && !request.documentNumber().isBlank()) {
+                String d = request.documentNumber().trim();
+                if (!d.matches("^\\d{6,10}$")) {
+                    throw new BusinessRuleViolationException("El documento de identidad debe contener entre 6 y 10 dígitos numéricos.");
+                }
+            }
+
             if (clientProfileRepository.existsByDocumentNumber(docNumber)) {
                 throw new BusinessRuleViolationException("El número de documento de identidad ya se encuentra registrado por otro cliente.");
             }
 
+            if (request.phone() != null && !request.phone().isBlank()) {
+                String p = request.phone().trim();
+                if (!p.matches("^\\d{10}$")) {
+                    throw new BusinessRuleViolationException("El número de teléfono debe contener exactamente 10 dígitos numéricos (ej. 3001234567).");
+                }
+            }
+
             String phone = (request.phone() != null && !request.phone().isBlank()) ? request.phone().trim() : "3001234567";
-            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
+
+            if (request.city() != null && !request.city().isBlank()) {
+                String c = request.city().trim();
+                if (!c.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,40}$") || c.replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]", "").length() < 3) {
+                    throw new BusinessRuleViolationException("La ciudad solo puede contener letras y espacios (entre 3 y 40 caracteres, ej. Bogotá).");
+                }
+            }
             String city = (request.city() != null && !request.city().isBlank()) ? request.city().trim() : "Bogotá";
+
+            if (request.address() != null && !request.address().isBlank()) {
+                String a = request.address().trim();
+                if (a.length() < 5 || a.length() > 100 || a.replaceAll("[^a-zA-Z0-9]", "").length() < 4) {
+                    throw new BusinessRuleViolationException("La dirección debe tener un formato válido de al menos 5 caracteres (ej. Calle 100 # 15-20).");
+                }
+            }
+            String address = (request.address() != null && !request.address().isBlank()) ? request.address().trim() : "Bogotá D.C.";
 
             ClientProfile clientProfile = new ClientProfile(
                     UUID.randomUUID(),

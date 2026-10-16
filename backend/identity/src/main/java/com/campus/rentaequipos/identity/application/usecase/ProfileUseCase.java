@@ -48,6 +48,8 @@ public class ProfileUseCase {
             throw new BusinessRuleViolationException("El perfil de cliente ya existe para este usuario.");
         }
 
+        validateProfileFields(request.fullName(), request.phone(), request.address(), request.city(), false);
+
         ClientProfile profile = new ClientProfile(
                 UUID.randomUUID(),
                 user.getId(),
@@ -114,6 +116,8 @@ public class ProfileUseCase {
         ClientProfile profile = clientProfileRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("ClientProfile", id));
 
+        validateProfileFields(request.fullName(), request.phone(), request.address(), request.city(), false);
+
         profile.update(request.fullName(), request.phone(), request.address(), request.city());
         ClientProfile updated = clientProfileRepository.save(profile);
         return mapToClientResponse(updated);
@@ -139,6 +143,8 @@ public class ProfileUseCase {
         if (providerProfileRepository.findByUserId(user.getId()).isPresent()) {
             throw new BusinessRuleViolationException("El perfil de proveedor ya existe para este usuario.");
         }
+
+        validateProfileFields(request.companyName(), request.phone(), request.address(), request.city(), true);
 
         ProviderProfile profile = new ProviderProfile(
                 UUID.randomUUID(),
@@ -206,9 +212,43 @@ public class ProfileUseCase {
         ProviderProfile profile = providerProfileRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("ProviderProfile", id));
 
+        validateProfileFields(request.companyName(), request.phone(), request.address(), request.city(), true);
+
         profile.update(request.companyName(), request.phone(), request.address(), request.city());
         ProviderProfile updated = providerProfileRepository.save(profile);
         return mapToProviderResponse(updated);
+    }
+
+    private void validateProfileFields(String nameOrCompany, String phone, String address, String city, boolean isProvider) {
+        if (nameOrCompany == null || nameOrCompany.trim().length() < 3) {
+            throw new BusinessRuleViolationException("El " + (isProvider ? "nombre de la razón social" : "nombre completo") + " debe tener al menos 3 caracteres.");
+        }
+        String cleanName = nameOrCompany.trim();
+        String alphaNum = cleanName.replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]", "");
+        if (alphaNum.length() < 3) {
+            throw new BusinessRuleViolationException("El " + (isProvider ? "nombre de la razón social" : "nombre completo") + " debe contener palabras legibles y no solo puntos o símbolos.");
+        }
+
+        if (phone != null && !phone.isBlank()) {
+            String p = phone.trim();
+            if (!p.matches("^\\d{10}$")) {
+                throw new BusinessRuleViolationException("El teléfono debe contener exactamente 10 dígitos numéricos (ej. 3001234567).");
+            }
+        }
+
+        if (city != null && !city.isBlank()) {
+            String c = city.trim();
+            if (!c.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,40}$") || c.replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]", "").length() < 3) {
+                throw new BusinessRuleViolationException("La ciudad solo puede contener letras y espacios (entre 3 y 40 caracteres, ej. Bogotá).");
+            }
+        }
+
+        if (address != null && !address.isBlank()) {
+            String a = address.trim();
+            if (a.length() < 5 || a.length() > 100 || a.replaceAll("[^a-zA-Z0-9]", "").length() < 4 || a.matches(".*[-.#,]{2,}.*") || a.matches("^[.#\\s-]+$")) {
+                throw new BusinessRuleViolationException("La dirección debe tener un formato válido de al menos 5 caracteres (ej. Calle 100 # 15-20) sin secuencias de símbolos repetidos.");
+            }
+        }
     }
 
     @Transactional

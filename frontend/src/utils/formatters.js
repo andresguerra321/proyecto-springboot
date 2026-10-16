@@ -1,3 +1,5 @@
+import { renderIcon } from './icons.js';
+
 /**
  * Format numeric value as Colombian Pesos (COP) matching Stitch reference design: "$ 185.000"
  */
@@ -33,16 +35,16 @@ export function formatDate(dateString) {
  */
 export function getToolStatusBadge(status) {
   const map = {
-    AVAILABLE: { label: 'Disponible', class: 'badge-disponible', dot: 'bg-emerald-500' },
-    RENTED: { label: 'Alquilada', class: 'badge-alquilada', dot: 'bg-blue-500' },
-    MAINTENANCE: { label: 'Mantenimiento', class: 'badge-mantenimiento', dot: 'bg-amber-500' },
-    RETIRED: { label: 'Retirada', class: 'badge-cancelada', dot: 'bg-rose-500' },
+    AVAILABLE: { label: 'Disponible', class: 'badge-disponible', icon: 'BadgeCheck', iconClass: 'text-emerald-600' },
+    RENTED: { label: 'Alquilada', class: 'badge-alquilada', icon: 'Clock', iconClass: 'text-blue-500' },
+    MAINTENANCE: { label: 'Mantenimiento', class: 'badge-mantenimiento', icon: 'Wrench', iconClass: 'text-amber-500' },
+    RETIRED: { label: 'Retirada', class: 'badge-cancelada', icon: 'Archive', iconClass: 'text-rose-500' },
   };
 
-  const item = map[status] || { label: status, class: 'badge-pendiente', dot: 'bg-slate-400' };
-  return `<span class="${item.class}">
-    <span class="w-1.5 h-1.5 rounded-full ${item.dot}"></span>
-    ${item.label}
+  const item = map[status] || { label: status, class: 'badge-pendiente', icon: 'HelpCircle', iconClass: 'text-slate-400' };
+  return `<span class="${item.class} font-bold select-none">
+    ${renderIcon(item.icon, `w-3.5 h-3.5 ${item.iconClass} flex-shrink-0`)}
+    <span>${item.label}</span>
   </span>`;
 }
 

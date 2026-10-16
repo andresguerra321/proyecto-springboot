@@ -90,10 +90,31 @@ public class ToolController {
             // Impide transferir la herramienta a otro proveedor
             effective = new ToolRequest(ownershipGuard.findOwnProviderId(userDetails), request.categoryId(), request.name(),
                     request.brand(), request.model(), request.serialNumber(), request.description(), request.dailyPrice(),
-                    request.replacementValue(), request.images(), request.specifications());
+                    request.replacementValue(), request.status(), request.images(), request.specifications());
         }
         ToolResponse response = toolUseCase.updateTool(id, effective);
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Actualizar estado de disponibilidad", description = "Cambia el estado de una herramienta (AVAILABLE o MAINTENANCE)")
+    public ResponseEntity<ToolResponse> updateStatus(@PathVariable UUID id,
+                                                    @RequestBody java.util.Map<String, String> body,
+                                                    @AuthenticationPrincipal UserDetails userDetails) {
+        ownershipGuard.assertOwnsTool(id, userDetails);
+        String statusStr = body.get("status");
+        if (statusStr == null || statusStr.isBlank()) {
+            throw new IllegalArgumentException("El campo 'status' es obligatorio");
+        }
+        com.campus.rentaequipos.catalog.domain.model.ToolStatus newStatus =
+                com.campus.rentaequipos.catalog.domain.model.ToolStatus.valueOf(statusStr.toUpperCase());
+        if (newStatus != com.campus.rentaequipos.catalog.domain.model.ToolStatus.AVAILABLE &&
+            newStatus != com.campus.rentaequipos.catalog.domain.model.ToolStatus.MAINTENANCE) {
+            throw new IllegalArgumentException("Solo se permite cambiar a estado AVAILABLE o MAINTENANCE");
+        }
+        return ResponseEntity.ok(toolUseCase.updateToolStatus(id, newStatus));
     }
 
     @DeleteMapping("/{id}")

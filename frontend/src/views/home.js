@@ -3,6 +3,8 @@ import auth from '../auth/state.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openRentalModal, openRentalInvoiceModal } from './rental-modal.js';
+import { openWarrantyExchangeModal, openRefundRequestModal } from './client-dashboard.js';
+import { createTwoBlockDatePicker, createDateRangeCalendar } from '../components/date-range-calendar.js';
 
 // Assets
 import heroCatImg from '../assets/hero-excavator-hd.jpg';
@@ -26,6 +28,29 @@ export async function renderHomeView() {
 
   const startFormatted = startDateDefault.toISOString().split('T')[0];
   const endFormatted = endDateDefault.toISOString().split('T')[0];
+
+  const maxHorizon = new Date(today);
+  maxHorizon.setDate(today.getDate() + 45);
+  const yrH = maxHorizon.getFullYear();
+  const moH = String(maxHorizon.getMonth() + 1).padStart(2, '0');
+  const daH = String(maxHorizon.getDate()).padStart(2, '0');
+  const maxHorizonFormatted = `${yrH}-${moH}-${daH}`;
+
+  const calcMaxEnd = (sDateStr) => {
+    try {
+      const parts = sDateStr.split('-');
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      d.setDate(d.getDate() + 29); // 30 days maximum
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      const standardMax = `${yr}-${mo}-${da}`;
+      return standardMax < maxHorizonFormatted ? standardMax : maxHorizonFormatted;
+    } catch (_) {
+      return maxHorizonFormatted;
+    }
+  };
+  const maxEndFormatted = calcMaxEnd(startFormatted);
 
   // 6 Curated Categories matching img/INDEX.png with crisp photography & counts
   const categoriesList = [
@@ -136,15 +161,77 @@ export async function renderHomeView() {
     return catCleanCompactacion;
   }
 
+  // Dynamic shipment delivery stepper state based on activeRental.status
+  let shippingBadge = 'Activo en obra';
+  let shippingBadgeClass = 'text-emerald-600';
+  let shippingPulseColor = 'bg-emerald-500';
+  let shippingSubtitle = 'Confirmado para entrega';
+  let shippingStepText = 'Paso 2 de 4';
+  let shippingTitle = 'En proceso de despacho';
+  let shippingProgressWidth = '50%';
+  let isStep1Active = false, isStep2Active = false, isStep3Active = false, isStep4Active = false;
+
+  if (activeRental) {
+    const s = activeRental.status;
+    if (s === 'PENDING') {
+      shippingBadge = 'Solicitud en revisión';
+      shippingBadgeClass = 'text-amber-600';
+      shippingPulseColor = 'bg-amber-500';
+      shippingSubtitle = 'Pendiente de confirmación por el proveedor';
+      shippingStepText = 'Paso 1 de 4';
+      shippingTitle = 'Solicitud registrada';
+      shippingProgressWidth = '25%';
+      isStep1Active = true;
+    } else if (s === 'CONFIRMED') {
+      shippingBadge = 'Confirmado para entrega';
+      shippingBadgeClass = 'text-blue-600';
+      shippingPulseColor = 'bg-blue-500';
+      shippingSubtitle = 'Preparando despacho en bodega';
+      shippingStepText = 'Paso 2 de 4';
+      shippingTitle = 'En proceso de despacho';
+      shippingProgressWidth = '50%';
+      isStep2Active = true;
+    } else if (s === 'IN_PROGRESS') {
+      shippingBadge = 'Activo en obra';
+      shippingBadgeClass = 'text-emerald-600';
+      shippingPulseColor = 'bg-emerald-500';
+      shippingSubtitle = 'Operando en faena técnica';
+      shippingStepText = 'Paso 3 de 4';
+      shippingTitle = 'Equipo entregado y activo en obra';
+      shippingProgressWidth = '75%';
+      isStep3Active = true;
+    } else if (s === 'COMPLETED') {
+      shippingBadge = 'Alquiler completado';
+      shippingBadgeClass = 'text-slate-600';
+      shippingPulseColor = 'bg-slate-400';
+      shippingSubtitle = 'Retorno a bodega e inspección finalizadas';
+      shippingStepText = 'Paso 4 de 4';
+      shippingTitle = 'Devolución e inspección finalizadas';
+      shippingProgressWidth = '100%';
+      isStep4Active = true;
+    } else {
+      shippingBadge = 'Cancelado';
+      shippingBadgeClass = 'text-rose-600';
+      shippingPulseColor = 'bg-rose-500';
+      shippingSubtitle = 'Contrato finalizado';
+      shippingStepText = 'Cancelado';
+      shippingTitle = 'Alquiler cancelado';
+      shippingProgressWidth = '0%';
+    }
+  }
+
+  const isUserProvider = auth.isProvider();
+  const manageHref = isUserProvider ? '#/provider' : '#/client';
+
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-16">
       
       <!-- ============================================================== -->
       <!-- 1. HERO BANNER FULL-BLEED (Limpio, sin recuadros forzados, palabras clave y fondo integrado) -->
       <!-- ============================================================== -->
-      <section class="relative w-full bg-white border-b border-slate-200/80 overflow-hidden min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
+      <section class="relative z-20 w-full bg-white border-b border-slate-200/80 overflow-visible min-h-[480px] sm:min-h-[520px] lg:min-h-[560px] flex items-center">
         <!-- Imagen de fondo HD de extremo a extremo: Maquinaria nítida a la derecha, transición con neblina a la izquierda -->
-        <div class="absolute inset-0 w-full h-full pointer-events-none select-none">
+        <div class="absolute inset-0 w-full h-full pointer-events-none select-none overflow-hidden">
           <img 
             src="${heroCatImg}" 
             alt="Excavadora Caterpillar en obra de construcción" 
@@ -212,32 +299,54 @@ export async function renderHomeView() {
                   </select>
                 </div>
 
-                <!-- Fecha Entrega: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                <div id="box-search-start" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
-                  <label for="hero-search-start" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
-                    Entrega
-                  </label>
-                  <input 
-                    type="date" 
-                    id="hero-search-start" 
-                    value="${startFormatted}" 
-                    min="${today.toISOString().split('T')[0]}" 
-                    class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
-                  />
-                </div>
+                <!-- Selector de Fechas Unificado con Popover de Calendario Propio (col-span-2 lg:col-span-6) -->
+                <div class="col-span-2 lg:col-span-6 relative">
+                  <div class="grid grid-cols-2 gap-2">
+                    
+                    <!-- Fecha Entrega: Click abre el calendario propio en modo ENTREGA -->
+                    <div id="box-search-start" class="bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c]">
+                        Entrega
+                      </span>
+                      <div class="flex items-center justify-between gap-1 mt-0.5">
+                        <span id="hero-display-start" class="text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] tabular-nums truncate">
+                          ${formatDate(startFormatted)}
+                        </span>
+                        <span class="text-slate-400 group-hover:text-[#ea580c] flex-shrink-0">
+                          ${renderIcon('Calendar', 'w-3.5 h-3.5')}
+                        </span>
+                      </div>
+                      <input type="hidden" id="hero-search-start" name="startDate" value="${startFormatted}" />
+                    </div>
 
-                <!-- Fecha Devolución: 50% en móviles/tablets (col-span-1 = ~160px-350px, sin truncamiento), 3 cols en desktop -->
-                <div id="box-search-end" class="col-span-1 lg:col-span-3 bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
-                  <label for="hero-search-end" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c] cursor-pointer">
-                    Retorno
-                  </label>
-                  <input 
-                    type="date" 
-                    id="hero-search-end" 
-                    value="${endFormatted}" 
-                    min="${startFormatted}" 
-                    class="w-full mt-0.5 bg-transparent text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] focus:outline-none tabular-nums cursor-pointer" 
-                  />
+                    <!-- Fecha Retorno: Click abre el calendario propio en modo RETORNO -->
+                    <div id="box-search-end" class="bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c]">
+                        Retorno
+                      </span>
+                      <div class="flex items-center justify-between gap-1 mt-0.5">
+                        <span id="hero-display-end" class="text-xs font-semibold text-slate-800 group-hover:text-[#ea580c] tabular-nums truncate">
+                          ${formatDate(endFormatted)}
+                        </span>
+                        <span class="text-slate-400 group-hover:text-[#ea580c] flex-shrink-0">
+                          ${renderIcon('Clock', 'w-3.5 h-3.5')}
+                        </span>
+                      </div>
+                      <input type="hidden" id="hero-search-end" name="endDate" value="${endFormatted}" />
+                    </div>
+
+                  </div>
+
+                  <!-- Popover 1: Calendario Entrega (alineado al Bloque 1 de Entrega) -->
+                  <div id="hero-popover-start" class="hidden absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-3.5 w-full sm:w-[320px] max-w-[calc(100vw-2rem)] backdrop-blur-md">
+                    <div id="hero-calendar-start-mount"></div>
+                  </div>
+
+                  <!-- Popover 2: Calendario Retorno (alineado al Bloque 2 de Retorno) -->
+                  <div id="hero-popover-end" class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-3.5 w-full sm:w-[330px] max-w-[calc(100vw-2rem)] backdrop-blur-md">
+                    <div id="hero-calendar-end-mount"></div>
+                  </div>
+
                 </div>
 
                 <!-- Botón Acción: texto conciso Buscar con whitespace-nowrap para que jamás se parta -->
@@ -287,14 +396,14 @@ export async function renderHomeView() {
             <div class="flex flex-wrap items-center justify-between gap-y-2 gap-x-4 pb-4 mb-5 border-b border-slate-100">
               <div class="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs">
                 <!-- Estado limpio con indicador pulsante orgánico -->
-                <span class="inline-flex items-center gap-1.5 font-medium text-emerald-600">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Activo en obra
+                <span class="inline-flex items-center gap-1.5 font-medium ${shippingBadgeClass}">
+                  <span class="w-1.5 h-1.5 rounded-full ${shippingPulseColor} animate-pulse"></span>
+                  ${shippingBadge}
                 </span>
                 <span class="text-slate-300 font-light select-none">/</span>
                 <span class="font-mono text-xs font-semibold text-slate-700 tracking-wider">#${activeRental.rentalCode || 'RNT-' + String(activeRental.id).slice(0, 8).toUpperCase()}</span>
                 <span class="text-slate-300 font-light select-none hidden sm:inline">/</span>
-                <span class="text-slate-400 hidden sm:inline font-normal">Confirmado para entrega</span>
+                <span class="text-slate-400 hidden sm:inline font-normal">${shippingSubtitle}</span>
               </div>
 
               <!-- Fechas limpias sin cajas de colores innecesarias -->
@@ -319,35 +428,35 @@ export async function renderHomeView() {
                 </div>
                 <div class="min-w-0">
                   <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1">
-                    ${activeTool?.brand || 'Bosch'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
+                    ${activeTool?.brand || 'Bosch Professional'} · ${activeTool?.categoryName || 'Maquinaria Pesada'}
                   </p>
                   <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate font-display">
                     ${activeTool?.name || activeRental.items?.[0]?.toolName || 'Martillo Demoledor Hexagonal 30kg'}
                   </h3>
                   <p class="text-xs text-slate-500 mt-0.5 truncate">
-                    Por <span class="text-slate-800 font-semibold">${activeProvider?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.'}</span>
+                    Por <span class="text-slate-800 font-semibold">${activeProvider?.companyName || 'ConstruMaquinaria del Norte S.A.S.'}</span>
                   </p>
                 </div>
               </div>
 
-              <!-- 2. Progreso Minimalista: Textos en text-[10px] sm:text-[11px] para celulares de 375px -->
+              <!-- 2. Progreso Minimalista: Dinámico según estado real -->
               <div class="md:col-span-12 lg:col-span-4 lg:px-2 order-3 lg:order-2 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
                 <div class="flex items-center justify-between text-xs mb-2">
-                  <span class="font-semibold text-slate-900">En proceso de despacho</span>
-                  <span class="text-slate-400 font-medium">Paso 2 de 4</span>
+                  <span class="font-semibold text-slate-900">${shippingTitle}</span>
+                  <span class="text-slate-400 font-medium">${shippingStepText}</span>
                 </div>
                 
                 <!-- Barra ultrafina en naranja de marca -->
                 <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
-                  <div class="h-full bg-[#ea580c] rounded-full transition-all duration-500" style="width: 50%"></div>
+                  <div class="h-full bg-[#ea580c] rounded-full transition-all duration-500" style="width: ${shippingProgressWidth}"></div>
                 </div>
 
                 <!-- 4 Pasos simétricos de extremo a extremo con justify-between -->
-                <div class="flex items-center justify-between w-full mt-2 text-[10px] sm:text-[11px] text-slate-400 select-none">
-                  <span class="text-slate-600 font-medium">Confirmado</span>
-                  <span class="text-[#ea580c] font-bold">Despacho</span>
-                  <span class="text-slate-400 font-normal">En obra</span>
-                  <span class="text-slate-400 font-normal">Retorno</span>
+                <div class="flex items-center justify-between w-full mt-2 text-[10px] sm:text-[11px] select-none">
+                  <span class="${isStep1Active ? 'text-[#ea580c] font-bold' : (activeRental?.status === 'CONFIRMED' || activeRental?.status === 'IN_PROGRESS' || activeRental?.status === 'COMPLETED' ? 'text-slate-700 font-medium' : 'text-slate-400')}">Confirmado</span>
+                  <span class="${isStep2Active ? 'text-[#ea580c] font-bold' : (activeRental?.status === 'IN_PROGRESS' || activeRental?.status === 'COMPLETED' ? 'text-slate-700 font-medium' : 'text-slate-400')}">Despacho</span>
+                  <span class="${isStep3Active ? 'text-[#ea580c] font-bold' : (activeRental?.status === 'COMPLETED' ? 'text-slate-700 font-medium' : 'text-slate-400')}">En obra</span>
+                  <span class="${isStep4Active ? 'text-[#ea580c] font-bold' : 'text-slate-400'}">Retorno</span>
                 </div>
               </div>
 
@@ -361,23 +470,42 @@ export async function renderHomeView() {
                   <p class="text-[10px] text-slate-400 font-medium">IVA y depósito incluidos</p>
                 </div>
 
-                <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <button 
                     id="btn-active-rental-invoice" 
                     type="button" 
-                    class="flex-1 sm:flex-initial min-h-[42px] px-4 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
+                    class="flex-1 sm:flex-initial min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
                   >
                     Factura
                   </button>
+                  <button 
+                    id="btn-active-rental-warranty" 
+                    type="button" 
+                    class="flex-1 sm:flex-initial min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                    title="Solicitar cambio de equipo en obra por falla técnica (<24h)"
+                  >
+                    ${renderIcon('RotateCcw', 'w-3 h-3 text-amber-700')}
+                    <span>Garantía / Cambio</span>
+                  </button>
+                  <button 
+                    id="btn-active-rental-refund" 
+                    type="button" 
+                    class="flex-1 sm:flex-initial min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                    title="Solicitar reembolso de días o devolución de custodia de garantía"
+                  >
+                    ${renderIcon('DollarSign', 'w-3 h-3 text-rose-700')}
+                    <span>Reembolso</span>
+                  </button>
                   <a 
-                    href="#/client" 
-                    class="flex-1 sm:flex-initial min-h-[42px] inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
+                    href="${manageHref}" 
+                    class="flex-1 sm:flex-initial min-h-[38px] inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
                   >
                     <span>Gestionar</span>
                     <span aria-hidden="true">&rarr;</span>
                   </a>
                 </div>
               </div>
+
 
             </div>
           </section>
@@ -480,12 +608,12 @@ export async function renderHomeView() {
                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
                         loading="lazy"
                       />
-                      <div class="absolute top-2.5 right-2.5">
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium bg-white/95 text-slate-700 shadow-xs backdrop-blur-xs border border-slate-100">
-                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                          Disponible hoy
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/95 text-emerald-800 shadow-xs backdrop-blur-xs border border-emerald-200/90 select-none">
+                          <span class="text-emerald-600 flex items-center justify-center flex-shrink-0">
+                            ${renderIcon('BadgeCheck', 'w-3.5 h-3.5')}
+                          </span>
+                          <span>Disponible hoy</span>
                         </span>
-                      </div>
                     </div>
 
                     <!-- Equipment Details -->
@@ -629,38 +757,95 @@ export async function renderHomeView() {
     });
   }
 
-  // 1.5 Interactive Date Boxes (clicking anywhere in the box opens calendar)
-  const startBox = container.querySelector('#box-search-start');
-  const startInput = container.querySelector('#hero-search-start');
-  const endBox = container.querySelector('#box-search-end');
-  const endInput = container.querySelector('#hero-search-end');
+  // 1.5 Interactive Coordinated Two-Block Date Picker for Hero Search
+  let heroStartDate = startFormatted;
+  let heroEndDate = endFormatted;
 
-  const triggerPicker = (input) => {
-    try {
-      if (typeof input?.showPicker === 'function') {
-        input.showPicker();
-      } else {
-        input?.focus();
-      }
-    } catch (_) {
-      input?.focus();
+  const heroTwoBlockPicker = createTwoBlockDatePicker({
+    initialStartDate: heroStartDate,
+    initialEndDate: heroEndDate,
+    isCatalog: true,
+    onChange: ({ startDate: newS, endDate: newE }) => {
+      heroStartDate = newS;
+      heroEndDate = newE;
+      const startHidden = container.querySelector('#hero-search-start');
+      const endHidden = container.querySelector('#hero-search-end');
+      const startDisplay = container.querySelector('#hero-display-start');
+      const endDisplay = container.querySelector('#hero-display-end');
+
+      if (startHidden) startHidden.value = newS;
+      if (endHidden) endHidden.value = newE;
+      if (startDisplay) startDisplay.textContent = formatDate(newS);
+      if (endDisplay) endDisplay.textContent = formatDate(newE);
     }
-  };
-
-  startBox?.addEventListener('click', (e) => {
-    if (e.target !== startInput) triggerPicker(startInput);
   });
-  startInput?.addEventListener('click', () => triggerPicker(startInput));
 
-  endBox?.addEventListener('click', (e) => {
-    if (e.target !== endInput) triggerPicker(endInput);
+  const popoverStart = container.querySelector('#hero-popover-start');
+  const popoverEnd = container.querySelector('#hero-popover-end');
+  const mountStart = container.querySelector('#hero-calendar-start-mount');
+  const mountEnd = container.querySelector('#hero-calendar-end-mount');
+
+  if (mountStart) mountStart.appendChild(heroTwoBlockPicker.getStartElement());
+  if (mountEnd) mountEnd.appendChild(heroTwoBlockPicker.getEndElement());
+
+  heroTwoBlockPicker.onOpenStart(() => {
+    popoverStart?.classList.remove('hidden');
+    popoverEnd?.classList.add('hidden');
   });
-  endInput?.addEventListener('click', () => triggerPicker(endInput));
+  heroTwoBlockPicker.onCloseStart(() => {
+    popoverStart?.classList.add('hidden');
+  });
 
-  // 2. Active rental invoice button (Official DIAN invoice modal)
+  heroTwoBlockPicker.onOpenEnd(() => {
+    popoverEnd?.classList.remove('hidden');
+    popoverStart?.classList.add('hidden');
+  });
+  heroTwoBlockPicker.onCloseEnd(() => {
+    popoverEnd?.classList.add('hidden');
+  });
+
+  container.querySelector('#box-search-start')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (heroTwoBlockPicker.isStartOpen()) {
+      heroTwoBlockPicker.closeStart();
+    } else {
+      heroTwoBlockPicker.openStart();
+    }
+  });
+
+  container.querySelector('#box-search-end')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (heroTwoBlockPicker.isEndOpen()) {
+      heroTwoBlockPicker.closeEnd();
+    } else {
+      heroTwoBlockPicker.openEnd();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const isInsideStart = popoverStart?.contains(e.target) || container.querySelector('#box-search-start')?.contains(e.target);
+    const isInsideEnd = popoverEnd?.contains(e.target) || container.querySelector('#box-search-end')?.contains(e.target);
+    if (!isInsideStart && !isInsideEnd) {
+      heroTwoBlockPicker.closeAll();
+    }
+  });
+
+  // 2. Active rental action buttons (Invoice, Warranty replacement, Refund request)
   container.querySelector('#btn-active-rental-invoice')?.addEventListener('click', () => {
     if (activeRental) {
       openRentalInvoiceModal(activeRental.id, activeRental, activeTool);
+    }
+  });
+
+  container.querySelector('#btn-active-rental-warranty')?.addEventListener('click', () => {
+    if (activeRental) {
+      openWarrantyExchangeModal(activeRental, activeTool, () => renderHomeView());
+    }
+  });
+
+  container.querySelector('#btn-active-rental-refund')?.addEventListener('click', () => {
+    if (activeRental) {
+      openRefundRequestModal(activeRental, activeTool, () => renderHomeView());
     }
   });
 

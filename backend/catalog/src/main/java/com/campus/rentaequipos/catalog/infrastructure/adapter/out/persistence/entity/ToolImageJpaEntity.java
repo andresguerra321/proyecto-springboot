@@ -16,7 +16,7 @@ public class ToolImageJpaEntity {
     @Column(name = "tool_id", nullable = false, insertable = false, updatable = false)
     private UUID toolId;
 
-    @Column(name = "image_url", nullable = false, length = 500)
+    @Column(name = "image_url", nullable = false, columnDefinition = "TEXT")
     private String imageUrl;
 
     @Column(name = "is_primary", nullable = false)

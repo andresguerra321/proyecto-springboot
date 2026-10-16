@@ -1,9 +1,7 @@
 package com.campus.rentaequipos.identity.infrastructure.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -13,8 +11,6 @@ import java.util.UUID;
 @Table(name = "client_profiles")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class ClientProfileJpaEntity {
 
     @Id
@@ -46,4 +42,31 @@ public class ClientProfileJpaEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public ClientProfileJpaEntity() {
+    }
+
+    public ClientProfileJpaEntity(
+            UUID id,
+            UUID userId,
+            String fullName,
+            String documentType,
+            String documentNumber,
+            String phone,
+            String address,
+            String city,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.userId = userId;
+        this.fullName = fullName;
+        this.documentType = documentType;
+        this.documentNumber = documentNumber;
+        this.phone = phone;
+        this.address = address;
+        this.city = city;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 }

@@ -64,7 +64,7 @@ class ProfileUseCaseTest {
                 "Carlos Gómez",
                 "CC",
                 "1098765432",
-                "+57 300 1234567",
+                "3001234567",
                 "Calle 45 # 12-34",
                 "Bucaramanga"
         );
@@ -92,7 +92,7 @@ class ProfileUseCaseTest {
                 providerUserId,
                 "Ferretería y Equipos Central S.A.S.",
                 "900123456-1",
-                "+57 310 9876543",
+                "3109876543",
                 "Carrera 27 # 36-10",
                 "Bucaramanga"
         );

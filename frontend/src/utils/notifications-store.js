@@ -2,69 +2,68 @@
  * ToolRent Notifications Store
  * 
  * Central reactive storage for user notifications:
- * - Scoped to authenticated user sessions
- * - No fictitious or preloaded default mock notifications
- * - CustomEvent dispatching ('notifications:change')
- * - Toast notification pairing
+ * - 100% Persisted in Spring Boot + PostgreSQL backend (Zero localStorage simulation)
+ * - Scoped strictly to the authenticated user's real transactions and records
+ * - Optimistic UI updates with instant reactive re-rendering
+ * - Integrated toast notification pairing
  */
 
+import api from '../api/client.js';
 import { showToast } from '../components/toast.js';
 import auth from '../auth/state.js';
 
-const STORAGE_PREFIX = 'toolrent_user_notifications';
-
 class NotificationsStore {
   constructor() {
-    // Purge legacy mock notifications key if present in localStorage
+    this.notifications = [];
+    this.isLoading = false;
+
+    // Purge legacy mock notifications keys if present in localStorage
     try {
       localStorage.removeItem('toolrent_notifications_v1');
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('toolrent_user_notifications')) {
+          localStorage.removeItem(k);
+        }
+      });
     } catch (_) {}
 
-    this.notifications = this.load();
+    // Load initial notifications
+    this.load();
 
-    // Re-sync when authentication state changes
+    // Re-sync whenever authentication state changes
     if (typeof window !== 'undefined') {
       window.addEventListener('auth:change', () => {
-        this.notifications = this.load();
+        this.load();
+      });
+      window.addEventListener('auth:login', () => {
+        this.load();
+      });
+      window.addEventListener('auth:logout', () => {
+        this.notifications = [];
         this.emitChange();
       });
     }
   }
 
-  getStorageKey() {
-    const user = auth.getUser();
-    const userId = user?.id || user?.username || 'guest';
-    return `${STORAGE_PREFIX}_${userId}`;
-  }
-
-  load() {
-    if (!auth.isAuthenticated()) {
-      return [];
-    }
-    try {
-      const data = localStorage.getItem(this.getStorageKey());
-      if (data) {
-        return JSON.parse(data);
-      }
-    } catch (e) {
-      console.error('Error al cargar notificaciones:', e);
-    }
-    return [];
-  }
-
-  save(items) {
+  async load() {
     if (!auth.isAuthenticated()) {
       this.notifications = [];
       this.emitChange();
-      return;
+      return [];
     }
+
+    this.isLoading = true;
     try {
-      localStorage.setItem(this.getStorageKey(), JSON.stringify(items));
+      const data = await api.get('/notifications');
+      this.notifications = Array.isArray(data) ? data : [];
     } catch (e) {
-      console.error('Error al guardar notificaciones:', e);
+      console.warn('No se pudieron cargar notificaciones del backend:', e);
+      this.notifications = [];
+    } finally {
+      this.isLoading = false;
+      this.emitChange();
     }
-    this.notifications = items;
-    this.emitChange();
+    return this.notifications;
   }
 
   emitChange() {
@@ -88,55 +87,91 @@ class NotificationsStore {
     return this.notifications.filter(n => !n.read).length;
   }
 
-  markAsRead(id) {
-    if (!auth.isAuthenticated()) return;
-    const updated = this.notifications.map(n => 
+  async markAsRead(id) {
+    if (!auth.isAuthenticated() || !id) return;
+    
+    // Optimistic UI update
+    this.notifications = this.notifications.map(n => 
       n.id === id ? { ...n, read: true } : n
     );
-    this.save(updated);
+    this.emitChange();
+
+    try {
+      await api.patch(`/notifications/${id}/read`);
+    } catch (e) {
+      console.error('Error al marcar notificación como leída en backend:', e);
+      // Re-sync on failure
+      this.load();
+    }
   }
 
-  markAllAsRead() {
+  async markAllAsRead() {
     if (!auth.isAuthenticated()) return;
-    const updated = this.notifications.map(n => ({ ...n, read: true }));
-    this.save(updated);
+    
+    // Optimistic UI update
+    this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+    this.emitChange();
+
+    try {
+      await api.patch('/notifications/read-all');
+    } catch (e) {
+      console.error('Error al marcar todas como leídas en backend:', e);
+      this.load();
+    }
   }
 
-  delete(id) {
-    if (!auth.isAuthenticated()) return;
-    const updated = this.notifications.filter(n => n.id !== id);
-    this.save(updated);
-  }
+  async delete(id) {
+    if (!auth.isAuthenticated() || !id) return;
 
-  clearAll() {
-    this.save([]);
+    // Optimistic UI update
+    this.notifications = this.notifications.filter(n => n.id !== id);
+    this.emitChange();
+
+    try {
+      await api.delete(`/notifications/${id}`);
+    } catch (e) {
+      console.error('Error al eliminar notificación en backend:', e);
+      this.load();
+    }
   }
 
   /**
-   * Adds a notification and triggers an immediate in-app toast
+   * Adds a notification with real backend persistence and triggers an immediate in-app toast
    */
-  add({ category = 'RENTAL', type = 'success', title, message, link = '#/client' }) {
+  async add({ category = 'RENTAL', type = 'success', title, message, link = '#/client' }) {
+    // Trigger visual toast banner immediately
+    if (message) {
+      showToast(message, type, 4500, title);
+    }
+
     if (!auth.isAuthenticated()) return null;
 
-    const newNotif = {
-      id: `notif-${Date.now()}`,
-      category,
-      type,
-      title,
-      message,
-      timestamp: new Date().toISOString(),
-      timeAgo: 'Ahora mismo',
-      read: false,
-      link,
-    };
+    try {
+      const created = await api.post('/notifications', {
+        title,
+        message,
+        type: (type || 'INFO').toUpperCase(),
+        category: (category || 'RENTAL').toUpperCase(),
+        link: link || '#/client'
+      });
 
-    const updated = [newNotif, ...this.notifications];
-    this.save(updated);
+      if (created && created.id) {
+        this.notifications = [created, ...this.notifications.filter(n => n.id !== created.id)];
+        this.emitChange();
+        return created;
+      }
+    } catch (e) {
+      console.warn('Error al guardar notificación en backend (se mantendrá refresco periódico):', e);
+      // Reload from backend
+      await this.load();
+    }
 
-    // Trigger visual toast banner
-    showToast(message, type, 4500, title);
+    return null;
+  }
 
-    return newNotif;
+  // Alias for backward compatibility across dashboard modules
+  async addNotification(opts) {
+    return this.add(opts);
   }
 }
 

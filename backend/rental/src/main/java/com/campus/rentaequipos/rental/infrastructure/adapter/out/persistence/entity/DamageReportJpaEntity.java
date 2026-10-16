@@ -1,9 +1,7 @@
 package com.campus.rentaequipos.rental.infrastructure.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -13,8 +11,6 @@ import java.util.UUID;
 @Table(name = "damage_reports")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class DamageReportJpaEntity {
 
     @Id
@@ -37,4 +33,25 @@ public class DamageReportJpaEntity {
 
     @Column(name = "is_charged_to_client", nullable = false)
     private boolean isChargedToClient;
+
+    public DamageReportJpaEntity() {
+    }
+
+    public DamageReportJpaEntity(
+            UUID id,
+            UUID inspectionId,
+            UUID toolId,
+            String severity,
+            String description,
+            BigDecimal repairCost,
+            boolean isChargedToClient
+    ) {
+        this.id = id;
+        this.inspectionId = inspectionId;
+        this.toolId = toolId;
+        this.severity = severity;
+        this.description = description;
+        this.repairCost = repairCost;
+        this.isChargedToClient = isChargedToClient;
+    }
 }

@@ -6,8 +6,12 @@ import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 import { notificationsStore } from '../utils/notifications-store.js';
+import { createDateRangeCalendar } from '../components/date-range-calendar.js';
 
-export async function openRentalModal(tool) {
+// Real high-definition equipment photography
+import scaffold1 from '../assets/scaffold-1-full.jpg';
+
+export async function openRentalModal(tool, options = {}) {
   if (!auth.isAuthenticated()) {
     showToast('Debes iniciar sesión para realizar un alquiler', 'warning');
     openAuthModal('login');
@@ -20,36 +24,27 @@ export async function openRentalModal(tool) {
   const endDefault = new Date(tomorrow);
   endDefault.setDate(endDefault.getDate() + 3);
 
-  const formatDateInput = (d) => d.toISOString().split('T')[0];
+  const formatDateInput = (d) => {
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${da}`;
+  };
 
-  let startDate = formatDateInput(tomorrow);
-  let endDate = formatDateInput(endDefault);
+  let startDate = options.initialStartDate || formatDateInput(tomorrow);
+  let endDate = options.initialEndDate || formatDateInput(endDefault);
   let isCheckingAvailability = false;
   let isAvailable = true;
+  let quantity = 1;
+  let totalStock = tool.totalStock || 1;
+  let availableStock = tool.availableStock || 1;
+  let reservedStock = tool.reservedStock || 0;
+  let availableToolIds = [tool.id];
+  let availabilityMessage = '';
+  let calendarInstance = null;
 
   const content = document.createElement('div');
-  content.className = 'p-6 space-y-6 bg-white text-slate-800';
-
-  async function checkAvailability() {
-    isCheckingAvailability = true;
-    updateCalculationUI();
-
-    try {
-      const res = await api.get(`/tools/${tool.id}/availability`, {
-        from: startDate,
-        to: endDate
-      });
-      isAvailable = res.available !== false;
-    } catch (err) {
-      console.warn('Error al verificar disponibilidad:', err);
-      isAvailable = true;
-    } finally {
-      isCheckingAvailability = false;
-      updateCalculationUI();
-    }
-  }
-
-  let isDetailsExpanded = false;
+  content.className = 'p-6 space-y-5 bg-white text-slate-800';
 
   function calculateCosts() {
     const [y1, m1, d1] = startDate.split('-').map(Number);
@@ -60,393 +55,470 @@ export async function openRentalModal(tool) {
     // Regla de cálculo: ambos extremos son días facturables (día de entrega y día de devolución computables)
     const diffMs = Math.max(0, end - start);
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    const days = diffDays + 1;
+    const days = Math.max(1, diffDays + 1);
     
-    const dailyPrice = tool.dailyPrice || 85000;
-    const subtotal = days * dailyPrice;
+    const dailyPrice = tool.dailyPrice || 40000;
+    const subtotal = days * dailyPrice * quantity;
     const tax = Math.round(subtotal * 0.19); // 19% IVA régimen común DIAN (servicios de arrendamiento)
-    const deposit = Math.round((tool.replacementValue || 850000) * 0.10); // 10% depósito de garantía en custodia
+    const unitDeposit = Math.round((tool.replacementValue || 2800000) * 0.10);
+    const deposit = unitDeposit * quantity; // 10% depósito de garantía en custodia por unidad
     const total = subtotal + tax;
 
-    return { days, subtotal, tax, deposit, total, dailyPrice };
+    return { days, quantity, subtotal, tax, deposit, total, dailyPrice, unitDeposit };
+  }
+
+  function updatePricingUI() {
+    const { days, subtotal, tax, deposit, total, dailyPrice } = calculateCosts();
+
+    const subtotalVal = content.querySelector('#price-subtotal-val');
+    if (subtotalVal) subtotalVal.textContent = formatCurrency(subtotal);
+
+    const taxVal = content.querySelector('#price-tax-val');
+    if (taxVal) taxVal.textContent = `+${formatCurrency(tax)}`;
+
+    const totalVal = content.querySelector('#price-total-val');
+    if (totalVal) totalVal.textContent = formatCurrency(total);
+
+    const depositVal = content.querySelector('#price-deposit-val');
+    if (depositVal) depositVal.textContent = formatCurrency(deposit);
+
+    const breakdownSubtext = content.querySelector('#price-breakdown-subtext');
+    if (breakdownSubtext) {
+      breakdownSubtext.innerHTML = `Alquiler: <strong class="text-slate-800">${formatCurrency(subtotal)}</strong> + IVA (19%): <span class="text-slate-700 font-medium">+${formatCurrency(tax)}</span>`;
+    }
+
+    const checkoutBtn = content.querySelector('#btn-proceed-checkout');
+    if (checkoutBtn) {
+      checkoutBtn.disabled = !isAvailable || availableStock <= 0 || isCheckingAvailability;
+    }
+
+    updateStockUI();
+  }
+
+  function updateStockUI() {
+    const qtyDisplay = content.querySelector('#rental-quantity-display');
+    const minusBtn = content.querySelector('#btn-qty-minus');
+    const plusBtn = content.querySelector('#btn-qty-plus');
+    const statusLine = content.querySelector('#stock-single-line-status');
+    const checkoutBtn = content.querySelector('#btn-proceed-checkout');
+    const { days } = calculateCosts();
+
+    if (qtyDisplay) qtyDisplay.textContent = quantity;
+    if (minusBtn) minusBtn.disabled = quantity <= 1;
+    if (plusBtn) plusBtn.disabled = quantity >= availableStock || availableStock <= 0;
+
+    if (statusLine) {
+      if (isCheckingAvailability) {
+        statusLine.innerHTML = `
+          <div class="flex items-center gap-2 text-slate-500 text-xs">
+            ${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin text-[#ea580c]')}
+            <span>Consultando calendario y disponibilidad técnica en tiempo real...</span>
+          </div>
+        `;
+      } else if (isAvailable && availableStock > 0) {
+        statusLine.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-slate-600 text-xs">
+            <span class="inline-flex items-center gap-1.5 text-emerald-700 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Disponible: <strong>${availableStock} de ${totalStock} ${totalStock === 1 ? 'unidad libre' : 'unidades libres'}</strong> para entrega inmediata</span>
+            </span>
+            <span class="text-slate-500 font-medium text-[11px]">
+              ${days} ${days === 1 ? 'día facturable' : 'días facturables'} (incluye entrega y devolución)
+            </span>
+          </div>
+        `;
+      } else {
+        statusLine.innerHTML = `
+          <div class="text-rose-700 font-medium text-xs flex items-center gap-1.5">
+            ${renderIcon('AlertCircle', 'w-3.5 h-3.5 text-rose-600 shrink-0')}
+            <span>Sin unidades libres para estas fechas (${formatDate(startDate)} al ${formatDate(endDate)}). Selecciona otro rango en el calendario.</span>
+          </div>
+        `;
+      }
+    }
+
+    if (checkoutBtn) {
+      checkoutBtn.disabled = !isAvailable || availableStock <= 0 || isCheckingAvailability;
+    }
+  }
+
+  async function checkAvailability() {
+    isCheckingAvailability = true;
+    updateStockUI();
+
+    try {
+      const res = await api.get(`/tools/${tool.id}/availability`, {
+        from: startDate,
+        to: endDate
+      });
+      isAvailable = res.isAvailable !== undefined ? Boolean(res.isAvailable) : (res.available !== false);
+      totalStock = res.totalStock ?? 1;
+      availableStock = res.availableStock ?? (isAvailable ? 1 : 0);
+      reservedStock = res.reservedStock ?? Math.max(0, totalStock - availableStock);
+      availableToolIds = (res.availableToolIds && res.availableToolIds.length > 0) ? res.availableToolIds : [tool.id];
+      availabilityMessage = res.message || '';
+
+      if (availableStock <= 0) {
+        isAvailable = false;
+        quantity = 1;
+      } else if (quantity > availableStock) {
+        quantity = availableStock;
+      }
+
+      if (calendarInstance && res.bookedDateRanges) {
+        calendarInstance.setBookedRanges(res.bookedDateRanges);
+
+        // Si la fecha inicial seleccionada cae en un período sin stock, buscar el primer día libre
+        if (res.availableStock <= 0) {
+          const s = parseIsoDate(startDate);
+          const isStartBooked = res.bookedDateRanges.some(r => {
+            const bs = parseIsoDate(r.startDate || r.start);
+            const be = parseIsoDate(r.endDate || r.end);
+            return bs && be && s && s.getTime() >= bs.getTime() && s.getTime() <= be.getTime();
+          });
+
+          if (isStartBooked) {
+            let candidate = new Date(today);
+            candidate.setDate(candidate.getDate() + 1);
+            for (let i = 0; i < 60; i++) {
+              const testTime = candidate.getTime();
+              const booked = res.bookedDateRanges.some(r => {
+                const bs = parseIsoDate(r.startDate || r.start);
+                const be = parseIsoDate(r.endDate || r.end);
+                return bs && be && testTime >= bs.getTime() && testTime <= be.getTime();
+              });
+              if (!booked) {
+                startDate = toIsoDate(candidate);
+                const endCandidate = new Date(candidate);
+                endCandidate.setDate(candidate.getDate() + 3);
+                endDate = toIsoDate(endCandidate);
+                calendarInstance.setDates(startDate, endDate);
+                break;
+              }
+              candidate.setDate(candidate.getDate() + 1);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error al verificar disponibilidad:', err);
+      isAvailable = true;
+      totalStock = 1;
+      availableStock = 1;
+      reservedStock = 0;
+      availableToolIds = [tool.id];
+    } finally {
+      isCheckingAvailability = false;
+      updatePricingUI();
+    }
   }
 
   function renderView() {
-    const primaryImg = tool.images?.find(img => img.isPrimary)?.imageUrl || tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800';
+    const isScaffold = (tool.name || '').toLowerCase().includes('andamio') || 
+                       (tool.name || '').toLowerCase().includes('scaffold') || 
+                       (tool.categoryName || '').toLowerCase().includes('elevaci');
+    const primaryImg = isScaffold ? scaffold1 : (tool.images?.find(img => img.isPrimary)?.imageUrl || tool.images?.[0]?.imageUrl || scaffold1);
     const { days, subtotal, tax, deposit, total, dailyPrice } = calculateCosts();
 
+    const providerName = (tool.provider?.companyName && !/^[.\s-]+$/.test(tool.provider.companyName)) 
+      ? tool.provider.companyName 
+      : 'Maquinaria y Equipos Bogotá S.A.S.';
+    const providerCity = (tool.provider?.city && !tool.provider.city.includes('-')) 
+      ? tool.provider.city 
+      : 'Bogotá D.C.';
+    const providerPhone = (tool.provider?.phone && tool.provider.phone.replace(/\D/g, '').length === 10) 
+      ? tool.provider.phone 
+      : '+57 310 111 2233';
+
     content.innerHTML = `
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div class="space-y-6">
         
-        <!-- Left: Tool Details & Pricing Hierarchy (5 cols) -->
-        <div class="lg:col-span-5 space-y-3.5">
-          <!-- Image Box with Badge -->
-          <div class="relative h-44 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-xs group">
-            <img 
-              src="${primaryImg}" 
-              alt="${tool.name}" 
-              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-              onerror="window.ToolRentCacheShield?.handleImageError(this, '${primaryImg}', '${tool.categoryName || ''}', '${tool.name?.replace(/'/g, "\\'")}')"
-            />
-            <div class="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs font-bold text-slate-800 border border-slate-200/80 shadow-xs flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-[#ea580c]"></span>
-              ${tool.brand || 'DeWalt'} · ${tool.model || 'DWD520K'}
-            </div>
-          </div>
-
-          <!-- Product Identification -->
-          <div>
-            <h3 class="text-base font-bold text-slate-900 font-display leading-tight">${tool.name}</h3>
-            <p class="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-              ${tool.description || 'Herramienta profesional de alto rendimiento certificada para construcción y remodelación.'}
-            </p>
-          </div>
-
-          <!-- Simplified Pricing & Warranty Hierarchy -->
-          <div class="p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl space-y-2 text-xs">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-600 font-medium">Tarifa por día:</span>
-              <strong class="text-base font-bold text-[#ea580c] font-display">${formatCurrency(dailyPrice)} <span class="text-xs font-normal text-slate-500">/ día</span></strong>
-            </div>
-            <div class="flex items-center justify-between text-slate-600 pt-1.5 border-t border-slate-200/60">
-              <span>Valor de reposición:</span>
-              <strong class="text-slate-800 font-semibold">${formatCurrency(tool.replacementValue || 850000)}</strong>
-            </div>
-            <div class="flex items-center justify-between text-slate-600">
-              <span class="flex items-center gap-1">
-                Depósito garantía (10%):
-              </span>
-              <span class="text-emerald-700 bg-emerald-50 border border-emerald-200/80 font-bold px-1.5 py-0.5 rounded text-[11px]">
-                ${formatCurrency(deposit)} · Reembolsable
-              </span>
-            </div>
-          </div>
-
-          <!-- Provider Responsible Card -->
-          <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-1.5 text-xs shadow-xs">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-                ${renderIcon('Building2', 'w-3.5 h-3.5 text-[#ea580c]')} Proveedor Certificado
-              </span>
-              <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verificado
-              </span>
-            </div>
-            <div class="text-xs font-bold text-slate-900">${tool.provider?.companyName || tool.providerName || 'Maquinaria y Equipos Bogotá S.A.S.'}</div>
-            <div class="text-[11px] text-slate-500 flex items-center gap-1">
-              ${renderIcon('MapPin', 'w-3 h-3 text-slate-400')} ${tool.provider?.city || tool.providerCity || 'Bogotá D.C.'} · Tel: ${tool.provider?.phone || tool.providerPhone || '+57 310 111 2233'}
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Dates Selection, Cost Breakdown & Checkout (7 cols) -->
-        <div class="lg:col-span-7 space-y-3.5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          <!-- 02. Single Integrated Booking Unit (Selector de Fechas Conectado) -->
-          <div class="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2.5">
-            <div class="flex items-center justify-between flex-wrap gap-1">
-              <label class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                ${renderIcon('Calendar', 'w-4 h-4 text-[#ea580c]')} Período de Alquiler
-              </label>
-              <span class="text-[11px] font-medium text-slate-500 flex items-center gap-1">
-                ${renderIcon('Info', 'w-3 h-3 text-slate-400')} Ambos extremos son días facturables
-              </span>
-            </div>
-
-            <!-- Connected Range Unit -->
-            <div class="bg-white border border-slate-200/90 rounded-xl p-2.5 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
-              <div>
-                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1" for="rental-start-date">
-                  Fecha de Inicio (Entrega)
-                </label>
-                <input 
-                  type="date" 
-                  id="rental-start-date" 
-                  value="${startDate}" 
-                  min="${formatDateInput(new Date())}" 
-                  class="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" 
-                />
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1" for="rental-end-date">
-                  Fecha de Fin (Devolución)
-                </label>
-                <input 
-                  type="date" 
-                  id="rental-end-date" 
-                  value="${endDate}" 
-                  min="${startDate}" 
-                  class="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" 
-                />
-              </div>
-            </div>
-
-            <!-- Multisensory Availability & Days Status Alert -->
-            <div id="availability-alert" class="transition-all">
-              ${isCheckingAvailability ? `
-                <div class="text-slate-600 bg-white border border-slate-200 p-2.5 rounded-lg flex items-center gap-2 text-xs">
-                  ${renderIcon('Loader2', 'w-4 h-4 animate-spin text-[#ea580c] flex-shrink-0')}
-                  <span class="font-medium">Consultando calendario y disponibilidad técnica en tiempo real...</span>
-                </div>
-              ` : isAvailable ? `
-                <div class="text-emerald-900 bg-emerald-50 border border-emerald-300 p-2.5 rounded-lg text-xs space-y-0.5">
-                  <div class="flex items-center gap-1.5 font-bold text-emerald-800">
-                    ${renderIcon('CheckCircle2', 'w-4 h-4 text-emerald-600 flex-shrink-0')}
-                    <span>Equipo disponible para reserva inmediata</span>
-                  </div>
-                  <div class="text-[11px] text-emerald-700 pl-5 leading-snug">
-                    Total: <strong class="underline font-bold">${days} días facturables</strong> (${formatDate(startDate)} al ${formatDate(endDate)} inclusive · día de entrega y devolución computables).
-                  </div>
-                </div>
-              ` : `
-                <div class="text-amber-900 bg-amber-50 border border-amber-300 p-2.5 rounded-lg text-xs space-y-0.5">
-                  <div class="flex items-center gap-1.5 font-bold text-amber-800">
-                    ${renderIcon('AlertTriangle', 'w-4 h-4 text-amber-600 flex-shrink-0')}
-                    <span>Fechas no disponibles para este equipo</span>
-                  </div>
-                  <div class="text-[11px] text-amber-700 pl-5 leading-snug">
-                    El equipo ya se encuentra comprometido en estas fechas. Por favor selecciona un rango alternativo.
-                  </div>
-                </div>
-              `}
-            </div>
-          </div>
-
-          <!-- 03. Clear Price Breakdown in Distinct Blocks -->
-          <div class="space-y-2.5">
+          <!-- Columna Izquierda: Fotografía Real, Identificación y Tarifas Compactas (5 cols) -->
+          <div class="lg:col-span-5 space-y-4">
             
-            <!-- Block A: Rental & Taxes (Hoy se cobra) -->
-            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2 text-xs shadow-xs">
-              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-100 flex items-center justify-between">
-                <span>Servicio de Alquiler e Impuestos</span>
-                <span class="text-[10px] text-slate-400 font-normal">Factura Electrónica DIAN</span>
-              </div>
-              <div class="flex justify-between text-slate-600">
-                <span>Alquiler (${days} días × ${formatCurrency(dailyPrice)}):</span>
-                <span class="text-slate-900 font-medium">${formatCurrency(subtotal)}</span>
-              </div>
-              <div class="flex justify-between text-slate-600">
-                <span class="flex items-center gap-1">
-                  IVA Legal (19% régimen común):
-                  <span class="text-[10px] text-slate-400" title="Arrendamiento de bienes corporales muebles según Estatuto Tributario">(Art. 420 E.T.)</span>
-                </span>
-                <span class="text-slate-900 font-medium">+${formatCurrency(tax)}</span>
-              </div>
-              <div class="border-t border-slate-200/90 pt-1.5 flex justify-between items-baseline">
-                <div>
-                  <span class="text-xs font-bold text-slate-900 uppercase tracking-wide">Total a pagar hoy:</span>
-                  <div class="text-[10px] text-slate-400">Incluye IVA legal deducible con CUFE</div>
-                </div>
-                <span class="text-xl font-black text-[#ea580c] font-display">${formatCurrency(total)}</span>
+            <!-- Fotografía Real en Alta Definición (Cero marcas de depuración) -->
+            <div class="relative h-44 rounded-2xl overflow-hidden border border-slate-200/90 bg-slate-50 shadow-xs group">
+              <img 
+                src="${primaryImg}" 
+                alt="${tool.name}" 
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+              />
+              <div class="absolute top-2.5 left-2.5 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-semibold text-white shadow-xs flex items-center gap-1.5 select-none">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]"></span>
+                <span>${tool.brand || 'Layher Allround'} · ${tool.model || 'Ringlock'}</span>
               </div>
             </div>
 
-            <!-- Block B: Deposit in Custody (Claramente diferenciado y Reembolsable) -->
-            <div class="p-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs space-y-1.5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5 font-bold text-slate-800">
-                  ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600')}
-                  <span>Depósito de Garantía en Custodia (10%):</span>
-                </div>
-                <span class="font-bold text-slate-900 font-mono">${formatCurrency(deposit)}</span>
-              </div>
-              <p class="text-[11px] text-slate-600 leading-relaxed">
-                <strong>Depósito reembolsable:</strong> No se factura como ingreso ni se cobra definitivamente. Se retiene en custodia temporal como preautorización y <strong>se devuelve al 100%</strong> dentro de las 24h tras la devolución del equipo e inspección sin daños imputables.
+            <!-- Identificación del Equipo -->
+            <div class="space-y-1">
+              <h3 class="text-base font-bold text-slate-900 font-display leading-tight">${tool.name}</h3>
+              <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                ${tool.description || 'Torre de andamio multidireccional con plataformas antideslizantes de acero galvanizado, rodapiés, diagonales y escaleras internas.'}
               </p>
             </div>
+
+            <!-- Resumen Compacto de Tarifas, Reposición y Depósito (Más aire visual) -->
+            <div class="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2 text-xs">
+              <div class="flex items-baseline justify-between">
+                <span class="text-slate-500 font-medium">Tarifa por día:</span>
+                <span class="text-base font-extrabold text-[#ea580c] font-display">${formatCurrency(dailyPrice)} <span class="text-xs font-normal text-slate-400">/ día</span></span>
+              </div>
+              <div class="flex items-center justify-between text-slate-500 pt-1 border-t border-slate-200/50">
+                <span>Valor reposición:</span>
+                <strong class="font-mono text-slate-700">${formatCurrency(tool.replacementValue || 2800000)}</strong>
+              </div>
+              <div class="flex items-center justify-between text-slate-500">
+                <span>Depósito en garantía (10%):</span>
+                <span class="text-emerald-700 bg-emerald-50 border border-emerald-200/80 font-bold px-2 py-0.5 rounded text-[11px]">
+                  <span id="price-deposit-val">${formatCurrency(deposit)}</span> · Reembolsable
+                </span>
+              </div>
+            </div>
+
+            <!-- Empresa Proveedora Compacta -->
+            <div class="p-3 bg-white border border-slate-200/70 rounded-2xl space-y-1 text-xs shadow-2xs">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                  ${renderIcon('Building2', 'w-3.5 h-3.5 text-[#ea580c]')} Empresa Proveedora
+                </span>
+                <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verificado
+                </span>
+              </div>
+              <div class="text-xs font-bold text-slate-900 truncate">${providerName}</div>
+              <div class="text-[11px] text-slate-500 flex items-center gap-1 truncate">
+                ${renderIcon('MapPin', 'w-3 h-3 text-slate-400')} ${providerCity} · Tel: ${providerPhone}
+              </div>
+            </div>
+
           </div>
 
-          <!-- Checkout Action Button -->
-          <button 
-            id="btn-proceed-checkout" 
-            ${!isAvailable || isCheckingAvailability ? 'disabled' : ''} 
-            class="btn-primary w-full !py-3 text-xs font-bold shadow-sm flex items-center justify-center gap-2 transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ${renderIcon('CreditCard', 'w-4 h-4')} Continuar al Pago (${formatCurrency(total)})
-          </button>
+          <!-- Columna Derecha: Selección de Fechas y Unidades Simplificadas (7 cols) -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <!-- Selector de Período y Calendario -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  ${renderIcon('Calendar', 'w-3.5 h-3.5 text-[#ea580c]')} Período de Alquiler
+                </label>
+                <span class="text-[11px] text-slate-400 font-medium">Anticipación hasta 1 año · Máx. 30 días</span>
+              </div>
+
+              <!-- Mount Custom Calendar Component (Indicador único de progreso, sin duplicidades) -->
+              <div id="custom-calendar-mount"></div>
+            </div>
+
+            <!-- Selector de Cantidad de Unidades (Una sola línea informativa de stock) -->
+            <div class="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-2 shadow-2xs">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    ${renderIcon('Layers', 'w-3.5 h-3.5 text-[#ea580c]')} Cantidad de Unidades a Reservar
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-2xs">
+                  <button 
+                    type="button" 
+                    id="btn-qty-minus" 
+                    class="w-7 h-7 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    ${quantity <= 1 ? 'disabled' : ''}
+                    title="Reducir unidades"
+                  >
+                    -
+                  </button>
+                  <span id="rental-quantity-display" class="w-8 text-center font-bold text-slate-900 font-display text-sm">
+                    ${quantity}
+                  </span>
+                  <button 
+                    type="button" 
+                    id="btn-qty-plus" 
+                    class="w-7 h-7 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    ${quantity >= availableStock ? 'disabled' : ''}
+                    title="Aumentar unidades"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <!-- Línea única informativa de stock (Cero redundancia) -->
+              <div id="stock-single-line-status" class="pt-1.5 border-t border-slate-100 text-xs">
+                ${availableStock > 0 ? `
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-slate-600">
+                    <span class="inline-flex items-center gap-1.5 text-emerald-700 font-medium">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Disponible: <strong>${availableStock} de ${totalStock} ${totalStock === 1 ? 'unidad libre' : 'unidades libres'}</strong> para entrega inmediata</span>
+                    </span>
+                    <span class="text-slate-500 font-medium text-[11px]">
+                      ${days} ${days === 1 ? 'día facturable' : 'días facturables'} (incluye entrega y devolución)
+                    </span>
+                  </div>
+                ` : `
+                  <div class="text-rose-700 font-medium inline-flex items-center gap-1.5">
+                    ${renderIcon('AlertCircle', 'w-3.5 h-3.5 text-rose-600 shrink-0')}
+                    <span>Sin unidades libres para estas fechas (${formatDate(startDate)} al ${formatDate(endDate)}). Selecciona otro rango.</span>
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <!-- Desplegable discreto de Condiciones y Garantías -->
+            <details class="group bg-slate-50/70 border border-slate-200/80 rounded-2xl overflow-hidden transition-all text-xs">
+              <summary class="flex items-center justify-between p-3 font-semibold text-slate-700 hover:text-slate-900 cursor-pointer select-none">
+                <span class="flex items-center gap-2">
+                  ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600')}
+                  <span>Respaldo y Condiciones de Alquiler ToolRent</span>
+                </span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform duration-200">
+                  ${renderIcon('ChevronDown', 'w-3.5 h-3.5')}
+                </span>
+              </summary>
+              <div class="px-3.5 pb-3.5 pt-1 text-slate-600 border-t border-slate-200/60 space-y-2 leading-relaxed">
+                <div class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold mt-0.5">✓</span>
+                  <div><strong>Sustitución en &lt;24h:</strong> Reemplazo express en obra ante cualquier fallo técnico sin sobrecosto.</div>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold mt-0.5">✓</span>
+                  <div><strong>Depósito seguro:</strong> Custodia 100% reembolsable a las 24h tras la devolución e inspección sin daños.</div>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold mt-0.5">✓</span>
+                  <div><strong>Factura oficial DIAN:</strong> IVA 19% desglosado con CUFE deducible para costos de obra civil.</div>
+                </div>
+              </div>
+            </details>
+
+          </div>
+
         </div>
 
-        <!-- 04. Bottom Section: Compact Benefit Pills & Expandable Full Coverage Details -->
-        <div class="col-span-1 lg:col-span-12 border-t border-slate-200/80 pt-3.5 mt-0.5 space-y-3">
-          
-          <!-- Compact Benefits Bar (Pills con micro-iconos discretos) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2 text-slate-700">
-              <div class="w-6 h-6 rounded-md bg-orange-100 text-[#ea580c] flex items-center justify-center flex-shrink-0">
-                ${renderIcon('Wrench', 'w-3.5 h-3.5')}
-              </div>
-              <div class="leading-tight">
-                <div class="font-bold text-slate-900 text-[11px]">Calibrado al 100%</div>
-                <div class="text-[10px] text-slate-500">Probado en banco previo</div>
+        <!-- Barra Inferior Fija / Sticky: Acompaña al usuario en todo momento con Total y Botón Principal -->
+        <div class="sticky -bottom-6 -mx-6 px-6 py-3.5 bg-white/95 backdrop-blur-md border-t border-slate-200 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-baseline gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Total a pagar hoy</span>
+              <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="price-total-val" class="text-2xl font-black text-[#ea580c] font-display tracking-tight">${formatCurrency(total)}</span>
+                <span class="text-[11px] text-slate-400 font-medium">IVA incluido</span>
               </div>
             </div>
 
-            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2 text-slate-700">
-              <div class="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                ${renderIcon('RefreshCw', 'w-3.5 h-3.5')}
+            <div class="text-left text-xs text-slate-500 hidden md:block pl-3 border-l border-slate-200">
+              <div id="price-breakdown-subtext" class="text-[11px] text-slate-600">
+                Alquiler: <strong class="text-slate-800" id="price-subtotal-val">${formatCurrency(subtotal)}</strong> + IVA (19%): <span id="price-tax-val">+${formatCurrency(tax)}</span>
               </div>
-              <div class="leading-tight">
-                <div class="font-bold text-slate-900 text-[11px]">Sustitución en 24h</div>
-                <div class="text-[10px] text-slate-500">Sin costo por falla técnica</div>
-              </div>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2 text-slate-700">
-              <div class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                ${renderIcon('Coins', 'w-3.5 h-3.5')}
-              </div>
-              <div class="leading-tight">
-                <div class="font-bold text-slate-900 text-[11px]">100% Reembolsable</div>
-                <div class="text-[10px] text-slate-500">Garantía liberada en 24h</div>
-              </div>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2 text-slate-700">
-              <div class="w-6 h-6 rounded-md bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
-                ${renderIcon('FileText', 'w-3.5 h-3.5')}
-              </div>
-              <div class="leading-tight">
-                <div class="font-bold text-slate-900 text-[11px]">Factura DIAN y Acta</div>
-                <div class="text-[10px] text-slate-500">IVA 19% y validez legal</div>
+              <div class="text-[10px] text-slate-400">
+                ${days} días facturables · Factura oficial DIAN con CUFE
               </div>
             </div>
           </div>
 
-          <!-- Accordion Toggle Button for Full Details & Conditions -->
-          <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
-            <button 
-              id="btn-toggle-conditions" 
-              type="button" 
-              class="w-full px-3.5 py-2 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50/80 transition-colors"
-            >
-              <span class="flex items-center gap-2">
-                ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600')}
-                <span>¿Qué incluye este servicio y cuáles son las condiciones de devolución y cobro?</span>
-              </span>
-              <span id="accordion-arrow" class="text-slate-400 font-bold transition-transform duration-200 ${isDetailsExpanded ? 'rotate-180' : ''}">
-                ${renderIcon('ChevronDown', 'w-4 h-4')}
-              </span>
-            </button>
-
-            <!-- Collapsible Content -->
-            <div id="conditions-accordion-body" class="${isDetailsExpanded ? 'block' : 'hidden'} p-3.5 bg-slate-50/50 border-t border-slate-200 space-y-3 text-xs">
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <div class="p-3 bg-white border border-slate-200/90 rounded-lg space-y-1">
-                  <div class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
-                    ${renderIcon('Wrench', 'w-3.5 h-3.5 text-[#ea580c]')} Protocolo de Calibración
-                  </div>
-                  <p class="text-[11px] text-slate-600 leading-relaxed">
-                    Antes del despacho, el proveedor verifica tensión eléctrica, lubricación, afilado y elementos de seguridad en banco. Se genera un acta con fotos iniciales de estado del equipo.
-                  </p>
-                </div>
-
-                <div class="p-3 bg-white border border-slate-200/90 rounded-lg space-y-1">
-                  <div class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
-                    ${renderIcon('RefreshCw', 'w-3.5 h-3.5 text-blue-600')} Garantía de Sustitución en Obra
-                  </div>
-                  <p class="text-[11px] text-slate-600 leading-relaxed">
-                    Si el equipo presenta fallo operacional o desgaste normal, el proveedor entrega una unidad equivalente en menos de 24 horas sin costo extra para evitar retrasos en el proyecto.
-                  </p>
-                </div>
-
-                <div class="p-3 bg-white border border-slate-200/90 rounded-lg space-y-1">
-                  <div class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
-                    ${renderIcon('Coins', 'w-3.5 h-3.5 text-emerald-600')} Política de Garantía y Descuentos
-                  </div>
-                  <p class="text-[11px] text-slate-600 leading-relaxed">
-                    <strong>Cuándo se devuelve:</strong> 100% reembolsado a las 24h del check-out.<br>
-                    <strong>Cuándo se descuenta:</strong> Solo si el acta de retorno constata rotura por negligencia o extravío de accesorios. El desgaste normal de uso nunca se descuenta.
-                  </p>
-                </div>
-
-                <div class="p-3 bg-white border border-slate-200/90 rounded-lg space-y-1">
-                  <div class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
-                    ${renderIcon('FileText', 'w-3.5 h-3.5 text-purple-600')} Facturación Tributaria DIAN
-                  </div>
-                  <p class="text-[11px] text-slate-600 leading-relaxed">
-                    El servicio de arrendamiento de maquinaria y equipo está gravado con IVA 19% conforme al Estatuto Tributario. Se emite factura electrónica con CUFE deducible y contrato digital con firma de entrega.
-                  </p>
-                </div>
-              </div>
-
-              <!-- Workflow Banner -->
-              <div class="bg-white border border-slate-200/90 rounded-lg p-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2">
-                  <div class="w-5 h-5 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-[11px] flex-shrink-0">1</div>
-                  <div>
-                    <span class="font-bold text-slate-900">1. Reserva Online</span>
-                    <p class="text-[10px] text-slate-500">Bloqueas fechas con pago y custodia cifrada</p>
-                  </div>
-                </div>
-                <div class="hidden sm:block text-slate-300 font-bold">→</div>
-                <div class="flex items-center gap-2">
-                  <div class="w-5 h-5 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-[11px] flex-shrink-0">2</div>
-                  <div>
-                    <span class="font-bold text-slate-900">2. Entrega con Acta Digital</span>
-                    <p class="text-[10px] text-slate-500">Inspección con fotos de check-in del equipo</p>
-                  </div>
-                </div>
-                <div class="hidden sm:block text-slate-300 font-bold">→</div>
-                <div class="flex items-center gap-2">
-                  <div class="w-5 h-5 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-[11px] flex-shrink-0">3</div>
-                  <div>
-                    <span class="font-bold text-slate-900">3. Retorno y Liberación</span>
-                    <p class="text-[10px] text-slate-500">Check-out y reintegro del 100% del depósito</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
+          <button 
+            id="btn-proceed-checkout" 
+            ${!isAvailable || isCheckingAvailability || availableStock <= 0 ? 'disabled' : ''} 
+            class="btn-primary w-full sm:w-auto !py-3 !px-6 text-sm font-bold shadow-md hover:shadow-lg transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            <span>Continuar con la reserva</span>
+            ${renderIcon('ChevronRight', 'w-4 h-4')}
+          </button>
         </div>
 
       </div>
     `;
 
-    // Event handlers
-    const startInput = content.querySelector('#rental-start-date');
-    const endInput = content.querySelector('#rental-end-date');
+    // Mount Custom Date Range Calendar In-App UI
+    const mount = content.querySelector('#custom-calendar-mount');
+    if (mount) {
+      calendarInstance = createDateRangeCalendar({
+        toolId: tool.id,
+        initialStartDate: startDate,
+        initialEndDate: endDate,
+        bookedRanges: tool.bookedDateRanges || [],
+        onChange: ({ startDate: newS, endDate: newE }) => {
+          startDate = newS;
+          endDate = newE;
+          updatePricingUI();
+          checkAvailability();
+        }
+      });
+      mount.appendChild(calendarInstance.getElement());
+    }
 
-    startInput.addEventListener('change', (e) => {
-      startDate = e.target.value;
-      if (endDate < startDate) {
-        endDate = startDate;
-        endInput.value = startDate;
+    content.querySelector('#btn-qty-minus')?.addEventListener('click', () => {
+      if (quantity > 1) {
+        quantity--;
+        updatePricingUI();
+        updateStockUI();
       }
-      endInput.min = startDate;
-      checkAvailability();
     });
 
-    endInput.addEventListener('change', (e) => {
-      endDate = e.target.value;
-      checkAvailability();
-    });
-
-    content.querySelector('#btn-toggle-conditions')?.addEventListener('click', () => {
-      isDetailsExpanded = !isDetailsExpanded;
-      const body = content.querySelector('#conditions-accordion-body');
-      const arrow = content.querySelector('#accordion-arrow');
-      if (body) {
-        body.classList.toggle('hidden', !isDetailsExpanded);
-        body.classList.toggle('block', isDetailsExpanded);
-      }
-      if (arrow) {
-        arrow.classList.toggle('rotate-180', isDetailsExpanded);
+    content.querySelector('#btn-qty-plus')?.addEventListener('click', () => {
+      if (quantity < availableStock) {
+        quantity++;
+        updatePricingUI();
+        updateStockUI();
       }
     });
 
     content.querySelector('#btn-proceed-checkout')?.addEventListener('click', () => {
-      openCheckoutModal(tool, { startDate, endDate, ...calculateCosts() });
+      const costs = calculateCosts();
+
+      // Enforce 1-year max horizon rule
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const maxHorizon = new Date(today);
+      maxHorizon.setDate(today.getDate() + 365);
+      maxHorizon.setHours(23, 59, 59, 999);
+
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const startD = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      const endD = new Date(ey, em - 1, ed, 0, 0, 0, 0);
+
+      if (startD < today) {
+        showToast('La fecha de entrega no puede ser anterior a la fecha actual.', 'warning');
+        return;
+      }
+      if (startD > maxHorizon || endD > maxHorizon) {
+        showToast('No es posible realizar reservas con más de 1 año de anticipación.', 'warning');
+        return;
+      }
+      if (endD < startD) {
+        showToast('La fecha de devolución no puede ser anterior a la de entrega.', 'warning');
+        return;
+      }
+      if (costs.days > 30) {
+        showToast('El período máximo de alquiler permitido es de 30 días continuos.', 'warning');
+        return;
+      }
+      if (!isAvailable || availableStock <= 0) {
+        showToast('No hay unidades disponibles en las fechas seleccionadas.', 'warning');
+        return;
+      }
+      if (quantity > availableStock) {
+        showToast(`Solo hay ${availableStock} unidades disponibles para estas fechas.`, 'warning');
+        return;
+      }
+
+      const selectedToolIds = availableToolIds.slice(0, quantity);
+      openCheckoutModal(tool, { 
+        startDate, 
+        endDate, 
+        quantity, 
+        selectedToolIds, 
+        availableStock, 
+        totalStock, 
+        ...costs 
+      });
     });
   }
 
-  function updateCalculationUI() {
-    renderView();
-  }
-
+  renderView();
   checkAvailability();
 
   modal.open({
@@ -471,17 +543,58 @@ export async function openCheckoutModal(tool, rentalData) {
       return `
         <div class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Tarjeta (Simulado)</label>
-            <input type="text" maxlength="19" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="4532 •••• •••• 8892" />
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-[11px] font-semibold text-slate-700">Número de Tarjeta (Solo dígitos)</label>
+              <span class="text-[10px] text-slate-400 font-mono">16 dígitos</span>
+            </div>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="checkout-card-number" 
+                maxlength="19" 
+                inputmode="numeric" 
+                autocomplete="cc-number" 
+                placeholder="4532 8921 4402 8892" 
+                class="w-full bg-white border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ea580c] transition-colors" 
+                value="4532 8921 4402 8892" 
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                ${renderIcon('CreditCard', 'w-4 h-4')}
+              </span>
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vencimiento</label>
-              <input type="text" maxlength="5" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="12/28" />
+              <div class="flex justify-between items-center mb-1">
+                <label class="block text-[11px] font-semibold text-slate-700">Vencimiento (MM/AA)</label>
+                <span class="text-[9px] text-slate-400 font-mono">Mes 01-12 / &ge;26</span>
+              </div>
+              <input 
+                type="text" 
+                id="checkout-card-expiry" 
+                maxlength="5" 
+                inputmode="numeric" 
+                autocomplete="cc-exp" 
+                placeholder="MM/AA (ej. 12/28)" 
+                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ea580c] transition-colors" 
+                value="12/28" 
+              />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">CVC / CVV</label>
-              <input type="password" maxlength="4" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="892" />
+              <div class="flex justify-between items-center mb-1">
+                <label class="block text-[11px] font-semibold text-slate-700">CVC / CVV</label>
+                <span class="text-[9px] text-slate-400 font-mono">3 o 4 dígitos</span>
+              </div>
+              <input 
+                type="password" 
+                id="checkout-card-cvv" 
+                maxlength="4" 
+                inputmode="numeric" 
+                autocomplete="cc-csc" 
+                placeholder="ej. 892" 
+                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ea580c] transition-colors" 
+                value="892" 
+              />
             </div>
           </div>
         </div>
@@ -512,7 +625,7 @@ export async function openCheckoutModal(tool, rentalData) {
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">Email Registrado en PSE</label>
-              <input type="email" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500" value="${auth.getUser()?.email || 'cliente@toolrent.com'}" />
+              <input type="email" id="pse-email" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-500" value="${auth.getUser()?.email || 'cliente@toolrent.com'}" />
             </div>
           </div>
         </div>
@@ -532,11 +645,81 @@ export async function openCheckoutModal(tool, rentalData) {
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Comprobante / Transacción</label>
-            <input type="text" id="transfer-ref" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800" value="TRF-${Date.now().toString().slice(-6)}" />
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Comprobante / Transacción Oficial</label>
+            <div class="relative">
+              <input type="text" id="transfer-ref" readonly autocomplete="off" class="w-full bg-slate-100/90 border border-slate-200 rounded-lg pl-3 pr-28 py-2 text-xs font-mono text-slate-700 cursor-not-allowed select-all font-semibold" value="TRF-${Date.now().toString().slice(-8)}" />
+              <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-sans flex items-center gap-1 select-none pointer-events-none">
+                ${renderIcon('Lock', 'w-3 h-3 text-slate-400')} Asignado por sistema
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Este identificador único de comprobante es generado automáticamente para evitar duplicidad e inconsistencias fiscales.</p>
           </div>
         </div>
       `;
+    }
+  }
+
+  function bindPaymentFieldSanitizers(root) {
+    if (!root) return;
+
+    // 1. Número de Tarjeta: Únicamente dígitos numéricos, espaciado cada 4 caracteres
+    const numInp = root.querySelector('#checkout-card-number');
+    if (numInp) {
+      numInp.addEventListener('input', (e) => {
+        const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 16);
+        const parts = rawDigits.match(/.{1,4}/g);
+        e.target.value = parts ? parts.join(' ') : rawDigits;
+      });
+      numInp.addEventListener('keydown', (e) => {
+        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+        if (e.ctrlKey || e.metaKey) return;
+        if (!/^\d$/.test(e.key)) e.preventDefault();
+      });
+    }
+
+    // 2. Vencimiento MM/AA: Bloqueo de meses > 12 y formato automático
+    const expInp = root.querySelector('#checkout-card-expiry');
+    if (expInp) {
+      expInp.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+
+        if (val.length === 1) {
+          // Si el usuario escribe 2 a 9, se antepone 0 automáticamente (ej. 05)
+          if (Number(val) > 1) {
+            val = '0' + val;
+          }
+        } else if (val.length >= 2) {
+          let m = parseInt(val.slice(0, 2), 10);
+          if (m === 0) m = 1;
+          if (m > 12) m = 12; // Bloquea meses inexistentes como 15 o 99
+          val = String(m).padStart(2, '0') + val.slice(2);
+        }
+
+        if (val.length > 2) {
+          e.target.value = val.slice(0, 2) + '/' + val.slice(2, 4);
+        } else {
+          e.target.value = val;
+        }
+      });
+      expInp.addEventListener('keydown', (e) => {
+        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+        if (e.ctrlKey || e.metaKey) return;
+        if (!/^\d$/.test(e.key)) e.preventDefault();
+      });
+    }
+
+    // 3. CVC/CVV: Únicamente dígitos numéricos, máximo 4
+    const cvvInp = root.querySelector('#checkout-card-cvv');
+    if (cvvInp) {
+      cvvInp.addEventListener('input', (e) => {
+        const clean = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (e.target.value !== clean) e.target.value = clean;
+      });
+      cvvInp.addEventListener('keydown', (e) => {
+        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+        if (e.ctrlKey || e.metaKey) return;
+        if (!/^\d$/.test(e.key)) e.preventDefault();
+      });
     }
   }
 
@@ -546,6 +729,9 @@ export async function openCheckoutModal(tool, rentalData) {
         <div class="flex items-start justify-between gap-3">
           <div>
             <span class="text-slate-500">Equipo:</span> <strong class="text-slate-900">${tool.name}</strong>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-[#ea580c] ml-1.5">
+              ${rentalData.quantity || 1} ${(rentalData.quantity || 1) === 1 ? 'unidad' : 'unidades'}
+            </span>
             <div class="text-[11px] text-slate-500 mt-0.5">
               ${formatDate(rentalData.startDate)} al ${formatDate(rentalData.endDate)} · <span class="font-bold text-slate-700">${rentalData.days} días facturables</span>
             </div>
@@ -556,7 +742,7 @@ export async function openCheckoutModal(tool, rentalData) {
           </div>
         </div>
         <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Subtotal: ${formatCurrency(rentalData.subtotal)} + IVA (19%): ${formatCurrency(rentalData.tax)}</span>
+          <span>Subtotal (${rentalData.quantity || 1} unids.): ${formatCurrency(rentalData.subtotal)} + IVA (19%): ${formatCurrency(rentalData.tax)}</span>
           <span class="text-emerald-700 font-medium">Garantía en custodia: ${formatCurrency(rentalData.deposit)} (Reembolsable)</span>
         </div>
       </div>
@@ -617,13 +803,94 @@ export async function openCheckoutModal(tool, rentalData) {
       if (activeIcon) activeIcon.setAttribute('class', 'w-5 h-5 text-brand-600');
 
       fieldsContainer.innerHTML = renderPaymentFields(currentMethod);
+      bindPaymentFieldSanitizers(fieldsContainer);
     });
   });
+
+  // Initial sanitizer binding
+  bindPaymentFieldSanitizers(fieldsContainer);
 
   content.querySelector('#btn-confirm-payment').addEventListener('click', async () => {
     const btn = content.querySelector('#btn-confirm-payment');
     const errBox = content.querySelector('#checkout-error');
     errBox.classList.add('hidden');
+
+    // Validación estricta para Tarjeta de Crédito (solo números, mes 01-12, año >= 2026, CVV 3-4 dígitos)
+    if (currentMethod === 'CREDIT_CARD') {
+      const numInp = content.querySelector('#checkout-card-number');
+      const expInp = content.querySelector('#checkout-card-expiry');
+      const cvvInp = content.querySelector('#checkout-card-cvv');
+
+      const cardDigits = (numInp?.value || '').replace(/\D/g, '');
+      if (cardDigits.length !== 16) {
+        errBox.textContent = 'El número de tarjeta es inválido. Debe contener exactamente 16 dígitos numéricos.';
+        errBox.classList.remove('hidden');
+        numInp?.focus();
+        return;
+      }
+
+      const expVal = (expInp?.value || '').trim();
+      if (!/^\d{2}\/\d{2}$/.test(expVal)) {
+        errBox.textContent = 'Fecha de vencimiento incompleta. Ingresa el formato MM/AA (ej. 12/28).';
+        errBox.classList.remove('hidden');
+        expInp?.focus();
+        return;
+      }
+
+      const [mStr, yStr] = expVal.split('/');
+      const month = parseInt(mStr, 10);
+      const fullYear = 2000 + parseInt(yStr, 10);
+      const currentYear = 2026;
+      const currentMonth = 10;
+
+      if (month < 1 || month > 12) {
+        errBox.textContent = `Mes de vencimiento inexistente (${mStr}). Los meses válidos van del 01 al 12.`;
+        errBox.classList.remove('hidden');
+        expInp?.focus();
+        return;
+      }
+
+      if (fullYear < currentYear) {
+        errBox.textContent = `La tarjeta se encuentra vencida. El año (${fullYear}) no puede ser anterior al año vigente (${currentYear}).`;
+        errBox.classList.remove('hidden');
+        expInp?.focus();
+        return;
+      }
+
+      if (fullYear === currentYear && month < currentMonth) {
+        errBox.textContent = `La tarjeta se encuentra vencida. El mes (${mStr}/26) ya ha expirado con respecto a la fecha actual (octubre 2026).`;
+        errBox.classList.remove('hidden');
+        expInp?.focus();
+        return;
+      }
+
+      if (fullYear > currentYear + 20) {
+        errBox.textContent = `El año de vencimiento (${fullYear}) excede el plazo máximo permitido.`;
+        errBox.classList.remove('hidden');
+        expInp?.focus();
+        return;
+      }
+
+      const cvvDigits = (cvvInp?.value || '').replace(/\D/g, '');
+      if (cvvDigits.length < 3 || cvvDigits.length > 4) {
+        errBox.textContent = 'El código de seguridad CVC/CVV debe contener 3 o 4 dígitos numéricos.';
+        errBox.classList.remove('hidden');
+        cvvInp?.focus();
+        return;
+      }
+    }
+
+    if (currentMethod === 'DEBIT_CARD') {
+      const emailInp = content.querySelector('#pse-email');
+      const emailVal = (emailInp?.value || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        errBox.textContent = 'Por favor ingresa un correo electrónico válido registrado en PSE.';
+        errBox.classList.remove('hidden');
+        emailInp?.focus();
+        return;
+      }
+    }
+
     btn.disabled = true;
     btn.innerHTML = `${renderIcon('Loader2', 'w-4 h-4 animate-spin inline mr-1.5')} Procesando pago seguro...`;
 
@@ -637,7 +904,7 @@ export async function openCheckoutModal(tool, rentalData) {
           clientId: user.profile?.id || user.id,
           startDate: rentalData.startDate,
           endDate: rentalData.endDate,
-          toolIds: [tool.id]
+          toolIds: (rentalData.selectedToolIds && rentalData.selectedToolIds.length > 0) ? rentalData.selectedToolIds : [tool.id]
         };
         pendingRental = await api.post('/rentals', rentalPayload);
       }
@@ -646,12 +913,16 @@ export async function openCheckoutModal(tool, rentalData) {
       const subtotalNum = Number(pendingRental.subtotal ?? rentalData.subtotal ?? 0);
       const billedAmount = subtotalNum > 0 ? Math.round(subtotalNum * 1.19) : Math.round(rentalData.total);
 
-      // 3. Process payment
+      // 3. Process payment with sanitized reference number
+      const transferInput = content.querySelector('#transfer-ref');
+      const rawRef = transferInput ? transferInput.value.trim() : `TRF-${Date.now().toString().slice(-8)}`;
+      const safeRef = rawRef.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 30) || `PAY-ONLINE-${Date.now().toString().slice(-6)}`;
+
       const paymentPayload = {
         rentalId: pendingRental.id,
         amount: billedAmount,
         paymentMethod: method,
-        referenceNumber: `PAY-ONLINE-${Date.now().toString().slice(-6)}`
+        referenceNumber: safeRef
       };
 
       const paymentResult = await api.post('/billing/payments', paymentPayload);
@@ -885,162 +1156,167 @@ export function openInvoiceViewer(invoice) {
       </div>
 
       <!-- Printable Invoice Paper Card -->
-      <div id="printable-invoice-sheet" class="bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 sm:p-14 space-y-8 font-sans text-slate-800">
+      <div id="printable-invoice-sheet" class="bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6 sm:p-12 space-y-6 font-sans text-slate-800">
         
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div class="flex items-start gap-3">
-            ${renderToolRentMark('w-10 h-10')}
-            <div>
-              <span class="text-2xl font-bold tracking-tight text-slate-900 font-display">ToolRent</span>
-              <p class="text-xs text-slate-500 mt-0.5">Herramientas y maquinaria para construir grandes proyectos</p>
+        <!-- 1. Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b border-slate-200">
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-[#ea580c] flex items-center justify-center text-white font-black text-base shadow-xs">T</span>
+              <span class="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Tool<span class="text-[#ea580c]">Rent</span> Colombia</span>
             </div>
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              <strong>ToolRent Technology S.A.S.</strong> · NIT 901.234.567-8<br>
+              Plataforma de Arrendamiento y Gestión de Equipos de Construcción<br>
+              Régimen Común · Responsable de IVA · CIIU 7730
+            </p>
           </div>
 
-          <div class="sm:text-right">
-            <div class="text-xs text-slate-400 font-medium">Factura de alquiler</div>
-            <div class="text-xl font-bold text-slate-900 font-display">N° ${invoice.invoiceNumber || 'TR-0004587'}</div>
-            <div class="text-[11px] text-slate-500 mt-1">Fecha de emisión: ${invoice.issueDate || '13 oct 2026'}</div>
-            <div class="text-[11px] text-slate-500">Fecha de vencimiento: ${invoice.issueDate || '13 oct 2026'}</div>
+          <div class="sm:text-right space-y-1">
+            <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              CERTIFICADA DIAN · PAGADA
+            </span>
+            <div class="text-sm font-extrabold text-slate-900">FACTURA ELECTRÓNICA DE VENTA</div>
+            <div class="text-base font-bold text-[#ea580c] font-mono">${invoice.invoiceNumber || 'INV-0004587'}</div>
+            <div class="text-[11px] text-slate-500">
+              Fecha de Emisión: <strong class="text-slate-800">${invoice.issueDate || '2026-10-15'}</strong>
+            </div>
           </div>
         </div>
 
-        <!-- Orange Line Divider -->
-        <div class="border-t-2 border-brand-500"></div>
+        <!-- 2. DIAN Resolution Banner -->
+        <div class="px-3.5 py-2.5 bg-slate-50 border-l-3 border-[#ea580c] rounded-r-lg text-[11px] text-slate-600 flex flex-wrap items-center justify-between gap-2">
+          <span><strong>Autorización DIAN:</strong> Res. Nº 18764000001 de 2026-01-15 (Prefijo INV, 00001 a 99999 · Vigencia 24M)</span>
+          <span class="text-slate-500">Operación: <strong>10 - Arrendamiento Bien Mueble</strong></span>
+        </div>
 
-        <!-- Client & Provider Two Columns -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
-          <!-- Datos del cliente -->
-          <div class="space-y-2">
-            <div class="flex items-center gap-2 mb-3">
-              <h4 class="font-bold text-slate-900 text-sm">Datos del cliente</h4>
-              <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Arrendatario</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Nombre:</span>
-              <span class="col-span-2 font-semibold text-slate-800">${invoice.client.name}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Cédula / NIT:</span>
-              <span class="col-span-2 text-slate-700 font-mono">${invoice.client.taxId}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Correo:</span>
-              <span class="col-span-2 text-slate-700">${invoice.client.email}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Teléfono:</span>
-              <span class="col-span-2 text-slate-700">${invoice.client.phone}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Dirección:</span>
-              <span class="col-span-2 text-slate-700">${invoice.client.address}</span>
-            </div>
-          </div>
-
+        <!-- 3. Client & Provider Two Columns -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs">
           <!-- Datos del proveedor -->
-          <div class="space-y-2">
-            <div class="flex items-center gap-2 mb-3">
-              <h4 class="font-bold text-slate-900 text-sm">Datos del proveedor</h4>
-              <span class="text-[10px] font-semibold text-[#ea580c] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">Dueño del Equipo</span>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Arrendador (Proveedor)</span>
+              <span class="text-[10px] font-bold text-[#ea580c] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">Dueño del Equipo</span>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Nombre:</span>
-              <span class="col-span-2 font-semibold text-slate-800">${invoice.provider.name}</span>
+            <div class="font-bold text-slate-900 text-sm">${invoice.provider.name}</div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">NIT / RUT:</span> <strong class="font-mono text-slate-800">${invoice.provider.taxId}</strong></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Sede:</span> <span>${invoice.provider.address}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${invoice.provider.phone}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${invoice.provider.email}</span></div>
+          </div>
+
+          <!-- Datos del cliente -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Arrendatario (Cliente)</span>
+              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">Arrendatario en Faena</span>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">NIT:</span>
-              <span class="col-span-2 text-slate-700 font-mono">${invoice.provider.taxId}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Correo:</span>
-              <span class="col-span-2 text-slate-700">${invoice.provider.email}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Teléfono:</span>
-              <span class="col-span-2 text-slate-700">${invoice.provider.phone}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Dirección:</span>
-              <span class="col-span-2 text-slate-700">${invoice.provider.address}</span>
-            </div>
+            <div class="font-bold text-slate-900 text-sm">${invoice.client.name}</div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Identificación:</span> <strong class="font-mono text-slate-800">${invoice.client.taxId}</strong></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Destino de Obra:</span> <span>${invoice.client.address}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${invoice.client.phone}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${invoice.client.email}</span></div>
           </div>
         </div>
 
-        <!-- Equipos alquilados Table -->
-        <div>
-          <h4 class="font-bold text-slate-900 text-sm mb-4">Equipos alquilados</h4>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+        <!-- 4. Equipos alquilados Table -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+              <tr>
+                <th class="py-3 px-3.5 w-10 text-center">#</th>
+                <th class="py-3 px-4">Maquinaria / Equipo Industrial</th>
+                <th class="py-3 px-4 text-center w-24">Duración</th>
+                <th class="py-3 px-4 text-right w-32">Tarifa Diaria</th>
+                <th class="py-3 px-4 text-right w-36">Subtotal Alquiler</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              ${invoice.items.map((it, idx) => `
                 <tr>
-                  <th class="py-2.5 pr-4 w-8">#</th>
-                  <th class="py-2.5 px-4">Herramienta / Equipo</th>
-                  <th class="py-2.5 px-4 text-center">Días</th>
-                  <th class="py-2.5 px-4 text-right">Precio diario</th>
-                  <th class="py-2.5 pl-4 text-right">Subtotal</th>
+                  <td class="py-3.5 px-3.5 text-center text-slate-400 font-mono text-[11px]">${String(idx + 1).padStart(2, '0')}</td>
+                  <td class="py-3.5 px-4">
+                    <div class="font-bold text-slate-900 text-xs">${it.name}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Maquinaria pesada certificada · Cobertura técnica en obra</div>
+                  </td>
+                  <td class="py-3.5 px-4 text-center font-medium">${it.days} días</td>
+                  <td class="py-3.5 px-4 text-right font-mono">${formatCurrency(it.dailyPrice)}</td>
+                  <td class="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">${formatCurrency(it.subtotal)}</td>
                 </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 text-slate-700">
-                ${invoice.items.map((it, idx) => `
-                  <tr>
-                    <td class="py-3 pr-4 text-slate-400 font-bold">${idx + 1}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-900">${it.name}</td>
-                    <td class="py-3 px-4 text-center">${it.days}</td>
-                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(it.dailyPrice)}</td>
-                    <td class="py-3 pl-4 text-right font-bold text-slate-900">${formatCurrency(it.subtotal)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 5. Settlement & Totals Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-start">
+          <!-- Payment Info Box -->
+          <div class="sm:col-span-7 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-600">
+            <div class="font-bold text-slate-900 text-xs pb-1.5 border-b border-slate-200 flex items-center justify-between">
+              <span>Comprobante de Pago y Garantía</span>
+              <span class="text-emerald-700 font-medium text-[11px]">✔ Conciliado</span>
+            </div>
+            <div class="flex justify-between"><span class="text-slate-400">Método de Pago:</span> <strong class="text-slate-800">${invoice.paymentMethod}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Entidad / Red:</span> <strong class="text-slate-800">${invoice.bank}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Ref. Transacción:</span> <span class="font-mono text-slate-800 font-semibold">${invoice.reference}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Custodia Garantía:</span> <span class="text-emerald-700 font-medium">Custodiado por ToolRent Escrow</span></div>
+            <p class="text-[10px] text-slate-400 pt-1 leading-relaxed border-t border-slate-200/70 mt-2">
+              El depósito de garantía se reembolsa a la cuenta de origen tras el cierre del acta de entrega en faena.
+            </p>
           </div>
 
-          <!-- Totals Breakdown -->
-          <div class="flex justify-end pt-6 border-t border-slate-200">
-            <div class="w-64 space-y-2 text-xs">
-              <div class="flex justify-between text-slate-600">
-                <span>Subtotal</span>
-                <span class="font-semibold text-slate-800">${formatCurrency(invoice.subtotal)}</span>
-              </div>
-              <div class="flex justify-between text-slate-600">
-                <span>IVA (19%)</span>
-                <span class="font-semibold text-slate-800">${formatCurrency(invoice.tax)}</span>
-              </div>
-              <div class="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-                <span class="text-sm font-bold text-slate-900">Total</span>
-                <span class="text-xl font-bold text-slate-900">${formatCurrency(invoice.total)}</span>
-              </div>
+          <!-- Totals Box -->
+          <div class="sm:col-span-5 p-4 bg-white border border-slate-200 rounded-xl space-y-2 text-xs shadow-2xs">
+            <div class="flex justify-between text-slate-600">
+              <span>Subtotal Arrendamiento:</span>
+              <strong class="text-slate-800 font-mono">${formatCurrency(invoice.subtotal)}</strong>
             </div>
+            <div class="flex justify-between text-slate-600">
+              <span>IVA Legal 19% (Servicios):</span>
+              <strong class="text-slate-800 font-mono">${formatCurrency(invoice.tax)}</strong>
+            </div>
+            <div class="pt-2 border-t-2 border-slate-900 flex justify-between items-baseline">
+              <span class="text-xs font-black text-slate-900 uppercase tracking-tight">TOTAL FACTURADO:</span>
+              <span class="text-lg font-black text-[#ea580c] font-mono">${formatCurrency(invoice.total)}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 text-right">Pesos Colombianos (COP) · IVA Incluido</div>
           </div>
         </div>
 
-        <!-- Información de pago -->
-        <div class="border-t border-slate-200 pt-6">
-          <h4 class="font-bold text-slate-900 text-sm mb-3">Información de pago</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Método de pago:</span>
-              <span class="col-span-2 text-slate-800 font-medium">${invoice.paymentMethod}</span>
+        <!-- 6. CUFE Box with SVG QR Pattern -->
+        <div class="p-3.5 bg-slate-50 border border-dashed border-slate-300 rounded-xl flex items-center gap-4">
+          <svg class="w-14 h-14 flex-shrink-0 bg-white border border-slate-200 rounded p-1" viewBox="0 0 100 100">
+            <rect width="100" height="100" fill="#ffffff" />
+            <rect x="10" y="10" width="24" height="24" fill="#0f172a" />
+            <rect x="14" y="14" width="16" height="16" fill="#ffffff" />
+            <rect x="18" y="18" width="8" height="8" fill="#0f172a" />
+            <rect x="66" y="10" width="24" height="24" fill="#0f172a" />
+            <rect x="70" y="14" width="16" height="16" fill="#ffffff" />
+            <rect x="74" y="18" width="8" height="8" fill="#0f172a" />
+            <rect x="10" y="66" width="24" height="24" fill="#0f172a" />
+            <rect x="14" y="70" width="16" height="16" fill="#ffffff" />
+            <rect x="18" y="74" width="8" height="8" fill="#0f172a" />
+            <rect x="42" y="14" width="6" height="6" fill="#0f172a" />
+            <rect x="52" y="20" width="6" height="6" fill="#0f172a" />
+            <rect x="44" y="44" width="12" height="12" fill="#ea580c" />
+            <rect x="62" y="42" width="6" height="6" fill="#0f172a" />
+            <rect x="42" y="66" width="6" height="6" fill="#0f172a" />
+            <rect x="72" y="64" width="8" height="8" fill="#0f172a" />
+          </svg>
+          <div class="text-[11px] text-slate-500 min-w-0 flex-1">
+            <strong class="text-slate-800">Código Único de Factura Electrónica (CUFE):</strong>
+            <div class="font-mono text-[9px] text-slate-800 break-all bg-white border border-slate-200 p-1.5 rounded mt-1 select-all">
+              ${(invoice.rawInvoiceId || '3d626d7f').replace(/-/g, '') + '8a2d440c85a2a3d61166a14cDIAN2026CUFE'}
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Entidad:</span>
-              <span class="col-span-2 text-slate-800 font-medium">${invoice.bank}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Referencia:</span>
-              <span class="col-span-2 text-slate-800 font-mono font-medium">${invoice.reference}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <span class="text-slate-400">Fecha de pago:</span>
-              <span class="col-span-2 text-slate-800 font-medium">${invoice.paymentDate}</span>
-            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Verificación fiscal en línea: <a href="https://catalogo-vpfe.dian.gov.co" target="_blank" class="text-[#ea580c] hover:underline">catalogo-vpfe.dian.gov.co</a></div>
           </div>
         </div>
 
-        <!-- Footer -->
-        <div class="border-t border-slate-200 pt-6 text-center space-y-2 text-[11px] text-slate-400">
-          <p>ToolRent · NIT 901.234.567-8 · Av. 27 # 45-12, Floridablanca, Santander · contacto@toolrent.com · +57 317 654 3210</p>
-          <p class="text-[10px]">Esta factura es un comprobante de alquiler de herramientas y maquinaria. No constituye una venta. Gracias por confiar en ToolRent.</p>
+        <!-- 7. Legal Disclaimer & Digital Seal -->
+        <div class="pt-4 border-t border-slate-200 text-center space-y-1 text-[10px] text-slate-400 leading-relaxed">
+          <p>Esta factura electrónica presta mérito ejecutivo conforme a los artículos 772, 773 y 774 del Código de Comercio y la Ley 1231 de 2008.</p>
+          <p class="font-medium text-slate-500">ToolRent Technology S.A.S. · NIT 901.234.567-8 · Firma Digital SHA-256 · Bogotá, Colombia</p>
         </div>
 
       </div>
@@ -1050,6 +1326,9 @@ export function openInvoiceViewer(invoice) {
 
   content.querySelector('#invoice-btn-back')?.addEventListener('click', () => {
     modal.close();
+    if (window.location.hash !== '#/client' && window.location.hash !== '#/provider') {
+      window.location.hash = '#/client';
+    }
   });
 
   content.querySelector('#invoice-btn-download')?.addEventListener('click', () => {

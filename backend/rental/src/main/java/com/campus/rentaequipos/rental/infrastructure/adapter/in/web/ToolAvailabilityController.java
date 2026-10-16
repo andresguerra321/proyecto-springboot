@@ -22,6 +22,15 @@ public class ToolAvailabilityController {
         this.rentalUseCase = rentalUseCase;
     }
 
+    @GetMapping("/availability")
+    @Operation(summary = "Consultar disponibilidad y stock de todo el catálogo para un rango de fechas",
+               description = "Evalúa todos los equipos del catálogo para un rango de fechas devolviendo el stock disponible y reservado con persistencia real")
+    public ResponseEntity<java.util.List<ToolAvailabilityResponse>> checkCatalogAvailability(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(rentalUseCase.checkCatalogAvailability(from, to));
+    }
+
     @GetMapping("/{id}/availability")
     @Operation(summary = "Consultar disponibilidad de herramienta por fechas",
                description = "Evalúa si una herramienta está disponible para un rango de fechas y devuelve las fechas ya reservadas para deshabilitar en el selector de fechas")

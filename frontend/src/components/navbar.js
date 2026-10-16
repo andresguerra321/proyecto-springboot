@@ -4,6 +4,119 @@ import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from './auth-modal.js';
 import { toggleNotificationsMenu, closeNotificationsMenu } from './notifications-menu.js';
 import { notificationsStore } from '../utils/notifications-store.js';
+import anime from '../utils/animations.js';
+
+// Cache for navbar DOM persistence across route changes
+let lastNavbarUserId = Symbol('uninitialized');
+let lastNavbarIsAuth = Symbol('uninitialized');
+let lastNavbarRoles = Symbol('uninitialized');
+let currentActiveRoute = null;
+
+
+/**
+ * Applies route-specific active indicators and Magic UI / Anime.js transitions
+ */
+function applyRouteVisuals(container, activeRoute, isInitial = false) {
+  currentActiveRoute = activeRoute;
+
+  // 1. Sliding Active Indicator for Floating Pill Menu
+  const floatingNav = container.querySelector('#navbar-floating-pill');
+  const activePill = container.querySelector('#nav-active-pill');
+
+  if (floatingNav && activePill) {
+    const allLinks = floatingNav.querySelectorAll('.nav-item');
+    const targetLink = floatingNav.querySelector(`.nav-item[data-route="${activeRoute}"]`);
+
+    allLinks.forEach((link) => {
+      const isTarget = link === targetLink;
+      const icon = link.querySelector('svg');
+      if (isTarget) {
+        link.className = 'nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5';
+        if (icon) {
+          icon.classList.remove('text-slate-400');
+          icon.classList.add('text-white');
+        }
+      } else {
+        link.className = 'nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/60 transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5';
+        if (icon) {
+          icon.classList.remove('text-white');
+          icon.classList.add('text-slate-400');
+        }
+      }
+    });
+
+    requestAnimationFrame(() => {
+      if (!targetLink) {
+        activePill.style.display = 'none';
+        return;
+      }
+
+      activePill.style.display = 'block';
+      const targetLeft = targetLink.offsetLeft;
+      const targetWidth = targetLink.offsetWidth;
+
+      if (targetWidth === 0) return;
+
+      if (isInitial || activePill.style.opacity === '0' || !activePill.dataset.positioned) {
+        activePill.style.left = `${targetLeft}px`;
+        activePill.style.width = `${targetWidth}px`;
+        activePill.style.opacity = '1';
+        activePill.dataset.positioned = 'true';
+        anime(activePill, {
+          scale: [0.85, 1],
+          opacity: [0, 1],
+          duration: 350,
+          ease: 'outBack'
+        });
+      } else {
+        anime(activePill, {
+          left: `${targetLeft}px`,
+          width: `${targetWidth}px`,
+          duration: 380,
+          ease: 'outBack'
+        });
+      }
+    });
+  }
+
+  // 3. User Dropdown Menu Active Highlighting
+  const userDropdownNav = container.querySelector('#user-dropdown-nav-list');
+  if (userDropdownNav) {
+    userDropdownNav.querySelectorAll('a').forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const linkRoute = href.replace('#/', '');
+      const isTarget = (linkRoute === activeRoute) || (activeRoute === 'home' && href === '#/');
+      const icon = link.querySelector('svg');
+      const dot = link.querySelector('.user-nav-dot');
+
+      if (isTarget) {
+        link.className = 'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200/70 shadow-2xs transition-all duration-150 group/item';
+        if (icon) icon.setAttribute('class', 'w-4 h-4 text-orange-600');
+        if (dot) dot.classList.remove('hidden');
+      } else {
+        link.className = 'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item';
+        if (icon) icon.setAttribute('class', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700');
+        if (dot) dot.classList.add('hidden');
+      }
+    });
+  }
+
+  // 4. Mobile Drawer Route Styling & Mobile Search Visibility
+  const mobileMenu = container.querySelector('#mobile-menu');
+  if (mobileMenu) {
+    mobileMenu.querySelectorAll('a').forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const linkRoute = href.replace('#/', '');
+      const isTarget = (linkRoute === activeRoute) || (activeRoute === 'home' && href === '#/');
+
+      if (isTarget) {
+        link.className = 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-bold text-[#FF5A1F] bg-orange-50/70';
+      } else {
+        link.className = 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50';
+      }
+    });
+  }
+}
 
 export function renderNavbar(activeRoute = 'catalog') {
   const container = document.getElementById('navbar-container');
@@ -16,6 +129,27 @@ export function renderNavbar(activeRoute = 'catalog') {
   const isClient = auth.isClient();
   const unreadCount = isAuth ? notificationsStore.getUnreadCount() : 0;
 
+  const currentUserId = user?.id || user?.username || null;
+  const currentIsAuth = isAuth;
+  const currentRoles = (user?.roles || []).join(',');
+
+  // Check if existing navbar DOM can be preserved without tearing down
+  const existingHeader = container.querySelector('header');
+  const needsFullRebuild = !existingHeader ||
+    lastNavbarUserId !== currentUserId ||
+    lastNavbarIsAuth !== currentIsAuth ||
+    lastNavbarRoles !== currentRoles;
+
+  if (!needsFullRebuild) {
+    applyRouteVisuals(container, activeRoute, false);
+    return;
+  }
+
+  // Update cached auth state
+  lastNavbarUserId = currentUserId;
+  lastNavbarIsAuth = currentIsAuth;
+  lastNavbarRoles = currentRoles;
+
   const userInitials = user?.username ? user.username.substring(0, 2).toUpperCase() : 'US';
   const roleTitle = isAdmin ? 'Administrador' : (isProvider ? 'Proveedor' : 'Cliente');
   
@@ -25,115 +159,110 @@ export function renderNavbar(activeRoute = 'catalog') {
         ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">${renderIcon('Building2', 'w-3 h-3')} Proveedor Aliado</span>`
         : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">${renderIcon('CheckCircle2', 'w-3 h-3')} Cliente Verificado</span>`);
 
+  const oldSidebar = document.getElementById('admin-sidebar-container');
+  if (oldSidebar) oldSidebar.remove();
+
   container.innerHTML = `
-    <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/90 sticky top-0 z-40 shadow-xs transition-all">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-20 py-3 gap-4 lg:gap-8">
+        <div class="flex items-center justify-between h-20 py-3 gap-2 sm:gap-4 lg:gap-6 min-w-0">
           
-          <!-- 1. Logo & Brand Mark -->
-          <a href="#/" class="flex items-center gap-3 group select-none flex-shrink-0" title="ToolRent - Inicio">
-            ${renderToolRentMark('w-9 h-9 transition-transform duration-200 group-hover:scale-105', '#FF5A1F')}
-            <span class="text-2xl font-black font-display tracking-tight text-slate-900 leading-none">
+          <!-- 1. Left: Logo & Brand Mark -->
+          <a href="#/" class="flex items-center gap-2.5 sm:gap-3 group select-none flex-shrink-0" title="ToolRent - Inicio">
+            ${renderToolRentMark('w-8 h-8 sm:w-9 sm:h-9 transition-transform duration-200 group-hover:scale-105', '#FF5A1F')}
+            <span class="text-xl sm:text-2xl font-black font-display tracking-tight text-slate-900 leading-none">
               ToolRent
             </span>
           </a>
 
-          <!-- 2. Floating Menu Pill (Banner pequeño con colores resaltantes y estilo clean) -->
-          <nav class="hidden md:flex items-center gap-1 p-1 bg-slate-100/90 rounded-full border border-slate-200/80 shadow-xs">
-            <!-- Inicio -->
-            <a href="#/" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-              activeRoute === 'home'
-                ? 'bg-[#ea580c] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-            }">
-              Inicio
-            </a>
+          <!-- 2. Center: Floating Nav Pill (Natural flex-centered with spring layout adaptation) -->
+          <div id="navbar-center-container" class="hidden md:flex items-center justify-center flex-shrink-0 transition-transform duration-300">
+            <nav id="navbar-floating-pill" class="relative flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100/90 backdrop-blur-md rounded-full border border-slate-200/80 shadow-xs">
+              
+              <!-- Magic UI Sliding Active Pill Background -->
+              <div 
+                id="nav-active-pill" 
+                class="absolute bg-[#ea580c] rounded-full shadow-xs pointer-events-none transition-none" 
+                style="top: 4px; bottom: 4px; left: 0px; width: 0px; opacity: 0;"
+              ></div>
 
-            <!-- Catálogo de Equipos -->
-            <a href="#/catalog" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-              activeRoute === 'catalog'
-                ? 'bg-[#ea580c] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-            }">
-              Catálogo
-            </a>
-
-            ${!isAuth ? `
-              <!-- Aliados CTA -->
-              <button 
-                id="btn-guest-provider-cta" 
-                type="button" 
-                class="group px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Publica y monetiza tus herramientas en ToolRent"
+              <!-- Inicio -->
+              <a 
+                href="#/" 
+                data-route="home" 
+                class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
               >
-                ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#ea580c] transition-colors')}
-                <span>¿Tienes equipos?</span>
-                <span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Aliados</span>
-              </button>
-            ` : ''}
-
-            ${isAuth && isClient && !isAdmin ? `
-              <!-- Client Rentals Link -->
-              <a href="#/client" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeRoute === 'client'
-                  ? 'bg-[#ea580c] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-              }">
-                ${renderIcon('ClipboardList', 'w-3.5 h-3.5')}
-                <span>Mis Alquileres</span>
+                Inicio
               </a>
-            ` : ''}
 
-            ${isAuth && isProvider && !isAdmin ? `
-              <!-- Provider Portal Link -->
-              <a href="#/provider" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeRoute === 'provider'
-                  ? 'bg-[#ea580c] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-              }">
-                ${renderIcon('Building2', 'w-3.5 h-3.5')}
-                <span>Panel Proveedor</span>
-              </a>
-            ` : ''}
+              ${!(isAuth && isProvider && !isAdmin) ? `
+                <!-- Catálogo de Equipos -->
+                <a 
+                  href="#/catalog" 
+                  data-route="catalog" 
+                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
+                >
+                  Catálogo
+                </a>
+              ` : ''}
 
-            ${isAuth && isAdmin ? `
-              <!-- Protected Admin Console Link -->
-              <a href="#/admin" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeRoute === 'admin'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-amber-800 bg-amber-50 hover:bg-amber-100'
-              }">
-                ${renderIcon('ShieldCheck', 'w-3.5 h-3.5')}
-                <span>Admin</span>
-              </a>
-            ` : ''}
-          </nav>
+              ${isAuth && (isProvider || isAdmin) ? `
+                <!-- Panel Proveedor -->
+                <a 
+                  href="#/provider" 
+                  data-route="provider" 
+                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                >
+                  ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400')}
+                  <span>Proveedor</span>
+                </a>
+              ` : ''}
 
-          <!-- 3. Right: Search Bar (Catalog Only), Notifications & User Session Controls -->
-          <div class="flex items-center gap-3 lg:gap-4 flex-shrink-0">
+              ${isAuth && isAdmin ? `
+                <!-- Consola Admin -->
+                <a 
+                  href="#/admin" 
+                  data-route="admin" 
+                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                >
+                  ${renderIcon('ShieldCheck', 'w-3.5 h-3.5 text-slate-400')}
+                  <span>Administración</span>
+                </a>
+              ` : ''}
+
+              ${isAuth && isClient && !isAdmin ? `
+                <!-- Mis Alquileres -->
+                <a 
+                  href="#/client" 
+                  data-route="client" 
+                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                >
+                  ${renderIcon('ClipboardList', 'w-3.5 h-3.5 text-slate-400')}
+                  <span>Mis Alquileres</span>
+                </a>
+              ` : ''}
+
+              ${!isAuth ? `
+                <!-- Aliados CTA Button -->
+                <button 
+                  id="btn-guest-provider-cta" 
+                  type="button" 
+                  class="group relative z-10 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer select-none"
+                  title="Publica y monetiza tus herramientas en ToolRent"
+                >
+                  ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#ea580c] transition-colors')}
+                  <span>¿Tienes equipos?</span>
+                  <span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Aliados</span>
+                </button>
+              ` : ''}
+            </nav>
+          </div>
+
+          <!-- 3. Right: Notifications & User Session Controls -->
+          <div class="flex items-center justify-end gap-2 sm:gap-2.5 lg:gap-3 flex-shrink-0 min-w-0">
             
-            ${activeRoute === 'catalog' ? `
-              <!-- Rounded Pill Search Bar (Exclusivo para la vista de Catálogo) -->
-              <div class="hidden sm:flex items-center relative w-44 md:w-52 lg:w-60">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  ${renderIcon('Search', 'w-4 h-4')}
-                </span>
-                <input 
-                  type="text" 
-                  id="navbar-global-search" 
-                  name="toolrent_search"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="off"
-                  spellcheck="false"
-                  placeholder="Buscar herramientas, equipos..." 
-                  class="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-[#FF5A1F] rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/15 transition-all shadow-xs" 
-                />
-              </div>
-            ` : ''}
-
             <!-- Notifications Bell with Popover Menu -->
-            <div class="relative" id="notifications-wrapper">
+            <div class="relative flex-shrink-0" id="notifications-wrapper">
               <button 
                 id="btn-navbar-notifications" 
                 class="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-all cursor-pointer flex items-center justify-center" 
@@ -155,11 +284,11 @@ export function renderNavbar(activeRoute = 'catalog') {
 
             ${isAuth ? `
               <!-- Authenticated User Menu Dropdown -->
-              <div class="relative" id="user-dropdown-wrapper">
+              <div class="relative flex-shrink-0" id="user-dropdown-wrapper">
                 <button 
                   id="btn-user-menu-toggle" 
                   type="button" 
-                  class="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full hover:bg-slate-100/80 border border-slate-200/90 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/20 select-none shadow-xs"
+                  class="flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-full hover:bg-slate-100/80 border border-slate-200/90 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/20 select-none shadow-xs"
                   aria-expanded="false"
                   aria-haspopup="true"
                   aria-label="Menú de usuario"
@@ -167,8 +296,8 @@ export function renderNavbar(activeRoute = 'catalog') {
                   <div class="w-8 h-8 rounded-full ${isAdmin ? 'bg-gradient-to-tr from-amber-600 to-amber-500' : (isProvider ? 'bg-gradient-to-tr from-blue-600 to-cyan-500' : 'bg-gradient-to-tr from-[#FF5A1F] to-orange-400')} text-white flex items-center justify-center text-xs font-bold font-display shadow-xs flex-shrink-0">
                     ${userInitials}
                   </div>
-                  <div class="hidden lg:block text-left text-xs">
-                    <div class="font-bold text-slate-900 leading-tight truncate max-w-[110px]">${user?.username}</div>
+                  <div class="hidden xl:block text-left text-xs">
+                    <div class="font-bold text-slate-900 leading-tight truncate max-w-[100px]">${user?.username}</div>
                     <div class="text-[10px] text-slate-500 font-medium leading-none mt-0.5">
                       ${roleTitle}
                     </div>
@@ -199,34 +328,42 @@ export function renderNavbar(activeRoute = 'catalog') {
                   </div>
 
                   <!-- Role-Specific Navigation Links -->
-                  <div class="p-2 space-y-1 text-xs">
-                    <a href="#/catalog" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-medium transition-colors">
-                      ${renderIcon('Store', 'w-4 h-4 text-slate-400')}
-                      <span>Explorar Catálogo</span>
+                  <div class="p-2 space-y-1 text-xs" id="user-dropdown-nav-list">
+                    <a href="#/catalog" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                      <div class="flex items-center gap-2.5">
+                        ${renderIcon('Store', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
+                        <span>Explorar Catálogo</span>
+                      </div>
+                      <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                     </a>
 
-                    ${isClient ? `
-                      <a href="#/client" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-medium transition-colors">
-                        ${renderIcon('ClipboardList', 'w-4 h-4 text-slate-400')}
-                        <span>Mis Alquileres y Facturas</span>
+                    ${isClient || isAdmin ? `
+                      <a href="#/client" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                        <div class="flex items-center gap-2.5">
+                          ${renderIcon('ClipboardList', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
+                          <span>Mis Alquileres y Facturas</span>
+                        </div>
+                        <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
                     ` : ''}
 
-                    ${isProvider ? `
-                      <a href="#/provider" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-medium transition-colors">
-                        ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
-                        <span>Panel de Proveedor</span>
+                    ${isProvider || isAdmin ? `
+                      <a href="#/provider" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                        <div class="flex items-center gap-2.5">
+                          ${renderIcon('Building2', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
+                          <span>Panel de Proveedor</span>
+                        </div>
+                        <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
                     ` : ''}
 
                     ${isAdmin ? `
-                      <a href="#/admin" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-900 bg-amber-50/70 hover:bg-amber-100 font-semibold transition-colors">
-                        ${renderIcon('ShieldCheck', 'w-4 h-4 text-amber-600')}
-                        <span>Consola de Administración</span>
-                      </a>
-                      <a href="#/provider" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-medium transition-colors">
-                        ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
-                        <span>Panel de Proveedor</span>
+                      <a href="#/admin" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                        <div class="flex items-center gap-2.5">
+                          ${renderIcon('ShieldCheck', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
+                          <span>Consola de Administración</span>
+                        </div>
+                        <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
                     ` : ''}
                   </div>
@@ -246,13 +383,13 @@ export function renderNavbar(activeRoute = 'catalog') {
               </div>
             ` : `
               <!-- Guest Iniciar Sesión Button -->
-              <button id="btn-nav-login" class="inline-flex items-center justify-center px-4 sm:px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-sm hover:shadow transition-all duration-150 active:scale-95 cursor-pointer">
+              <button id="btn-nav-login" class="inline-flex items-center justify-center px-3.5 sm:px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-sm hover:shadow transition-all duration-150 active:scale-95 cursor-pointer flex-shrink-0">
                 Iniciar sesión
               </button>
             `}
 
             <!-- Mobile Hamburger Toggle -->
-            <button id="mobile-menu-btn" class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer" aria-label="Abrir menú de navegación">
+            <button id="mobile-menu-btn" class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer flex-shrink-0" aria-label="Abrir menú de navegación">
               ${renderIcon('Menu', 'w-5 h-5')}
             </button>
 
@@ -263,35 +400,17 @@ export function renderNavbar(activeRoute = 'catalog') {
 
       <!-- Mobile Navigation Drawer -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1 shadow-lg animate-in fade-in duration-150">
-        <!-- Mobile Search Input (Exclusivo para la vista de Catálogo) -->
-        ${activeRoute === 'catalog' ? `
-          <div class="relative py-1 mb-2">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              ${renderIcon('Search', 'w-4 h-4')}
-            </span>
-            <input 
-              type="text" 
-              id="mobile-global-search" 
-              name="toolrent_mobile_search"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              spellcheck="false"
-              placeholder="Buscar herramientas..." 
-              class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#FF5A1F]" 
-            />
-          </div>
-        ` : ''}
-
-        <a href="#/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'home' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
+        <a href="#/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
           ${renderIcon('Home', 'w-4 h-4')}
           <span>Inicio</span>
         </a>
 
-        <a href="#/catalog" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'catalog' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
-          ${renderIcon('Store', 'w-4 h-4')}
-          <span>Catálogo de Equipos</span>
-        </a>
+        ${!(isAuth && isProvider && !isAdmin) ? `
+          <a href="#/catalog" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            ${renderIcon('Store', 'w-4 h-4')}
+            <span>Catálogo de Equipos</span>
+          </a>
+        ` : ''}
 
         ${!isAuth ? `
           <button id="mobile-btn-guest-provider" type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer text-left">
@@ -304,26 +423,33 @@ export function renderNavbar(activeRoute = 'catalog') {
         ` : ''}
 
         ${isAuth && isClient && !isAdmin ? `
-          <a href="#/client" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'client' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
+          <a href="#/client" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
             ${renderIcon('ClipboardList', 'w-4 h-4')}
             <span>Mis Alquileres</span>
           </a>
         ` : ''}
 
         ${isAuth && isProvider && !isAdmin ? `
-          <a href="#/provider" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'provider' ? 'text-[#FF5A1F] bg-orange-50/70 font-bold' : 'text-slate-700 hover:bg-slate-50'}">
+          <a href="#/provider" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
             ${renderIcon('Building2', 'w-4 h-4')}
             <span>Panel de Proveedor</span>
           </a>
         ` : ''}
 
         ${isAuth && isAdmin ? `
-          <a href="#/admin" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold ${activeRoute === 'admin' ? 'text-amber-900 bg-amber-100 font-bold' : 'text-amber-800 bg-amber-50 hover:bg-amber-100/70'}">
+          <a href="#/admin" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <span class="flex items-center gap-2.5">
-              ${renderIcon('ShieldCheck', 'w-4 h-4 text-amber-600')}
-              <span>Administración</span>
+              ${renderIcon('ShieldCheck', 'w-4 h-4 text-slate-500')}
+              <span>Consola Administración</span>
             </span>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-200 text-amber-900">Admin</span>
+            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-orange-700">Admin</span>
+          </a>
+          <a href="#/provider" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <span class="flex items-center gap-2.5">
+              ${renderIcon('Building2', 'w-4 h-4 text-slate-500')}
+              <span>Panel Proveedor</span>
+            </span>
+            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-blue-100 text-blue-700">Ops</span>
           </a>
         ` : ''}
 
@@ -363,6 +489,16 @@ export function renderNavbar(activeRoute = 'catalog') {
   `;
 
   // --- Handlers & Interactivity ---
+
+  // Instant response on nav link click for snappy micro-interaction
+  container.querySelectorAll('#navbar-floating-pill .nav-item').forEach((link) => {
+    link.addEventListener('click', () => {
+      const route = link.getAttribute('data-route');
+      if (route) {
+        applyRouteVisuals(container, route, false);
+      }
+    });
+  });
 
   // User Dropdown Logic
   const userMenuBtn = container.querySelector('#btn-user-menu-toggle');
@@ -466,19 +602,18 @@ export function renderNavbar(activeRoute = 'catalog') {
     }
   });
 
-  // Global search enter
-  const handleSearchSubmit = (inputEl) => {
-    if (!inputEl) return;
-    inputEl.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') {
-        const query = inputEl.value.trim();
-        window.location.hash = `#/catalog${query ? `?q=${encodeURIComponent(query)}` : ''}`;
-      }
-    });
-  };
+  // Responsive resize handler to keep active pill perfectly calibrated
+  window.addEventListener('resize', () => {
+    const activePill = container.querySelector('#nav-active-pill');
+    const targetLink = container.querySelector(`.nav-item[data-route="${currentActiveRoute}"]`);
+    if (activePill && targetLink && targetLink.offsetWidth > 0) {
+      activePill.style.left = `${targetLink.offsetLeft}px`;
+      activePill.style.width = `${targetLink.offsetWidth}px`;
+    }
+  });
 
-  handleSearchSubmit(container.querySelector('#navbar-global-search'));
-  handleSearchSubmit(container.querySelector('#mobile-global-search'));
+  // Apply route visuals with initial entrance animation
+  applyRouteVisuals(container, activeRoute, true);
 
   // Silent background health verification
   api.checkHealth().catch(() => {});

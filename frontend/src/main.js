@@ -12,6 +12,7 @@ import { renderProductPageView } from './views/product-detail.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
 import { initImageCacheShield } from './utils/image-cache.js';
+import auth from './auth/state.js';
 
 // Expose anime globally for custom scripts, devtools, and view modules
 window.anime = anime;
@@ -92,6 +93,13 @@ async function router() {
   const navId = ++currentNavId;
   const hash = window.location.hash || '#/';
   const cleanRoute = hash.split('?')[0];
+  
+  // Providers cannot browse catalog or book equipment
+  if (cleanRoute === '#/catalog' && auth.isAuthenticated() && auth.isProvider() && !auth.isAdmin()) {
+    showToast('Los proveedores no tienen acceso al catálogo comercial. Redirigiendo a tu panel.', 'info');
+    window.location.hash = '#/provider';
+    return;
+  }
   
   // Handle dynamic product detail route: #/product/:id
   if (cleanRoute.startsWith('#/product/')) {

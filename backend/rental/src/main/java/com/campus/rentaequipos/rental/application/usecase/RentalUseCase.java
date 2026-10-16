@@ -38,6 +38,17 @@ public class RentalUseCase {
     public RentalResponse createRental(RentalRequest request) {
         DateRange dateRange = new DateRange(request.startDate(), request.endDate());
         int totalDays = (int) dateRange.getDays();
+
+        if (totalDays > 30) {
+            throw new BusinessRuleViolationException("El período máximo de alquiler permitido es de 30 días (1 mes calendario). Duración solicitada: " + totalDays + " días.");
+        }
+        if (request.startDate().isBefore(java.time.LocalDate.now())) {
+            throw new BusinessRuleViolationException("La fecha de inicio de la reserva no puede ser anterior a la fecha actual.");
+        }
+        java.time.LocalDate maxBookingHorizon = java.time.LocalDate.now().plusDays(365);
+        if (request.startDate().isAfter(maxBookingHorizon) || request.endDate().isAfter(maxBookingHorizon)) {
+            throw new BusinessRuleViolationException("No es posible realizar reservas con más de 1 año de anticipación (máximo 365 días a partir de hoy).");
+        }
         
         List<Rental> allRentals = rentalRepository.findAll();
         List<Tool> tools = new ArrayList<>();
@@ -139,34 +150,83 @@ public class RentalUseCase {
         Tool tool = toolRepository.findById(toolId)
                 .orElseThrow(() -> new EntityNotFoundException("Tool", toolId));
 
+        // Obtener todas las unidades físicas registradas para este mismo equipo/modelo y proveedor
+        List<Tool> providerTools = toolRepository.findByProviderId(tool.getProviderId());
+        List<Tool> allUnits = new ArrayList<>();
+        if (providerTools != null && !providerTools.isEmpty()) {
+            allUnits = providerTools.stream()
+                    .filter(t -> t.getName() != null && t.getName().trim().equalsIgnoreCase(tool.getName().trim()))
+                    .filter(t -> t.getStatus() != ToolStatus.RETIRED)
+                    .collect(Collectors.toList());
+        }
+        if (allUnits.isEmpty() || allUnits.stream().noneMatch(u -> u.getId().equals(tool.getId()))) {
+            allUnits = new ArrayList<>(allUnits);
+            if (tool.getStatus() != ToolStatus.RETIRED && allUnits.stream().noneMatch(u -> u.getId().equals(tool.getId()))) {
+                allUnits.add(tool);
+            }
+        }
+
+        java.util.Set<UUID> unitIds = allUnits.stream().map(Tool::getId).collect(Collectors.toSet());
+
         List<Rental> activeRentals = rentalRepository.findAll().stream()
                 .filter(r -> r.getStatus() == RentalStatus.PENDING || 
                              r.getStatus() == RentalStatus.CONFIRMED || 
                              r.getStatus() == RentalStatus.IN_PROGRESS)
-                .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(toolId)))
+                .filter(r -> r.getItems().stream().anyMatch(item -> unitIds.contains(item.getToolId())))
                 .collect(Collectors.toList());
+
+        List<Tool> availableUnits = new ArrayList<>();
+        List<Tool> reservedUnits = new ArrayList<>();
+
+        if (from != null && to != null) {
+            DateRange queryRange = new DateRange(from, to);
+            for (Tool unit : allUnits) {
+                if (unit.getStatus() == ToolStatus.MAINTENANCE) {
+                    continue; // En taller / mantenimiento preventivo
+                }
+                boolean overlaps = activeRentals.stream()
+                        .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(unit.getId())))
+                        .anyMatch(r -> r.getDateRange().overlaps(queryRange));
+
+                if (overlaps) {
+                    reservedUnits.add(unit);
+                } else {
+                    availableUnits.add(unit);
+                }
+            }
+        } else {
+            for (Tool unit : allUnits) {
+                if (unit.getStatus() == ToolStatus.AVAILABLE) {
+                    availableUnits.add(unit);
+                } else {
+                    reservedUnits.add(unit);
+                }
+            }
+        }
+
+        int totalStock = allUnits.size();
+        int availableStock = availableUnits.size();
+        int reservedStock = reservedUnits.size();
+        boolean isAvailable = availableStock > 0;
+        List<UUID> availableToolIds = availableUnits.stream().map(Tool::getId).collect(Collectors.toList());
 
         List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto> bookedRanges = activeRentals.stream()
                 .map(r -> new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto(
                         r.getDateRange().getStartDate(),
                         r.getDateRange().getEndDate()
                 ))
+                .distinct()
                 .collect(Collectors.toList());
 
-        boolean isAvailable = true;
-        String message = "Disponible para alquiler";
-
+        String message;
         if (tool.getStatus() == ToolStatus.MAINTENANCE || tool.getStatus() == ToolStatus.RETIRED) {
-            isAvailable = false;
             message = "Herramienta fuera de servicio (" + tool.getStatus() + ")";
-        } else if (from != null && to != null) {
-            DateRange queryRange = new DateRange(from, to);
-            boolean overlaps = activeRentals.stream()
-                    .anyMatch(r -> r.getDateRange().overlaps(queryRange));
-            if (overlaps) {
-                isAvailable = false;
-                message = "Fechas no disponibles: existe solapamiento con otra reserva activa";
-            }
+        } else if (availableStock == totalStock) {
+            message = "Stock completo disponible (" + totalStock + " " + (totalStock == 1 ? "unidad" : "unidades") + " listas para entrega inmediata)";
+        } else if (availableStock > 0) {
+            message = availableStock + " de " + totalStock + " unidades disponibles (" + reservedStock + " reservada" + (reservedStock > 1 ? "s" : "") + " por otros usuarios para este período)";
+        } else {
+            message = "Sin stock para estas fechas: las " + totalStock + " unidades se encuentran reservadas por otros usuarios";
         }
 
         return new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse(
@@ -174,11 +234,38 @@ public class RentalUseCase {
                 tool.getName(),
                 isAvailable,
                 tool.getStatus().name(),
+                totalStock,
+                availableStock,
+                reservedStock,
+                availableToolIds,
                 from,
                 to,
                 bookedRanges,
                 message
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse> checkCatalogAvailability(
+            java.time.LocalDate from, java.time.LocalDate to) {
+        List<Tool> allTools = toolRepository.findAll();
+        if (allTools == null || allTools.isEmpty()) {
+            return List.of();
+        }
+
+        // Agrupar herramientas por clave única de modelo (providerId + nombre del equipo)
+        java.util.Map<String, Tool> primaryToolByModel = new java.util.LinkedHashMap<>();
+        for (Tool t : allTools) {
+            if (t.getStatus() == ToolStatus.RETIRED) continue;
+            String key = t.getProviderId() + ":::" + (t.getName() != null ? t.getName().trim().toLowerCase() : "");
+            primaryToolByModel.putIfAbsent(key, t);
+        }
+
+        List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse> responses = new ArrayList<>();
+        for (Tool primary : primaryToolByModel.values()) {
+            responses.add(checkToolAvailability(primary.getId(), from, to));
+        }
+        return responses;
     }
 
     @Transactional(readOnly = true)

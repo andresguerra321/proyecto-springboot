@@ -91,6 +91,8 @@ public class ToolUseCase {
                 .map(spec -> new ToolSpecification(UUID.randomUUID(), spec.specName(), spec.specValue()))
                 .collect(Collectors.toList()) : tool.getSpecifications();
 
+        validateToolDetails(request.name(), request.description(), request.dailyPrice(), request.replacementValue());
+
         String name = request.name() != null && !request.name().isBlank() ? request.name() : tool.getName();
         String brand = request.brand() != null ? request.brand() : tool.getBrand();
         String model = request.model() != null ? request.model() : tool.getModel();
@@ -112,8 +114,26 @@ public class ToolUseCase {
                 specs
         );
 
+        if (request.status() != null && !request.status().isBlank()) {
+            try {
+                ToolStatus newStatus = ToolStatus.valueOf(request.status().toUpperCase());
+                if (newStatus == ToolStatus.AVAILABLE || newStatus == ToolStatus.MAINTENANCE) {
+                    tool.updateStatus(newStatus);
+                }
+            } catch (IllegalArgumentException ignored) {}
+        }
+
         Tool updatedTool = toolRepository.save(tool);
         return mapToResponse(updatedTool);
+    }
+
+    @Transactional
+    public ToolResponse updateToolStatus(UUID id, ToolStatus newStatus) {
+        Tool tool = toolRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tool", id));
+        tool.updateStatus(newStatus);
+        Tool saved = toolRepository.save(tool);
+        return mapToResponse(saved);
     }
 
     @Transactional
@@ -127,6 +147,8 @@ public class ToolUseCase {
 
     @Transactional
     public ToolResponse registerTool(ToolRequest request) {
+        validateToolDetails(request.name(), request.description(), request.dailyPrice(), request.replacementValue());
+
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category", request.categoryId()));
 
@@ -198,5 +220,26 @@ public class ToolUseCase {
                 imageResponses,
                 specResponses
         );
+    }
+
+    private void validateToolDetails(String name, String description, java.math.BigDecimal dailyPrice, java.math.BigDecimal replacementValue) {
+        if (name == null || name.trim().length() < 4 || name.trim().length() > 100) {
+            throw new IllegalArgumentException("El nombre de la herramienta debe tener entre 4 y 100 caracteres.");
+        }
+        String cleanName = name.trim();
+        String nameAlpha = cleanName.replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]", "");
+        if (nameAlpha.length() < 3 || cleanName.matches("^[\\W_]+$")) {
+            throw new IllegalArgumentException("El nombre de la herramienta no es válido. Debe contener al menos 3 caracteres alfanuméricos legibles.");
+        }
+        if (description == null || description.trim().length() < 15 || description.trim().length() > 1000) {
+            throw new IllegalArgumentException("La descripción técnica debe ser detallada y contener entre 15 y 1000 caracteres.");
+        }
+        String descAlpha = description.trim().replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]", "");
+        if (descAlpha.length() < 10) {
+            throw new IllegalArgumentException("La descripción técnica debe incluir palabras legibles y especificaciones técnicas del equipo.");
+        }
+        if (dailyPrice == null || dailyPrice.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("La tarifa diaria debe ser mayor a cero.");
+        }
     }
 }

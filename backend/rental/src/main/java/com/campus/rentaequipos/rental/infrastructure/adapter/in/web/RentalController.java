@@ -36,11 +36,14 @@ public class RentalController {
     private final RentalUseCase rentalUseCase;
     private final JdbcTemplate jdbcTemplate;
     private final ProviderOwnershipGuard guard;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    public RentalController(RentalUseCase rentalUseCase, JdbcTemplate jdbcTemplate, ProviderOwnershipGuard guard) {
+    public RentalController(RentalUseCase rentalUseCase, JdbcTemplate jdbcTemplate, ProviderOwnershipGuard guard,
+                            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         this.rentalUseCase = rentalUseCase;
         this.jdbcTemplate = jdbcTemplate;
         this.guard = guard;
+        this.eventPublisher = eventPublisher;
     }
 
     @GetMapping
@@ -65,7 +68,36 @@ public class RentalController {
             effectiveClientId = ensureOwnClientProfile(userDetails);
         }
         RentalRequest adjusted = new RentalRequest(effectiveClientId, request.startDate(), request.endDate(), request.toolIds());
-        return ResponseEntity.status(HttpStatus.CREATED).body(rentalUseCase.createRental(adjusted));
+        RentalResponse response = rentalUseCase.createRental(adjusted);
+
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    response.clientId());
+
+            if (targetUserId != null) {
+                String toolNames = jdbcTemplate.query(
+                        "SELECT STRING_AGG(DISTINCT t.name, ', ') as names FROM rental_items ri JOIN tools t ON ri.tool_id = t.id WHERE ri.rental_id = ?",
+                        rs -> rs.next() ? rs.getString("names") : null,
+                        response.id());
+
+                String equipmentText = toolNames != null && !toolNames.isBlank() ? toolNames : "equipo";
+                String msg = "Has reservado " + equipmentText + " (" + response.rentalCode() + ") del " +
+                        response.startDate() + " al " + response.endDate() + ". Total: $" + response.totalAmount() + ".";
+
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        "¡Alquiler Confirmado!",
+                        msg,
+                        "SUCCESS",
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/client/{clientId}")
@@ -130,7 +162,25 @@ public class RentalController {
     public ResponseEntity<RentalResponse> cancelRental(@PathVariable UUID id,
                                                        @AuthenticationPrincipal UserDetails userDetails) {
         assertCanView(id, userDetails);
-        return ResponseEntity.ok(rentalUseCase.cancelRental(id));
+        RentalResponse response = rentalUseCase.cancelRental(id);
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    response.clientId());
+
+            if (targetUserId != null) {
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        "Alquiler Cancelado",
+                        "Tu reserva (" + response.rentalCode() + ") ha sido cancelada.",
+                        "INFO",
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/start")

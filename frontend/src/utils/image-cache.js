@@ -23,55 +23,30 @@ export function getBlueprintFallbackSvg(toolName = 'Equipo Industrial', category
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
     <defs>
-      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1"/>
-        <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>
-      </pattern>
       <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#f8fafc" />
         <stop offset="100%" stop-color="#f1f5f9" />
       </linearGradient>
     </defs>
     
-    <!-- Background & Engineering Grid -->
+    <!-- Clean Minimalist Background -->
     <rect width="100%" height="100%" fill="url(#bgGrad)" />
-    <rect width="100%" height="100%" fill="url(#grid)" />
 
-    <!-- Corner Framing Accents -->
-    <path d="M 30 50 L 30 30 L 50 30" fill="none" stroke="#FF5A1F" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 770 50 L 770 30 L 750 30" fill="none" stroke="#FF5A1F" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 30 550 L 30 570 L 50 570" fill="none" stroke="#FF5A1F" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 770 550 L 770 570 L 750 570" fill="none" stroke="#FF5A1F" stroke-width="3" stroke-linecap="round"/>
+    <!-- Central Minimal Equipment Frame -->
+    <circle cx="400" cy="250" r="85" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
+    <circle cx="400" cy="250" r="70" fill="#fff7ed" stroke="#FF5A1F" stroke-width="1.5" />
 
-    <!-- Central Tech Target Circle -->
-    <circle cx="400" cy="270" r="140" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6,6" />
-    <circle cx="400" cy="270" r="110" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
-    <circle cx="400" cy="270" r="90" fill="#fff7ed" stroke="#FF5A1F" stroke-width="2" />
-
-    <!-- ToolRent Orange Monogram Mark -->
-    <g transform="translate(365, 235) scale(2.8)">
+    <!-- ToolRent Monogram Mark -->
+    <g transform="translate(372, 222) scale(2.4)">
       <path d="M4 4h7v4H4z" fill="#FF5A1F"/>
       <path d="M7 8v12h4V8z" fill="#FF5A1F"/>
       <path d="M15 4h5v4h-5z" fill="#0f172a"/>
       <path d="M15 10h4v10h-4z" fill="#0f172a"/>
     </g>
 
-    <!-- Calibration / Precision Crosshairs -->
-    <line x1="230" y1="270" x2="270" y2="270" stroke="#FF5A1F" stroke-width="2" stroke-linecap="round"/>
-    <line x1="530" y1="270" x2="570" y2="270" stroke="#FF5A1F" stroke-width="2" stroke-linecap="round"/>
-    <line x1="400" y1="100" x2="400" y2="140" stroke="#FF5A1F" stroke-width="2" stroke-linecap="round"/>
-    <line x1="400" y1="400" x2="400" y2="440" stroke="#FF5A1F" stroke-width="2" stroke-linecap="round"/>
-
-    <!-- Status Badge -->
-    <rect x="300" y="405" width="200" height="28" rx="14" fill="#0f172a" />
-    <text x="400" y="423" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle" letter-spacing="1.5">MODO OFFLINE BLINDADO</text>
-
-    <!-- Tool Specs Typography -->
-    <text x="400" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" fill="#0f172a" text-anchor="middle">${safeName}</text>
-    <text x="400" y="505" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#64748b" text-anchor="middle">${safeCat} • ToolRent Certified</text>
-
-    <!-- Watermark / Footer -->
-    <text x="400" y="560" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">TOOLRENT MEDIA SHIELD // OFFLINE CACHE STORAGE V1</text>
+    <!-- Professional Tool Typography (No debug/offline text) -->
+    <text x="400" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0f172a" text-anchor="middle">${safeName}</text>
+    <text x="400" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#64748b" text-anchor="middle">${safeCat} • Maquinaria Homologada ToolRent</text>
   </svg>`;
 
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
