@@ -184,24 +184,6 @@ export async function renderProductPageView(toolId) {
     </div>
   `;
 
-  // Parse start and end dates from URL hash if provided
-  const hash = window.location.hash || '';
-  const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
-  const paramStart = searchParams.get('start') || searchParams.get('from');
-  const paramEnd = searchParams.get('end') || searchParams.get('to');
-
-  const tmrw = new Date();
-  tmrw.setDate(tmrw.getDate() + 1);
-  const endDef = new Date(tmrw);
-  endDef.setDate(endDef.getDate() + 3);
-
-  const fmtIso = (d) => {
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const da = String(d.getDate()).padStart(2, '0');
-    return `${yr}-${mo}-${da}`;
-  };
-
   const parseIso = (str) => {
     if (!str) return null;
     const parts = str.split('-').map(Number);
@@ -209,15 +191,17 @@ export async function renderProductPageView(toolId) {
   };
 
   const calculateDays = (sStr, eStr) => {
+    if (!sStr || !eStr) return 0;
     const s = parseIso(sStr);
     const e = parseIso(eStr);
-    if (!s || !e || e < s) return 1;
+    if (!s || !e || e < s) return 0;
     return Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  let startDate = paramStart || fmtIso(tmrw);
-  let endDate = paramEnd || fmtIso(endDef);
-  let daysCount = calculateDays(startDate, endDate);
+  // Las fechas NO se asumen automáticamente. El usuario debe seleccionarlas y confirmarlas explícitamente en esta pantalla.
+  let startDate = null;
+  let endDate = null;
+  let daysCount = 0;
 
   let tool = null;
   try {
@@ -239,9 +223,9 @@ export async function renderProductPageView(toolId) {
         }
       }
 
-      // Check real backend persistence availability for the specific date range
+      // Consultar disponibilidad base de flota y rangos ocupados sin forzar fechas ficticias
       try {
-        const avail = await api.get(`/tools/${toolId}/availability`, { from: startDate, to: endDate });
+        const avail = await api.get(`/tools/${toolId}/availability`);
         tool.availability = avail;
         tool.totalStock = avail?.totalStock ?? 1;
         tool.availableStock = avail?.availableStock ?? (avail?.isAvailable ? 1 : 0);

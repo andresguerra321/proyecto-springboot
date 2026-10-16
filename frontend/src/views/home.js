@@ -14,6 +14,8 @@ import catCleanConstruccion from '../assets/cat-clean-construccion.jpg';
 import catCleanElevacion from '../assets/cat-clean-elevacion.jpg';
 import catCleanEnergia from '../assets/cat-clean-energia.jpg';
 import catCleanCompactacion from '../assets/cat-clean-compactacion.jpg';
+import scaffold1 from '../assets/scaffold-1-full.jpg';
+import scaffold2 from '../assets/scaffold-2-joint.jpg';
 
 export async function renderHomeView() {
   const container = document.getElementById('app-content');
@@ -140,25 +142,39 @@ export async function renderHomeView() {
   }
 
   // 4 Featured available tools for Section 4 ("Disponibles para entrega inmediata")
-  const featuredTools = allTools
-    .filter(t => t.status === 'AVAILABLE')
-    .slice(0, 4);
+  // Group / deduplicate physical units by model name so each featured card is a distinct product
+  const seenModelKeys = new Set();
+  const featuredTools = [];
+  for (const tool of allTools) {
+    if (tool.status !== 'AVAILABLE') continue;
+    const modelKey = (tool.name || '').trim().toLowerCase();
+    if (!seenModelKeys.has(modelKey)) {
+      seenModelKeys.add(modelKey);
+      featuredTools.push(tool);
+    }
+    if (featuredTools.length >= 4) break;
+  }
 
   // Helper to map fallback images for tools, ensuring machinery photos
   function getToolImage(tool) {
     const rawImg = tool.images?.[0]?.imageUrl || '';
-    if (rawImg && !rawImg.includes('photo-1503387762-592deb58ef4e') && !rawImg.includes('photo-1520340356584')) {
+    if (rawImg && 
+        !rawImg.includes('photo-1541888946425-d0fbb186f5f8') && 
+        !rawImg.includes('photo-1503387762-592deb58ef4e') && 
+        !rawImg.includes('photo-1520340356584')) {
       return rawImg;
     }
     const name = (tool.name || '').toLowerCase();
-    const cat = (tool.categoryName || '').toLowerCase();
-    if (name.includes('excavadora') || cat.includes('tierra')) return catCleanMovimiento;
+    const cat = (tool.categoryName || tool.category?.name || '').toLowerCase();
+    if (name.includes('layher')) return scaffold2;
+    if (name.includes('andamio') || name.includes('scaffold') || cat.includes('elevaci')) return scaffold1;
+    if (name.includes('excavadora') || cat.includes('tierra') || cat.includes('movimiento')) return catCleanMovimiento;
     if (name.includes('martillo') || name.includes('taladro') || cat.includes('demolición')) return catCleanHerramientas;
-    if (name.includes('allanadora') || name.includes('helicóptero') || name.includes('compactadora') || cat.includes('compactación')) return catCleanCompactacion;
-    if (name.includes('mezcladora') || name.includes('andamio') || cat.includes('hormigón') || cat.includes('construcción')) return catCleanConstruccion;
-    if (name.includes('plataforma') || name.includes('tijera') || cat.includes('elevación')) return catCleanElevacion;
-    if (name.includes('generador') || cat.includes('energía')) return catCleanEnergia;
-    return catCleanCompactacion;
+    if (name.includes('allanadora') || name.includes('helicóptero') || name.includes('compactadora') || cat.includes('compactación') || name.includes('canguro') || name.includes('apisonador')) return catCleanCompactacion;
+    if (name.includes('mezcladora') || cat.includes('hormigón') || cat.includes('construcción')) return catCleanConstruccion;
+    if (name.includes('plataforma') || name.includes('tijera')) return catCleanElevacion;
+    if (name.includes('generador') || cat.includes('energía') || name.includes('planta')) return catCleanEnergia;
+    return scaffold1;
   }
 
   // Dynamic shipment delivery stepper state based on activeRental.status
@@ -238,26 +254,20 @@ export async function renderHomeView() {
             class="w-full h-full object-cover object-[center_right] lg:object-right select-none"
           />
           
-          <!-- Capa 1: Desenfoque de neblina atmosférica (solo del recuadro hacia la izquierda, difuminando estructuras de fondo) -->
-          <div 
-            class="absolute inset-0 pointer-events-none hidden sm:block" 
-            style="mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0,0,0,0.5) 43%, transparent 48%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);"
-          ></div>
-
-          <!-- Capa 2: Neblina blanca densa a la izquierda para optimizar el buscador interactivo, con transición suave que llega a 100% transparencia en el borde del recuadro -->
+          <!-- Capa 1: Fondo blanco extendido para cubrir la costura vertical de la imagen y aislar la excavadora CAT -->
           <div 
             class="absolute inset-0 pointer-events-none sm:hidden" 
-            style="background: linear-gradient(to bottom, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 60%, rgba(255,255,255,0.2) 85%, transparent 100%);"
+            style="background: linear-gradient(to bottom, #ffffff 0%, #ffffff 68%, rgba(255,255,255,0.92) 82%, transparent 100%);"
           ></div>
           <div 
             class="absolute inset-0 pointer-events-none hidden sm:block" 
-            style="background: linear-gradient(to right, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 36%, rgba(255,255,255,0.55) 43%, rgba(255,255,255,0.15) 47%, transparent 50%);"
+            style="background: linear-gradient(to right, #ffffff 0%, #ffffff 50%, rgba(255,255,255,0.96) 58%, rgba(255,255,255,0.4) 65%, transparent 70%);"
           ></div>
         </div>
 
         <!-- Contenedor alineado con el resto de la web: Estructura intuitiva y clean -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
-          <div class="max-w-xl lg:max-w-[560px] space-y-5 sm:space-y-6">
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-14">
+          <div class="max-w-xl lg:max-w-[580px] space-y-5 sm:space-y-6">
             
             <!-- Kicker sobrio & minimalista con micro-indicador ToolRent -->
             <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase select-none">
@@ -271,12 +281,15 @@ export async function renderHomeView() {
               <span class="text-slate-500 font-medium">cuando lo necesitas.</span>
             </h1>
 
-            <!-- Palabras Clave de Valor (Directas, intuitivas, sin párrafos de relleno) -->
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-600">
-              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Entrega en obra</span>
-              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Contrato digital</span>
-              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Equipos certificados</span>
-              <span class="inline-flex items-center gap-1.5"><span class="text-[#ea580c] font-bold">✓</span> Disponibilidad inmediata</span>
+            <!-- Beneficios clave estilo Apple: sobrio, con separadores sutiles (·) -->
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500 font-medium">
+              <span>Entrega garantizada en obra</span>
+              <span class="text-slate-300">·</span>
+              <span>Contrato 100% digital</span>
+              <span class="text-slate-300">·</span>
+              <span>Equipos certificados</span>
+              <span class="text-slate-300">·</span>
+              <span>Disponibilidad inmediata</span>
             </div>
 
             <!-- Buscador Unificado con Sistema Responsive Eficiente (Sin recuadros anidados) -->
@@ -319,7 +332,7 @@ export async function renderHomeView() {
                       <input type="hidden" id="hero-search-start" name="startDate" value="${startFormatted}" />
                     </div>
 
-                    <!-- Fecha Retorno: Click abre el calendario propio en modo RETORNO -->
+                    <!-- Fecha Retorno: Click abre el calendario propio en modo RETORNO (ícono Calendar consistente) -->
                     <div id="box-search-end" class="bg-slate-50/90 hover:bg-orange-50/50 rounded-xl px-2.5 sm:px-3.5 py-2 border border-slate-200/80 hover:border-[#ea580c]/50 transition-colors cursor-pointer group flex flex-col justify-center">
                       <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-[#ea580c]">
                         Retorno
@@ -329,7 +342,7 @@ export async function renderHomeView() {
                           ${formatDate(endFormatted)}
                         </span>
                         <span class="text-slate-400 group-hover:text-[#ea580c] flex-shrink-0">
-                          ${renderIcon('Clock', 'w-3.5 h-3.5')}
+                          ${renderIcon('Calendar', 'w-3.5 h-3.5')}
                         </span>
                       </div>
                       <input type="hidden" id="hero-search-end" name="endDate" value="${endFormatted}" />
@@ -601,30 +614,35 @@ export async function renderHomeView() {
                 <div class="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group">
                   <div>
                     <!-- Image with Availability Badge -->
-                    <div class="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <a href="#/product/${tool.id}" class="block relative aspect-[4/3] w-full overflow-hidden bg-slate-100 cursor-pointer">
                       <img 
                         src="${toolImg}" 
                         alt="${tool.name}" 
                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
                         loading="lazy"
+                        onerror="this.onerror=null;this.src='${scaffold1}';"
                       />
+                      <div class="absolute top-2.5 right-2.5 z-10">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/95 text-emerald-800 shadow-xs backdrop-blur-xs border border-emerald-200/90 select-none">
                           <span class="text-emerald-600 flex items-center justify-center flex-shrink-0">
                             ${renderIcon('BadgeCheck', 'w-3.5 h-3.5')}
                           </span>
                           <span>Disponible hoy</span>
                         </span>
-                    </div>
+                      </div>
+                    </a>
 
                     <!-- Equipment Details -->
                     <div class="p-4 space-y-2">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        ${tool.brand || 'Certificado'} · ${tool.categoryName || 'Construcción'}
+                        ${tool.brand || 'Certificado'} · ${tool.categoryName || tool.category?.name || 'Construcción'}
                       </div>
                       
-                      <h3 class="font-bold text-slate-900 text-sm leading-snug line-clamp-2 font-display group-hover:text-[#FF5A1F] transition-colors">
-                        ${tool.name}
-                      </h3>
+                      <a href="#/product/${tool.id}" class="block group/title">
+                        <h3 class="font-bold text-slate-900 text-sm leading-snug line-clamp-2 font-display group-hover/title:text-[#FF5A1F] transition-colors">
+                          ${tool.name}
+                        </h3>
+                      </a>
 
                       <p class="text-[11px] text-slate-500 flex items-center gap-1 pt-1">
                         ${renderIcon('MapPin', 'w-3 h-3 text-slate-400 flex-shrink-0')}
@@ -642,14 +660,13 @@ export async function renderHomeView() {
                       </span>
                     </div>
 
-                    <button 
-                      type="button" 
-                      class="btn-featured-reserve btn-primary w-full !py-2.5 !px-3 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
-                      data-tool-id="${tool.id}"
+                    <a 
+                      href="#/product/${tool.id}" 
+                      class="btn-primary w-full !py-2.5 !px-3 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer text-center"
                     >
                       <span>Reservar ahora</span>
                       <span>&rarr;</span>
-                    </button>
+                    </a>
                   </div>
                 </div>
               `;
@@ -849,15 +866,5 @@ export async function renderHomeView() {
     }
   });
 
-  // 3. "Reservar ahora" buttons on Section 4
-  container.querySelectorAll('.btn-featured-reserve').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const toolId = btn.getAttribute('data-tool-id');
-      const selected = allTools.find(t => String(t.id) === String(toolId));
-      if (selected) {
-        openRentalModal(selected);
-      }
-    });
-  });
+  // Section 4 cards and buttons link directly to #/product/:id without pre-selected dates
 }

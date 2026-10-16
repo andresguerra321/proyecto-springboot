@@ -727,7 +727,11 @@ export async function renderCatalogView() {
             ? (tool.availableStock > 0)
             : ((tool.availableStock > 0) || tool.status === 'AVAILABLE');
 
-          const primaryImg = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800';
+          const rawImg = tool.images?.[0]?.imageUrl || '';
+          const isDeadImg = !rawImg || rawImg.includes('photo-1541888946425-d0fbb186f5f8') || rawImg.includes('photo-1503387762-592deb58ef4e');
+          const primaryImg = isDeadImg
+            ? ((tool.name || '').toLowerCase().includes('andamio') ? '/images/scaffold-1.jpg' : 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800')
+            : rawImg;
 
           const statusBadge = isAvailable
             ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs select-none">

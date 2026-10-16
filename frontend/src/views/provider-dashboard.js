@@ -51,7 +51,7 @@ const QUICK_TEMPLATES = [
     replacementValue: 2800000,
     categoryKeyword: 'Elevación',
     description: 'Torre de andamio multidireccional con certificación OSHA/NTC, plataformas antideslizantes de acero galvanizado, rodapiés, diagonales y escaleras internas.',
-    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?w=1000'
+    imageUrl: '/images/scaffold-1.jpg'
   }
 ];
 
@@ -2193,7 +2193,7 @@ export async function renderProviderDashboard() {
             <button type="button" class="btn-preset-img px-2 py-0.5 rounded bg-zinc-100 hover:bg-orange-50 hover:text-orange-600 text-[10px] font-medium text-zinc-600 border border-zinc-200 transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000">Demolición</button>
             <button type="button" class="btn-preset-img px-2 py-0.5 rounded bg-zinc-100 hover:bg-orange-50 hover:text-orange-600 text-[10px] font-medium text-zinc-600 border border-zinc-200 transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=1000">Hormigón</button>
             <button type="button" class="btn-preset-img px-2 py-0.5 rounded bg-zinc-100 hover:bg-orange-50 hover:text-orange-600 text-[10px] font-medium text-zinc-600 border border-zinc-200 transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1000">Generador</button>
-            <button type="button" class="btn-preset-img px-2 py-0.5 rounded bg-zinc-100 hover:bg-orange-50 hover:text-orange-600 text-[10px] font-medium text-zinc-600 border border-zinc-200 transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?w=1000">Andamio</button>
+            <button type="button" class="btn-preset-img px-2 py-0.5 rounded bg-zinc-100 hover:bg-orange-50 hover:text-orange-600 text-[10px] font-medium text-zinc-600 border border-zinc-200 transition-colors cursor-pointer" data-url="/images/scaffold-1.jpg">Andamio</button>
           </div>
 
           <!-- Preview -->

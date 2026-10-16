@@ -43,9 +43,10 @@ export const formatFriendlyDate = (isoStr) => {
 };
 
 export const calculateDaysCount = (startStr, endStr) => {
+  if (!startStr || !endStr) return 0;
   const s = parseIsoDate(startStr);
   const e = parseIsoDate(endStr);
-  if (!s || !e || e < s) return 1;
+  if (!s || !e || e < s) return 0;
   const diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
   return diff + 1; // Both extremities billable
 };
@@ -80,8 +81,8 @@ export function createSingleDateCalendar({
   maxBookingHorizon.setDate(today.getDate() + 365);
   maxBookingHorizon.setHours(23, 59, 59, 999);
 
-  let currentSelectedDate = initialDate || toIsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + (mode === 'START' ? 1 : 4)));
-  let currentRefDate = referenceDate || toIsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+  let currentSelectedDate = initialDate || null;
+  let currentRefDate = referenceDate || null;
   let currentBookedRanges = [...bookedRanges];
   let currentToolId = toolId;
   let availabilityInfo = null;
@@ -537,9 +538,8 @@ export function createTwoBlockDatePicker({
   hideHeader = false,
   onChange = () => {}
 }) {
-  const today = getLocalToday();
-  let startDate = initialStartDate || toIsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
-  let endDate = initialEndDate || toIsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4));
+  let startDate = initialStartDate || null;
+  let endDate = initialEndDate || null;
 
   let startCalendar = null;
   let endCalendar = null;
@@ -552,12 +552,14 @@ export function createTwoBlockDatePicker({
   let onEndCloseCb = () => {};
 
   function emitUpdate(extra = {}) {
-    const days = calculateDaysCount(startDate, endDate);
+    const hasBoth = Boolean(startDate && endDate);
+    const days = hasBoth ? calculateDaysCount(startDate, endDate) : 0;
     onChange({
       startDate,
       endDate,
       days,
-      isValid: days >= 1 && days <= 30,
+      isValid: hasBoth && days >= 1 && days <= 30,
+      hasConfirmedDates: hasBoth,
       ...extra
     });
   }
@@ -578,11 +580,8 @@ export function createTwoBlockDatePicker({
       let maxEnd = new Date(s);
       maxEnd.setDate(s.getDate() + 29);
 
-      if (!e || e < s || e > maxEnd) {
-        let defEnd = new Date(s);
-        defEnd.setDate(s.getDate() + 2);
-        if (defEnd > maxEnd) defEnd = new Date(maxEnd);
-        endDate = toIsoDate(defEnd);
+      if (e && (e < s || e > maxEnd)) {
+        endDate = null;
       }
 
       endCalendar.setReferenceDate(startDate, endDate);
