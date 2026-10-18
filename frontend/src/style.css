@@ -5,6 +5,14 @@
 @tailwind utilities;
 
 @layer base {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100%;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-toolrent-500 selection:text-white min-h-screen flex flex-col;
   }
@@ -12,6 +20,131 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight text-slate-900;
   }
+}
+
+/* Prevención de Auto-Zoom y Salto de Fuente en Autocompletado (Desktop & Mobile) */
+input,
+select,
+textarea,
+.input-field {
+  font-size: 14px !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-size: 14px !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea,
+  .input-field {
+    font-size: 16px !important;
+  }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    font-size: 16px !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+  }
+}
+
+/* Animaciones suaves para Modales, Notificaciones y Overlays */
+@keyframes modalEnterFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes dropdownSlideFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes overlayPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 45px 0px rgba(249, 115, 22, 0.65);
+  }
+}
+
+.animate-modal-in {
+  animation: modalEnterFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-dropdown-in {
+  animation: dropdownSlideFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-glow-pulse {
+  animation: overlayPulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes checkmarkPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-check-pop {
+  animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes shimmerSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmerSlide 2s infinite linear;
+}
+
+@keyframes tabSlideFade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-in {
+  animation: tabSlideFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @layer components {
@@ -24,46 +157,65 @@
     @apply tr-card hover:shadow-card-hover hover:border-slate-300;
   }
 
-  /* ToolRent Buttons */
+  /* ToolRent Buttons (Ergonomía táctil con min-h-[44px]) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs
            bg-[#FF5A1F] hover:bg-[#ea580c] text-white shadow-xs hover:shadow-md hover:shadow-orange-500/20
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs
            bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-2xs hover:shadow-xs
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] rounded-xl font-semibold text-xs
            border border-[#FF5A1F] text-[#FF5A1F] hover:bg-orange-50/70
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)];
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] rounded-xl font-semibold text-xs
            bg-rose-50 text-rose-600 border border-rose-200/90 hover:bg-rose-100/70
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)];
   }
 
   .btn-success {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] rounded-xl font-semibold text-xs
            bg-emerald-50 text-emerald-700 border border-emerald-200/90 hover:bg-emerald-100/70
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)];
   }
 
   .btn-disabled {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs
            bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none;
   }
 
-  /* ToolRent Form Inputs */
+  /* ToolRent Form Inputs (min-h-[44px] para confort táctil) */
   .input-field {
-    @apply w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs
+    @apply w-full px-3.5 py-2.5 min-h-[44px] bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs
            focus:outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-orange-500/15 transition-all duration-150 shadow-2xs;
+  }
+
+  /* Utilidades Ergonomía Táctil y Tarjetas Naturales */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center;
+  }
+
+  .tr-card-natural {
+    @apply h-auto flex flex-col justify-between gap-5;
+  }
+
+  .aspect-tool-card {
+    aspect-ratio: 4 / 3;
+  }
+
+  .tr-table-responsive {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 
   /* Semantic Status Badges (Stitch Design) */

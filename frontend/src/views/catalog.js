@@ -16,15 +16,16 @@ export async function renderCatalogView() {
   const container = document.getElementById('app-content');
   if (!container) return;
 
-  // Read search & date query parameters from URL hash (e.g. #/catalog?start=2026-10-17&end=2026-10-20&q=andamio)
+  // Read search, category & date query parameters from URL hash (e.g. #/catalog?category=f000...&q=andamio)
   const hash = window.location.hash || '';
   const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
   const initialSearchParam = searchParams.get('q') || '';
+  const initialCategoryParam = searchParams.get('category') || searchParams.get('cat') || '';
   let filterStart = searchParams.get('start') || searchParams.get('from') || '';
   let filterEnd = searchParams.get('end') || searchParams.get('to') || '';
 
   // Local state
-  let selectedCategory = 'cat-all';
+  let selectedCategory = initialCategoryParam || 'cat-all';
   let selectedStatus = 'ALL'; // ALL, AVAILABLE, RENTED, MAINTENANCE
   let searchQuery = initialSearchParam;
   let minPrice = 10000;
@@ -270,20 +271,26 @@ export async function renderCatalogView() {
           </button>
 
           <div id="cat-carousel-container" class="flex-1 overflow-x-auto scroll-smooth py-1 scrollbar-none flex gap-2 sm:gap-2.5">
-            ${categories.map(cat => `
-              <button 
-                type="button" 
-                class="cat-pill-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border flex-shrink-0 cursor-pointer ${
-                  selectedCategory === cat.id 
-                    ? 'bg-orange-50/90 border-[#FF5A1F] text-[#FF5A1F] shadow-xs ring-1 ring-[#FF5A1F]/30' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                }"
-                data-cat-id="${cat.id}"
-              >
-                ${cat.icon ? renderIcon(cat.icon, 'w-3.5 h-3.5') : renderIcon('Layers', 'w-3.5 h-3.5')}
-                <span>${cat.name}</span>
-              </button>
-            `).join('')}
+            ${categories.map(cat => {
+              const count = cat.id === 'cat-all' 
+                ? allTools.length 
+                : allTools.filter(t => t.categoryId === cat.id).length;
+              return `
+                <button 
+                  type="button" 
+                  class="cat-pill-btn flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border flex-shrink-0 cursor-pointer ${
+                    selectedCategory === cat.id 
+                      ? 'bg-orange-50/90 border-[#FF5A1F] text-[#FF5A1F] shadow-xs ring-1 ring-[#FF5A1F]/30' 
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }"
+                  data-cat-id="${cat.id}"
+                >
+                  ${cat.icon ? renderIcon(cat.icon, 'w-3.5 h-3.5') : renderIcon('Layers', 'w-3.5 h-3.5')}
+                  <span>${cat.name}</span>
+                  <span class="text-[11px] font-mono opacity-60">(${count})</span>
+                </button>
+              `;
+            }).join('')}
           </div>
 
           <button 
@@ -600,7 +607,7 @@ export async function renderCatalogView() {
     }
 
     productsContainer.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="tools-cards-grid">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 items-stretch" id="tools-cards-grid">
         ${filtered.map(tool => {
           const isAvailable = (filterStart && filterEnd)
             ? (tool.availableStock > 0)
@@ -613,24 +620,24 @@ export async function renderCatalogView() {
             : rawImg;
 
           const statusBadge = isAvailable
-            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs select-none">
+            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs select-none">
                 <span class="text-emerald-600 flex items-center justify-center flex-shrink-0">
                   ${renderIcon('BadgeCheck', 'w-3.5 h-3.5')}
                 </span>
-                <span>Disponible${tool.totalStock > 1 ? ` (${tool.availableStock}/${tool.totalStock} en stock)` : ''}</span>
+                <span>Disponible${tool.totalStock > 1 ? ` (${tool.availableStock}/${tool.totalStock})` : ''}</span>
                </span>`
-            : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200/90 shadow-2xs select-none">
+            : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200/90 shadow-2xs select-none">
                 <span class="text-rose-600 flex items-center justify-center flex-shrink-0">
                   ${renderIcon('AlertTriangle', 'w-3 h-3')}
                 </span>
-                <span>${filterStart ? `Alquilada para tus fechas (${tool.totalStock} en reserva)` : `Sin unidades disponibles (${tool.totalStock})`}</span>
+                <span>${filterStart ? `Alquilada (${tool.totalStock})` : `Sin stock (${tool.totalStock})`}</span>
                </span>`;
 
           return `
-            <div class="tool-card-item bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs card-lift flex flex-col justify-between group">
+            <div class="tool-card-item bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs card-lift h-auto flex flex-col justify-between group">
               
               <div>
-                <div class="relative h-48 overflow-hidden bg-slate-50 cursor-pointer tool-card-trigger" data-id="${tool.id}">
+                <div class="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 cursor-pointer tool-card-trigger" data-id="${tool.id}">
                   <img 
                     src="${primaryImg}" 
                     alt="${tool.name}" 
@@ -646,7 +653,7 @@ export async function renderCatalogView() {
 
                 <div class="p-4 space-y-2">
                   <div>
-                    <h3 class="font-bold text-slate-900 text-sm leading-snug cursor-pointer hover:text-[#FF5A1F] transition-colors tool-card-trigger line-clamp-2" data-id="${tool.id}">
+                    <h3 class="font-bold text-slate-900 text-sm leading-snug cursor-pointer hover:text-[#FF5A1F] transition-colors tool-card-trigger line-clamp-2 font-display" data-id="${tool.id}">
                       ${tool.name}
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -664,7 +671,7 @@ export async function renderCatalogView() {
                       </span>
                     </div>
                     
-                    <span class="text-slate-500 text-[10px] font-medium flex items-center gap-0.5 flex-shrink-0 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-md">
+                    <span class="text-slate-500 text-[10px] font-medium flex items-center gap-0.5 flex-shrink-0 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-md">
                       ${renderIcon('MapPin', 'w-2.5 h-2.5 text-slate-400')}
                       ${tool.providerCity}
                     </span>
@@ -672,19 +679,19 @@ export async function renderCatalogView() {
                 </div>
               </div>
 
-              <div class="p-4 pt-0 border-t border-slate-50 flex items-center justify-between mt-2">
+              <div class="p-4 pt-0 border-t border-slate-50 flex items-center justify-between mt-3 gap-2">
                 <div>
-                  <span class="text-base font-bold text-slate-900 font-display">${formatCurrency(tool.dailyPrice)}</span>
+                  <span class="text-base font-bold text-slate-900 font-display tabular-nums">${formatCurrency(tool.dailyPrice)}</span>
                   <span class="text-[11px] text-slate-400 font-normal"> / día</span>
                 </div>
 
                 <div>
-                  <button class="btn-tool-details inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer ${
+                  <button class="btn-tool-details min-h-[44px] inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer select-none ${
                     isAvailable 
                       ? 'text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-xs' 
                       : 'text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200'
                   }" data-id="${tool.id}">
-                    ${isAvailable ? 'Ver detalles' : 'Ver disponibilidad'}
+                    ${isAvailable ? 'Ver detalles' : 'Disponibilidad'}
                   </button>
                 </div>
               </div>

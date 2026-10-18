@@ -68,7 +68,17 @@ class AuthState {
     return this.hasRole('CLIENTE') || this.hasRole('ROLE_CLIENTE');
   }
 
-  async login(username, password) {
+  async login(username, password, onProgress = null) {
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 1,
+        percent: 30,
+        title: 'Iniciando sesión...',
+        message: 'Validando credenciales de acceso...',
+        subtext: 'Configurando tus credenciales...'
+      });
+    }
+
     const res = await api.post('/auth/login', { username, password });
     if (!res || !res.token) {
       throw new Error('Respuesta de autenticación inválida: no se recibió token');
@@ -77,45 +87,114 @@ class AuthState {
     this.token = res.token;
     localStorage.setItem('token', this.token);
 
-    // Fetch user info from /users/me
-    try {
-      const me = await api.get('/users/me');
-      let profile = null;
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 2,
+        percent: 75,
+        title: 'Verificando acceso...',
+        message: 'Sincronizando tu espacio de trabajo...',
+        subtext: 'Sincronizando perfil de usuario...'
+      });
+    }
 
-      // Load profile according to role
-      if (me.roles.some(r => r.includes('PROVEEDOR'))) {
+    // Single DTO projection query in MySQL/PostgreSQL via /api/v1/auth/verify-session
+    let sessionData = null;
+    try {
+      sessionData = await api.get('/auth/verify-session');
+    } catch (err) {
+      console.warn('Could not load session projection via /auth/verify-session', err);
+    }
+
+    // Fetch user info from /users/me and profile for backward compatibility
+    let me = null;
+    let profile = null;
+    try {
+      me = await api.get('/users/me');
+      if (me?.roles?.some(r => r.includes('PROVEEDOR'))) {
         try { profile = await api.get('/providers/me'); } catch (e) { /* might not have profile yet */ }
-      } else if (me.roles.some(r => r.includes('CLIENTE'))) {
+      } else if (me?.roles?.some(r => r.includes('CLIENTE'))) {
         try { profile = await api.get('/clients/me'); } catch (e) { /* might not have profile yet */ }
       }
-
-      this.user = {
-        id: me.id,
-        username: me.username,
-        email: me.email,
-        roles: me.roles,
-        profile: profile,
-      };
-      localStorage.setItem('user', JSON.stringify(this.user));
     } catch (e) {
-      console.warn('Could not load profile from /users/me, using JWT payload', e);
-      const decoded = this.decodeJwt(this.token);
-      this.user = {
-        username: decoded.sub || username,
-        roles: decoded.roles || [],
-      };
-      localStorage.setItem('user', JSON.stringify(this.user));
+      console.warn('Could not load extra me/profile', e);
+    }
+
+    const decoded = this.decodeJwt(this.token);
+    const resolvedRoles = me?.roles || decoded?.roles || (sessionData?.rol ? [`ROLE_${sessionData.rol.replace('ROLE_', '')}`] : ['ROLE_CLIENTE']);
+    const cleanRole = sessionData?.rol ? sessionData.rol.replace('ROLE_', '') : (resolvedRoles[0] || 'CLIENTE').replace('ROLE_', '');
+    const displayName = sessionData?.nombre || profile?.fullName || profile?.companyName || me?.username || decoded?.sub || username;
+
+    const consolidatedSession = {
+      id: sessionData?.id || me?.id,
+      nombre: displayName,
+      email: sessionData?.email || me?.email,
+      rol: cleanRole,
+      username: sessionData?.username || me?.username || username,
+      profile: profile
+    };
+
+    // Pre-hydrate context in sessionStorage to avoid extra network queries when entering destination dashboard
+    sessionStorage.setItem('toolrent_user_context', JSON.stringify(consolidatedSession));
+    sessionStorage.setItem('verified_session', JSON.stringify(consolidatedSession));
+    sessionStorage.setItem('user_profile', JSON.stringify(consolidatedSession));
+
+    this.user = {
+      id: consolidatedSession.id,
+      username: consolidatedSession.username,
+      email: consolidatedSession.email,
+      roles: resolvedRoles,
+      profile: profile || consolidatedSession,
+      nombre: displayName,
+      rol: cleanRole
+    };
+    localStorage.setItem('user', JSON.stringify(this.user));
+
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 3,
+        percent: 100,
+        title: '¡Sesión Verificada!',
+        message: `¡Bienvenido de nuevo, ${displayName}! Accediendo al panel ${cleanRole}...`,
+        subtext: `Perfil verificado como ${cleanRole}. Redirigiendo...`,
+        data: consolidatedSession
+      });
     }
 
     this.notifyChange();
-    return this.user;
+    return {
+      user: this.user,
+      session: consolidatedSession,
+      token: this.token,
+      roles: this.user.roles,
+      rol: cleanRole
+    };
   }
 
-  async register({ username, email, password, roles, role, fullName, documentType, documentNumber, phone, address, city, companyName, taxId }) {
+  getVerifiedSession() {
+    try {
+      const stored = sessionStorage.getItem('toolrent_user_context') || sessionStorage.getItem('verified_session');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async register({ username, email, password, roles, role, fullName, documentType, documentNumber, phone, address, city, companyName, taxId }, onProgress) {
     const targetRoles = roles && roles.length > 0 ? roles : [role || 'ROLE_CLIENTE'];
 
-    // 1. Register base user and commercial profile atomically in backend
-    await api.post('/auth/register', {
+    // Phase 1: Step 1 (35%)
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 1,
+        percent: 35,
+        title: 'Creando tu cuenta...',
+        message: 'Configurando tus credenciales...',
+        subtext: 'Registrando cuenta de usuario...'
+      });
+    }
+
+    // 1. Direct POST to /auth/register which saves within @Transactional and returns { token, type, username }
+    const registerRes = await api.post('/auth/register', {
       username,
       email,
       password,
@@ -130,9 +209,76 @@ class AuthState {
       taxId: taxId || ''
     });
 
-    // 2. Automatically log in to get token and load profile
-    await this.login(username, password);
-    return this.user;
+    const token = registerRes?.token || registerRes?.jwtToken;
+    if (!token) {
+      throw new Error('No se recibió el token de seguridad tras el registro.');
+    }
+
+    // Immediately store the token in localStorage
+    this.token = token;
+    localStorage.setItem('token', this.token);
+
+    // Phase 2: Step 2 (75%)
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 2,
+        percent: 75,
+        title: 'Verificando acceso...',
+        message: 'Sincronizando tu espacio de trabajo...',
+        subtext: 'Verificando perfil de usuario...'
+      });
+    }
+
+    // 2. Invoke GET /api/v1/auth/verify-session with Authorization: Bearer <token>
+    const sessionData = await api.get('/auth/verify-session');
+
+    if (!sessionData || !sessionData.id) {
+      throw new Error('La verificación de sesión no devolvió un usuario activo.');
+    }
+
+    // Phase 3: Step 3 (100%) - Store in sessionStorage to save initial database queries on destination dashboard
+    sessionStorage.setItem('toolrent_user_context', JSON.stringify(sessionData));
+    sessionStorage.setItem('verified_session', JSON.stringify(sessionData));
+    sessionStorage.setItem('user_profile', JSON.stringify(sessionData));
+
+    // Construct local user state
+    const cleanRole = sessionData.rol ? sessionData.rol.replace('ROLE_', '') : 'CLIENTE';
+    const canonicalRole = `ROLE_${cleanRole}`;
+
+    this.user = {
+      id: sessionData.id,
+      nombre: sessionData.nombre,
+      email: sessionData.email,
+      rol: cleanRole,
+      username: sessionData.username || sessionData.nombre || username,
+      roles: [canonicalRole],
+      profile: {
+        id: sessionData.id,
+        fullName: sessionData.nombre,
+        companyName: sessionData.nombre,
+        email: sessionData.email,
+        rol: cleanRole
+      }
+    };
+    localStorage.setItem('user', JSON.stringify(this.user));
+
+    if (typeof onProgress === 'function') {
+      onProgress({
+        step: 3,
+        percent: 100,
+        title: '¡Sesión verificada!',
+        message: `¡Bienvenido, ${sessionData.nombre || username}! Accediendo al panel...`,
+        data: sessionData
+      });
+    }
+
+    this.notifyChange();
+    return {
+      session: sessionData,
+      user: this.user,
+      token: this.token,
+      rol: cleanRole
+    };
   }
 
   logout() {
@@ -140,6 +286,8 @@ class AuthState {
     this.user = null;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('verified_session');
+    sessionStorage.removeItem('user_profile');
     this.notifyChange();
   }
 

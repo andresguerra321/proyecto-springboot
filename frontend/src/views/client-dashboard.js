@@ -38,7 +38,10 @@ export async function renderClientDashboard() {
   }
 
   const user = auth.getUser();
-  const clientId = user.profile?.id || user.id;
+  const verifiedSession = auth.getVerifiedSession();
+  const clientName = verifiedSession?.nombre || user?.profile?.fullName || user?.username || 'Cliente';
+  const clientEmail = verifiedSession?.email || user?.email || 'cliente@toolrent.co';
+  const clientId = verifiedSession?.id || user?.profile?.id || user?.id;
 
   let activeTab = 'all'; // all, in_progress, pending, completed
   let searchQuery = '';
@@ -61,8 +64,8 @@ export async function renderClientDashboard() {
             <div>
               <div class="flex flex-wrap items-center gap-2">
                 <h1 class="text-xl sm:text-2xl font-semibold text-zinc-900 tracking-tight font-display">Mis Alquileres y Reservas</h1>
-                ${renderCrmStatusBadge('VERIFIED', 'Cliente Verificado')}
-                <span class="text-xs text-zinc-400 font-mono">${user.email || 'cliente@toolrent.co'}</span>
+                ${renderCrmStatusBadge('VERIFIED', clientName)}
+                <span class="text-xs text-zinc-400 font-mono">${clientEmail}</span>
               </div>
               <p class="text-xs text-zinc-500 mt-0.5">Seguimiento de despacho en faena, vigencia de contratos y comprobantes contables con IVA.</p>
             </div>
@@ -88,7 +91,7 @@ export async function renderClientDashboard() {
         </div>
 
         <!-- 4 Top KPI Cards with Sparklines (CRM Minimalist) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="client-kpi-container">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="client-kpi-container">
           
           <div class="crm-card p-4 flex items-center justify-between group hover:border-zinc-300 transition-colors">
             <div class="space-y-1">

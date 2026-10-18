@@ -18,28 +18,31 @@ class ModalController {
     this.onCloseCallback = onClose;
 
     const modalBackdrop = document.createElement('div');
-    modalBackdrop.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0 overflow-y-auto';
+    modalBackdrop.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 transition-opacity duration-300 opacity-0 overflow-y-auto';
     modalBackdrop.id = 'active-modal-backdrop';
 
     modalBackdrop.innerHTML = `
-      <div class="bg-white rounded-2xl w-full ${maxWidth} my-8 transform transition-all duration-300 scale-95 opacity-0 overflow-hidden border border-slate-200/80 shadow-2xl relative" id="modal-box">
+      <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full ${maxWidth} mt-auto sm:my-8 transform transition-all duration-300 translate-y-6 sm:translate-y-0 sm:scale-95 opacity-0 overflow-hidden border border-slate-200/80 shadow-2xl relative max-h-[92vh] sm:max-h-[88vh] flex flex-col" id="modal-box">
+        <!-- Mobile bottom-sheet drag handle -->
+        <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0"></div>
+
         ${!hideHeader ? `
           <!-- Modal Header -->
-          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
-            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">${title}</h3>
-            <button id="modal-close-btn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Cerrar modal">
+          <div class="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-white flex-shrink-0">
+            <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">${title}</h3>
+            <button id="modal-close-btn" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Cerrar modal">
               ${renderIcon('X', 'w-5 h-5')}
             </button>
           </div>
           <!-- Modal Content -->
-          <div class="p-6 max-h-[85vh] overflow-y-auto" id="modal-body">
+          <div class="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1" id="modal-body">
             ${typeof content === 'string' ? content : ''}
           </div>
         ` : `
-          <button id="modal-close-btn" class="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:bg-slate-100 transition-colors" aria-label="Cerrar modal">
+          <button id="modal-close-btn" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 text-slate-400 hover:text-slate-600 p-2 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:bg-slate-100 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Cerrar modal">
             ${renderIcon('X', 'w-5 h-5')}
           </button>
-          <div class="max-h-[90vh] overflow-y-auto" id="modal-body">
+          <div class="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1" id="modal-body">
             ${typeof content === 'string' ? content : ''}
           </div>
         `}
@@ -69,8 +72,8 @@ class ModalController {
       modalBackdrop.classList.remove('opacity-0');
       const box = modalBackdrop.querySelector('#modal-box');
       if (box) {
-        box.classList.remove('scale-95', 'opacity-0');
-        box.classList.add('scale-100', 'opacity-100');
+        box.classList.remove('translate-y-6', 'sm:scale-95', 'opacity-0');
+        box.classList.add('translate-y-0', 'sm:scale-100', 'opacity-100');
       }
     });
 
@@ -83,7 +86,8 @@ class ModalController {
     const modal = this.activeModal;
     const box = modal.querySelector('#modal-box');
     if (box) {
-      box.classList.add('scale-95', 'opacity-0');
+      box.classList.remove('translate-y-0', 'sm:scale-100');
+      box.classList.add('translate-y-6', 'sm:scale-95', 'opacity-0');
     }
     modal.classList.add('opacity-0');
 

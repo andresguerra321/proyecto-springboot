@@ -118,7 +118,7 @@ export async function renderAdminDashboard() {
         </div>
 
         <!-- 4 Top KPI Cards with Mini-Sparklines SVG (Seconds 00:00 & 00:08) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-cards-container">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="kpi-cards-container">
           
           <!-- Card 1: Ingresos Facturados -->
           <div class="crm-card p-4 flex items-center justify-between group hover:border-zinc-300 transition-colors">
@@ -239,8 +239,8 @@ export async function renderAdminDashboard() {
 
           </div>
 
-          <!-- High-Density Data Table -->
-          <div class="overflow-x-auto lg:overflow-x-hidden">
+          <!-- 1. Desktop High-Density Data Table -->
+          <div class="overflow-x-auto lg:overflow-x-hidden hidden md:block">
             <table class="w-full text-left text-xs table-auto" id="admin-users-table">
               <thead class="crm-table-header bg-zinc-50/60 border-b border-zinc-100">
                 <tr>
@@ -259,6 +259,11 @@ export async function renderAdminDashboard() {
                 <!-- Rendered dynamically -->
               </tbody>
             </table>
+          </div>
+
+          <!-- 2. Mobile Responsive Table-to-Card (< 768px) -->
+          <div class="space-y-3 p-3.5 md:hidden" id="users-cards-body">
+            <!-- Rendered dynamically -->
           </div>
 
           <div class="px-5 py-3.5 border-t border-zinc-100 text-xs text-zinc-400 flex items-center justify-between bg-zinc-50/20">
@@ -355,6 +360,7 @@ export async function renderAdminDashboard() {
   // Render Table of Users
   function renderUsersTable() {
     const tbody = container.querySelector('#users-table-body');
+    const cardsContainer = container.querySelector('#users-cards-body');
     if (!tbody) return;
 
     let filtered = [...usersList];
@@ -378,9 +384,17 @@ export async function renderAdminDashboard() {
           </td>
         </tr>
       `;
+      if (cardsContainer) {
+        cardsContainer.innerHTML = `
+          <div class="crm-card p-8 text-center text-zinc-400 text-xs">
+            No se encontraron usuarios con el criterio actual.
+          </div>
+        `;
+      }
       return;
     }
 
+    // 1. Desktop Table HTML
     tbody.innerHTML = filtered.map(u => {
       const roleColor = u.role === 'Administrador'
         ? 'border-purple-200 bg-purple-50/60 text-purple-700'
@@ -434,8 +448,53 @@ export async function renderAdminDashboard() {
       `;
     }).join('');
 
-    // Clicking row opens Floating Expandable CRM Card (Conceptzilla CRM Seconds 00:01 to 00:07)
-    tbody.querySelectorAll('.crm-table-row').forEach(row => {
+    // 2. Mobile Cards HTML (Table-to-Card Responsive Pattern)
+    if (cardsContainer) {
+      cardsContainer.innerHTML = filtered.map(u => {
+        const roleColor = u.role === 'Administrador'
+          ? 'border-purple-200 bg-purple-50/60 text-purple-700'
+          : u.role === 'Proveedor'
+          ? 'border-blue-200 bg-blue-50/60 text-blue-700'
+          : 'border-zinc-200 bg-zinc-50/60 text-zinc-700';
+
+        return `
+          <div class="crm-table-row crm-card p-4 space-y-3 cursor-pointer hover:border-orange-300 transition-all bg-white" data-user-id="${u.id}">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <img src="${u.avatar}" class="w-9 h-9 rounded-full object-cover border border-zinc-200 bg-zinc-100 flex-shrink-0" />
+                <div class="min-w-0">
+                  <span class="font-bold text-zinc-900 text-xs block truncate leading-tight">${u.name}</span>
+                  <span class="text-[10px] text-zinc-400 font-mono block truncate">${u.email}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border ${roleColor}">
+                  ${u.role}
+                </span>
+                ${renderCrmStatusBadge(u.active ? 'ACTIVE' : 'CANCELLED', u.active ? 'Activo' : 'Inactivo')}
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
+              <span class="text-[10px] text-zinc-400 font-mono">ID: ${u.id.slice(0, 10)}...</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-user-card-quick min-h-[44px] px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
+                  ${renderIcon('Maximize2', 'w-3.5 h-3.5')}
+                  <span>Ficha CRM</span>
+                </button>
+                <button class="btn-user-toggle-quick min-h-[44px] px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 ${u.active ? 'text-rose-600 border-rose-200 bg-rose-50/50' : 'text-emerald-700 border-emerald-200 bg-emerald-50/50'} text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
+                  ${renderIcon('Power', 'w-3.5 h-3.5')}
+                  <span>${u.active ? 'Desactivar' : 'Activar'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Clicking row or mobile card opens Floating Expandable CRM Card
+    container.querySelectorAll('.crm-table-row').forEach(row => {
       row.addEventListener('click', () => {
         const userId = row.dataset.userId;
         const u = usersList.find(x => x.id === userId);
@@ -444,7 +503,7 @@ export async function renderAdminDashboard() {
       });
     });
 
-    tbody.querySelectorAll('.btn-user-card-quick').forEach(btn => {
+    container.querySelectorAll('.btn-user-card-quick').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const u = usersList.find(x => x.id === btn.dataset.id);
@@ -452,7 +511,7 @@ export async function renderAdminDashboard() {
       });
     });
 
-    tbody.querySelectorAll('.btn-user-toggle-quick').forEach(btn => {
+    container.querySelectorAll('.btn-user-toggle-quick').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const u = usersList.find(x => x.id === btn.dataset.id);

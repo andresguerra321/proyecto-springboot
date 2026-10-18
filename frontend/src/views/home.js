@@ -54,54 +54,10 @@ export async function renderHomeView() {
   };
   const maxEndFormatted = calcMaxEnd(startFormatted);
 
-  // 6 Curated Categories matching img/INDEX.png with crisp photography & counts
-  const categoriesList = [
-    {
-      name: 'Movimiento de tierra',
-      countNum: 12,
-      query: 'excavadora',
-      image: catCleanMovimiento,
-      icon: 'Truck'
-    },
-    {
-      name: 'Herramientas eléctricas',
-      countNum: 25,
-      query: 'eléctrica',
-      image: catCleanHerramientas,
-      icon: 'Wrench'
-    },
-    {
-      name: 'Construcción',
-      countNum: 18,
-      query: 'concreto',
-      image: catCleanConstruccion,
-      icon: 'Grid'
-    },
-    {
-      name: 'Elevación',
-      countNum: 8,
-      query: 'elevación',
-      image: catCleanElevacion,
-      icon: 'Maximize2'
-    },
-    {
-      name: 'Generación de energía',
-      countNum: 6,
-      query: 'generador',
-      image: catCleanEnergia,
-      icon: 'Zap'
-    },
-    {
-      name: 'Compactación de suelos',
-      countNum: 7,
-      query: 'compactadora',
-      image: catCleanCompactacion,
-      icon: 'Layers'
-    }
-  ];
-
-  // Fetch real tools and active rentals if authenticated
+  // Fetch real tools, categories and active rentals if authenticated
   let allTools = [];
+  let allCategories = [];
+  let uniqueTools = [];
   let activeRental = null;
   let activeTool = null;
   let activeProvider = null;
@@ -110,7 +66,8 @@ export async function renderHomeView() {
 
   try {
     const promises = [
-      api.get('/tools').catch(() => [])
+      api.get('/tools').catch(() => []),
+      api.get('/tools/categories').catch(() => [])
     ];
 
     if (isAuth) {
@@ -120,8 +77,39 @@ export async function renderHomeView() {
       }
     }
 
-    const [toolsData, rentalsData] = await Promise.all(promises);
+    const [toolsData, catsData, rentalsData] = await Promise.all(promises);
     allTools = toolsData || [];
+    allCategories = catsData || [];
+
+    // Group / deduplicate physical units by provider and model name to count distinct catalog models
+    const modelStockMap = new Map();
+    allTools.forEach(t => {
+      if (t.status === 'RETIRED') return;
+      const key = `${t.providerId}:::${(t.name || '').trim().toLowerCase()}`;
+      const existing = modelStockMap.get(key) || { total: 0, available: 0, primaryTool: null };
+      existing.total++;
+      if (t.status === 'AVAILABLE') existing.available++;
+      if (!existing.primaryTool || (existing.primaryTool.status !== 'AVAILABLE' && t.status === 'AVAILABLE')) {
+        existing.primaryTool = t;
+      }
+      modelStockMap.set(key, existing);
+    });
+
+    const seenKeys = new Set();
+    allTools.forEach(t => {
+      if (t.status === 'RETIRED') return;
+      const key = `${t.providerId}:::${(t.name || '').trim().toLowerCase()}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      const stock = modelStockMap.get(key);
+      uniqueTools.push({
+        ...(stock?.primaryTool || t),
+        categoryId: t.categoryId || t.category?.id,
+        categoryName: t.categoryName || t.category?.name || 'Maquinaria',
+        totalStock: stock?.total || 1,
+        availableStock: stock?.available || 1
+      });
+    });
 
     if (isAuth && rentalsData && rentalsData.length > 0) {
       // Find active or latest rental (sorted by creation/start date descending)
@@ -141,19 +129,67 @@ export async function renderHomeView() {
     console.error('Error fetching home data', err);
   }
 
-  // 4 Featured available tools for Section 4 ("Disponibles para entrega inmediata")
-  // Group / deduplicate physical units by model name so each featured card is a distinct product
-  const seenModelKeys = new Set();
-  const featuredTools = [];
-  for (const tool of allTools) {
-    if (tool.status !== 'AVAILABLE') continue;
-    const modelKey = (tool.name || '').trim().toLowerCase();
-    if (!seenModelKeys.has(modelKey)) {
-      seenModelKeys.add(modelKey);
-      featuredTools.push(tool);
+  // Helper mappings for categories imagery & icons
+  function getCategoryVisuals(catName = '') {
+    const n = catName.toLowerCase();
+    if (n.includes('elevaci') || n.includes('andamio') || n.includes('tijera') || n.includes('plataforma')) {
+      return { image: catCleanElevacion, icon: 'Maximize2' };
     }
-    if (featuredTools.length >= 4) break;
+    if (n.includes('demolici') || n.includes('perforaci') || n.includes('eléctric') || n.includes('herramienta') || n.includes('martillo') || n.includes('taladro')) {
+      return { image: catCleanHerramientas, icon: 'Wrench' };
+    }
+    if (n.includes('hormig') || n.includes('concreto') || n.includes('mezcladora') || n.includes('construcci')) {
+      return { image: catCleanConstruccion, icon: 'Grid' };
+    }
+    if (n.includes('energ') || n.includes('generador') || n.includes('planta') || n.includes('iluminaci')) {
+      return { image: catCleanEnergia, icon: 'Zap' };
+    }
+    if (n.includes('compacta') || n.includes('suelo') || n.includes('canguro') || n.includes('rana') || n.includes('apisonador')) {
+      return { image: catCleanCompactacion, icon: 'Layers' };
+    }
+    if (n.includes('corte') || n.includes('abrasiv') || n.includes('tierra') || n.includes('transporte') || n.includes('carga') || n.includes('movimiento')) {
+      return { image: catCleanMovimiento, icon: 'Truck' };
+    }
+    return { image: catCleanConstruccion, icon: 'Layers' };
   }
+
+  // 6 Categories dynamically synced with database
+  // Match backend categories: first those with available equipment in DB, plus key foundational categories
+  const categoryDefs = [
+    { id: 'f0000000-0000-0000-0000-000000000003', name: 'Elevación y Andamiaje', fallbackName: 'Elevación' },
+    { id: 'f0000000-0000-0000-0000-000000000001', name: 'Demolición y Perforación', fallbackName: 'Herramientas Eléctricas' },
+    { id: 'f0000000-0000-0000-0000-000000000002', name: 'Hormigón y Concreto', fallbackName: 'Construcción' },
+    { id: 'f0000000-0000-0000-0000-000000000004', name: 'Generación de Energía', fallbackName: 'Generación de Energía' },
+    { id: 'f0000000-0000-0000-0000-000000000005', name: 'Compactación de Suelos', fallbackName: 'Compactación de Suelos' },
+    { id: 'f0000000-0000-0000-0000-000000000006', name: 'Corte y Abrasivos', fallbackName: 'Movimiento y Corte' }
+  ];
+
+  const categoriesList = categoryDefs.map(def => {
+    const backendCat = (allCategories || []).find(c => c.id === def.id || (c.name || '').toLowerCase() === def.name.toLowerCase());
+    const catId = backendCat?.id || def.id;
+    const catName = backendCat?.name || def.name;
+    const visuals = getCategoryVisuals(catName);
+
+    // Dynamic count directly matching unique tool products in catalog
+    const countNum = uniqueTools.filter(t => {
+      const tCatId = t.categoryId || t.category?.id;
+      return tCatId === catId;
+    }).length;
+
+    return {
+      id: catId,
+      name: catName,
+      countNum,
+      image: visuals.image,
+      icon: visuals.icon
+    };
+  });
+
+  // 4 Featured available tools for Section 4 ("Disponibles para entrega inmediata")
+  // Taken from uniqueTools that are AVAILABLE
+  const featuredTools = uniqueTools
+    .filter(t => t.status === 'AVAILABLE' || t.availableStock > 0)
+    .slice(0, 4);
 
   // Helper to map fallback images for tools, ensuring machinery photos
   function getToolImage(tool) {
@@ -551,9 +587,9 @@ export async function renderHomeView() {
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             ${categoriesList.map(cat => `
               <a 
-                href="#/catalog?q=${encodeURIComponent(cat.query)}" 
+                href="#/catalog?category=${cat.id}" 
                 class="group rounded-2xl overflow-hidden aspect-[3/4] relative shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block bg-slate-900"
-                title="${cat.name} (${cat.countNum})"
+                title="${cat.name} (${cat.countNum} ${cat.countNum === 1 ? 'equipo' : 'equipos'})"
               >
                 <!-- Clean High-Resolution Photography -->
                 <img 
@@ -601,7 +637,7 @@ export async function renderHomeView() {
               href="#/catalog" 
               class="text-xs sm:text-sm font-bold text-slate-600 hover:text-[#FF5A1F] transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto group"
             >
-              <span>Explorar los +25 equipos</span>
+              <span>Explorar catálogo completo (${uniqueTools.length} equipos)</span>
               <span class="transition-transform group-hover:translate-x-1">&rarr;</span>
             </a>
           </div>

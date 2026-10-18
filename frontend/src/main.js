@@ -9,6 +9,7 @@ import { renderClientDashboard } from './views/client-dashboard.js';
 import { renderProviderDashboard } from './views/provider-dashboard.js';
 import { renderAdminDashboard } from './views/admin-dashboard.js';
 import { renderProductPageView } from './views/product-detail.js';
+import { renderAboutView } from './views/about.js';
 import error404Img from './assets/error-404.png';
 import showToast from './components/toast.js';
 import { initImageCacheShield } from './utils/image-cache.js';
@@ -81,6 +82,7 @@ const routes = {
   '#/': renderHomeView,
   '#/home': renderHomeView,
   '#/catalog': renderCatalogView,
+  '#/about': renderAboutView,
   '#/client': renderClientDashboard,
   '#/provider': renderProviderDashboard,
   '#/admin': renderAdminDashboard,

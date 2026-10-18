@@ -86,6 +86,20 @@ export async function renderProviderDashboard() {
   const isAdmin = auth.isAdmin();
   let isProvider = auth.isProvider();
 
+  // Pre-hidratar perfil desde sessionStorage (toolrent_user_context) para evitar roundtrips innecesarios
+  const storedContext = auth.getVerifiedSession();
+  if (storedContext && (storedContext.rol === 'PROVEEDOR' || storedContext.rol === 'ROLE_PROVEEDOR')) {
+    isProvider = true;
+    if (!user.profile) {
+      user.profile = {
+        id: storedContext.id,
+        companyName: storedContext.nombre,
+        email: storedContext.email,
+        rol: storedContext.rol
+      };
+    }
+  }
+
   if (!isProvider && !isAdmin) {
     try {
       const me = await api.get('/users/me');
@@ -295,7 +309,7 @@ export async function renderProviderDashboard() {
           </div>
 
           <!-- 2. 4 Top KPI Cards with Mini-Sparklines SVG (Clean SaaS Minimalist) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="provider-kpi-container">
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="provider-kpi-container">
             
             <!-- KPI 1: Total Maquinaria -->
             <div class="crm-card p-4 flex items-center justify-between group hover:border-zinc-300 transition-colors">

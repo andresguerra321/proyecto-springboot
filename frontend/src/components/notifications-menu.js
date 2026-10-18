@@ -43,7 +43,7 @@ export function renderNotificationsMenu() {
     <!-- Floating Popover Card -->
     <div 
       id="notifications-popover" 
-      class="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      class="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-dropdown-in"
       style="transform-origin: top right;"
     >
       <!-- Refined Header -->
@@ -74,7 +74,7 @@ export function renderNotificationsMenu() {
           ` : ''}
           <button 
             id="btn-close-notifs" 
-            class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+            class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
             aria-label="Cerrar"
           >
             ${renderIcon('X', 'w-4 h-4')}
@@ -83,18 +83,29 @@ export function renderNotificationsMenu() {
       </div>
 
       ${!isAuth ? `
-        <!-- Unauthenticated Guest State -->
-        <div class="p-8 text-center space-y-3">
-          <div class="w-12 h-12 rounded-full bg-orange-50 text-[#FF5A1F] flex items-center justify-center mx-auto">
+        <!-- Unauthenticated Guest State (Conciso y Orientado a Palabras Clave) -->
+        <div class="p-6 text-center space-y-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center mx-auto shadow-2xs border border-orange-100">
             ${renderIcon('BellOff', 'w-6 h-6')}
           </div>
-          <p class="text-xs font-bold text-slate-800">Inicia sesión para ver notificaciones</p>
-          <p class="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
-            Ingresa a tu cuenta para recibir confirmaciones de reservas, facturas legales y recordatorios de entrega.
-          </p>
+          <div class="space-y-1">
+            <p class="text-sm font-bold text-slate-900 font-display">Alertas Operativas</p>
+            <p class="text-xs text-slate-500 max-w-xs mx-auto">
+              Seguimiento en tiempo real para tu cuenta:
+            </p>
+          </div>
+
+          <!-- Píldoras de Palabras Clave -->
+          <div class="flex flex-wrap items-center justify-center gap-1.5 pt-0.5 text-[11px] font-semibold text-slate-600">
+            <span class="px-2 py-1 bg-slate-100 rounded-md border border-slate-200/80">● Despachos en obra</span>
+            <span class="px-2 py-1 bg-slate-100 rounded-md border border-slate-200/80">● Facturas DIAN</span>
+            <span class="px-2 py-1 bg-slate-100 rounded-md border border-slate-200/80">● Devoluciones</span>
+          </div>
+
           <div class="pt-2">
-            <button id="btn-notif-guest-login" class="btn-primary !py-2 !px-5 text-xs font-bold shadow-xs">
-              Iniciar sesión
+            <button id="btn-notif-guest-login" class="btn-primary w-full !py-2.5 text-xs font-bold shadow-sm flex items-center justify-center gap-2">
+              ${renderIcon('LogIn', 'w-4 h-4')}
+              <span>Iniciar sesión</span>
             </button>
           </div>
         </div>

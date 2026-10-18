@@ -39,6 +39,11 @@ export function renderFooter() {
             <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-900 font-display">Plataforma</h4>
             <ul class="space-y-2 text-xs">
               <li>
+                <a href="#/about" class="text-slate-600 hover:text-[#ea580c] transition-colors">
+                  Sobre nosotros
+                </a>
+              </li>
+              <li>
                 <a href="#/catalog" class="text-slate-600 hover:text-[#ea580c] transition-colors">
                   Explorar catálogo de equipos
                 </a>

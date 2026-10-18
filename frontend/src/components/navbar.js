@@ -110,9 +110,38 @@ function applyRouteVisuals(container, activeRoute, isInitial = false) {
       const isTarget = (linkRoute === activeRoute) || (activeRoute === 'home' && href === '#/');
 
       if (isTarget) {
-        link.className = 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-bold text-[#FF5A1F] bg-orange-50/70';
+        link.className = 'flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-bold text-[#FF5A1F] bg-orange-50/80';
       } else {
-        link.className = 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50';
+        link.className = 'flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50';
+      }
+    });
+  }
+
+  // 5. Mobile Bottom Tab Bar Active Highlighting
+  const bottomTabBar = container.querySelector('#mobile-bottom-tab-bar');
+  if (bottomTabBar) {
+    bottomTabBar.querySelectorAll('.bottom-tab-item').forEach((item) => {
+      const itemRoute = item.getAttribute('data-bottom-route');
+      const isTarget = itemRoute === activeRoute || (activeRoute === 'home' && itemRoute === 'home');
+      const icon = item.querySelector('svg');
+      const dot = item.querySelector('.bottom-active-dot');
+
+      if (isTarget) {
+        item.classList.add('text-[#ea580c]', 'font-bold');
+        item.classList.remove('text-slate-500', 'font-medium');
+        if (icon) {
+          icon.classList.add('text-[#ea580c]');
+          icon.classList.remove('text-slate-400');
+        }
+        if (dot) dot.classList.remove('hidden');
+      } else {
+        item.classList.remove('text-[#ea580c]', 'font-bold');
+        item.classList.add('text-slate-500', 'font-medium');
+        if (icon) {
+          icon.classList.remove('text-[#ea580c]');
+          icon.classList.add('text-slate-400');
+        }
+        if (dot) dot.classList.add('hidden');
       }
     });
   }
@@ -193,6 +222,15 @@ export function renderNavbar(activeRoute = 'catalog') {
                 class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
               >
                 Inicio
+              </a>
+
+              <!-- Sobre Nosotros -->
+              <a 
+                href="#/about" 
+                data-route="about" 
+                class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
+              >
+                Sobre Nosotros
               </a>
 
               ${!(isAuth && isProvider && !isAdmin) ? `
@@ -398,64 +436,69 @@ export function renderNavbar(activeRoute = 'catalog') {
         </div>
       </div>
 
-      <!-- Mobile Navigation Drawer -->
-      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1 shadow-lg animate-in fade-in duration-150">
-        <a href="#/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+      <!-- Mobile Navigation Drawer (Drop-down with full-width touch buttons) -->
+      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200/90 bg-white/95 backdrop-blur-md px-4 py-4 space-y-1.5 shadow-xl animate-in fade-in duration-150">
+        <a href="#/" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
           ${renderIcon('Home', 'w-4 h-4')}
           <span>Inicio</span>
         </a>
 
+        <a href="#/about" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
+          ${renderIcon('Info', 'w-4 h-4')}
+          <span>Sobre Nosotros</span>
+        </a>
+
         ${!(isAuth && isProvider && !isAdmin) ? `
-          <a href="#/catalog" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <a href="#/catalog" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('Store', 'w-4 h-4')}
             <span>Catálogo de Equipos</span>
           </a>
         ` : ''}
 
         ${!isAuth ? `
-          <button id="mobile-btn-guest-provider" type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer text-left">
-            <span class="flex items-center gap-2.5">
+          <button id="mobile-btn-guest-provider" type="button" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer text-left min-h-[44px]">
+            <span class="flex items-center gap-3">
               ${renderIcon('Building2', 'w-4 h-4 text-slate-500')}
               <span>¿Tienes equipos? Publica aquí</span>
             </span>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-[#ea580c]">Aliados</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-[#ea580c]">Aliados</span>
           </button>
         ` : ''}
 
         ${isAuth && isClient && !isAdmin ? `
-          <a href="#/client" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <a href="#/client" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('ClipboardList', 'w-4 h-4')}
             <span>Mis Alquileres</span>
           </a>
         ` : ''}
 
         ${isAuth && isProvider && !isAdmin ? `
-          <a href="#/provider" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <a href="#/provider" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('Building2', 'w-4 h-4')}
             <span>Panel de Proveedor</span>
           </a>
         ` : ''}
 
         ${isAuth && isAdmin ? `
-          <a href="#/admin" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            <span class="flex items-center gap-2.5">
+          <a href="#/admin" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
+            <span class="flex items-center gap-3">
               ${renderIcon('ShieldCheck', 'w-4 h-4 text-slate-500')}
               <span>Consola Administración</span>
             </span>
-            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-orange-700">Admin</span>
+            <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-orange-700">Admin</span>
           </a>
-          <a href="#/provider" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            <span class="flex items-center gap-2.5">
+          <a href="#/provider" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
+            <span class="flex items-center gap-3">
               ${renderIcon('Building2', 'w-4 h-4 text-slate-500')}
               <span>Panel Proveedor</span>
             </span>
-            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-blue-100 text-blue-700">Ops</span>
+            <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-blue-100 text-blue-700">Ops</span>
           </a>
         ` : ''}
 
         <!-- Mobile Notifications Link -->
-        <button id="mobile-btn-notifs" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
-          <span class="flex items-center gap-2.5">
+        <button id="mobile-btn-notifs" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer min-h-[44px]">
+          <span class="flex items-center gap-3">
             ${renderIcon('Bell', 'w-4 h-4 text-slate-500')}
             <span>Notificaciones</span>
           </span>
@@ -464,11 +507,11 @@ export function renderNavbar(activeRoute = 'catalog') {
           </span>
         </button>
 
-        <div class="pt-2 border-t border-slate-100 mt-2">
+        <div class="pt-3 border-t border-slate-100 mt-2">
           ${isAuth ? `
-            <div class="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl mb-1">
+            <div class="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl mb-1 min-h-[44px]">
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 rounded-full ${isAdmin ? 'bg-amber-600' : (isProvider ? 'bg-blue-600' : 'bg-[#FF5A1F]')} text-white flex items-center justify-center text-xs font-bold font-display flex-shrink-0">
+                <div class="w-8 h-8 rounded-full ${isAdmin ? 'bg-amber-600' : (isProvider ? 'bg-blue-600' : 'bg-[#FF5A1F]')} text-white flex items-center justify-center text-xs font-bold font-display flex-shrink-0">
                   ${userInitials}
                 </div>
                 <div class="min-w-0">
@@ -476,16 +519,112 @@ export function renderNavbar(activeRoute = 'catalog') {
                   <div class="text-[10px] text-slate-500">${roleTitle}</div>
                 </div>
               </div>
-              <button id="mobile-btn-logout" class="text-xs text-rose-600 font-bold px-2 py-1 rounded hover:bg-rose-50 cursor-pointer">Cerrar Sesión</button>
+              <button id="mobile-btn-logout" class="text-xs text-rose-600 font-bold px-3 py-1.5 rounded-lg hover:bg-rose-50 cursor-pointer min-h-[44px] flex items-center">Cerrar Sesión</button>
             </div>
           ` : `
-            <button id="mobile-btn-login" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-sm cursor-pointer">
+            <button id="mobile-btn-login" class="w-full py-3 min-h-[44px] rounded-xl text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-sm cursor-pointer flex items-center justify-center">
               Iniciar sesión
             </button>
           `}
         </div>
       </div>
     </header>
+
+    <!-- Mobile Bottom Tab Bar (Barra de Navegación Inferior Fija para Móviles < 768px) -->
+    <nav 
+      id="mobile-bottom-tab-bar" 
+      class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none"
+      aria-label="Navegación principal móvil"
+    >
+      ${!isAuth ? `
+        <a href="#/" data-bottom-route="home" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Home', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Inicio</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/catalog" data-bottom-route="catalog" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Store', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Catálogo</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/about" data-bottom-route="about" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Info', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Nosotros</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <button id="bottom-btn-login" type="button" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-orange-600 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('LogIn', 'w-5 h-5 mb-0.5')}
+          <span class="tab-label leading-tight">Acceder</span>
+        </button>
+      ` : isAdmin ? `
+        <a href="#/admin" data-bottom-route="admin" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('ShieldCheck', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Admin</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/provider" data-bottom-route="provider" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Building2', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Proveedor</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/catalog" data-bottom-route="catalog" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Store', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Catálogo</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/about" data-bottom-route="about" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Info', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Nosotros</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+      ` : isProvider ? `
+        <a href="#/provider" data-bottom-route="provider" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Wrench', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Inventario</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/catalog" data-bottom-route="catalog" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Store', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Catálogo</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/about" data-bottom-route="about" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Info', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Nosotros</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <button id="bottom-btn-notifs" type="button" class="bottom-tab-item relative flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Bell', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Avisos</span>
+          <span id="bottom-unread-badge" class="absolute top-1 right-3 min-w-[15px] h-3.5 px-1 rounded-full bg-[#FF5A1F] text-white text-[8px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}">
+            ${unreadCount}
+          </span>
+        </button>
+      ` : `
+        <a href="#/catalog" data-bottom-route="catalog" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Store', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Explorar</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/client" data-bottom-route="client" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('ClipboardList', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Reservas</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <a href="#/about" data-bottom-route="about" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Info', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Nosotros</span>
+          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
+        </a>
+        <button id="bottom-btn-notifs" type="button" class="bottom-tab-item relative flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Bell', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Avisos</span>
+          <span id="bottom-unread-badge" class="absolute top-1 right-3 min-w-[15px] h-3.5 px-1 rounded-full bg-[#FF5A1F] text-white text-[8px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}">
+            ${unreadCount}
+          </span>
+        </button>
+      `}
+    </nav>
   `;
 
   // --- Handlers & Interactivity ---
@@ -557,6 +696,7 @@ export function renderNavbar(activeRoute = 'catalog') {
   // Login Handlers
   container.querySelector('#btn-nav-login')?.addEventListener('click', () => openAuthModal('login'));
   container.querySelector('#mobile-btn-login')?.addEventListener('click', () => openAuthModal('login'));
+  container.querySelector('#bottom-btn-login')?.addEventListener('click', () => openAuthModal('login'));
 
   // Guest Partner CTA Handlers
   container.querySelector('#btn-guest-provider-cta')?.addEventListener('click', () => {
@@ -581,6 +721,12 @@ export function renderNavbar(activeRoute = 'catalog') {
     toggleNotificationsMenu();
   });
 
+  container.querySelector('#bottom-btn-notifs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleUserDropdown(false);
+    toggleNotificationsMenu();
+  });
+
   // Mobile Hamburger Toggle
   const mobToggle = container.querySelector('#mobile-menu-btn');
   const mobMenu = container.querySelector('#mobile-menu');
@@ -592,12 +738,21 @@ export function renderNavbar(activeRoute = 'catalog') {
   window.addEventListener('notifications:change', (e) => {
     const count = e.detail?.unreadCount ?? notificationsStore.getUnreadCount();
     const badge = container.querySelector('#navbar-unread-badge');
+    const bottomBadge = container.querySelector('#bottom-unread-badge');
     if (badge) {
       badge.textContent = count.toString();
       if (count > 0) {
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
+      }
+    }
+    if (bottomBadge) {
+      bottomBadge.textContent = count.toString();
+      if (count > 0) {
+        bottomBadge.classList.remove('hidden');
+      } else {
+        bottomBadge.classList.add('hidden');
       }
     }
   });

@@ -3,6 +3,7 @@ package com.campus.rentaequipos.identity.application.usecase;
 import com.campus.rentaequipos.identity.application.dto.AuthResponse;
 import com.campus.rentaequipos.identity.application.dto.LoginRequest;
 import com.campus.rentaequipos.identity.application.dto.RegisterRequest;
+import com.campus.rentaequipos.identity.application.dto.VerifySessionResponse;
 import com.campus.rentaequipos.identity.domain.model.ClientProfile;
 import com.campus.rentaequipos.identity.domain.model.ProviderProfile;
 import com.campus.rentaequipos.identity.domain.model.Role;
@@ -14,6 +15,7 @@ import com.campus.rentaequipos.identity.domain.repository.ProviderProfileReposit
 import com.campus.rentaequipos.identity.domain.repository.UserRepository;
 import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException;
 import com.campus.rentaequipos.shared.domain.exception.EntityNotFoundException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,17 +32,20 @@ public class AuthUseCase {
     private final JwtTokenPort jwtTokenPort;
     private final ClientProfileRepository clientProfileRepository;
     private final ProviderProfileRepository providerProfileRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public AuthUseCase(UserRepository userRepository,
                        PasswordEncoderPort passwordEncoder,
                        JwtTokenPort jwtTokenPort,
                        ClientProfileRepository clientProfileRepository,
-                       ProviderProfileRepository providerProfileRepository) {
+                       ProviderProfileRepository providerProfileRepository,
+                       JdbcTemplate jdbcTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenPort = jwtTokenPort;
         this.clientProfileRepository = clientProfileRepository;
         this.providerProfileRepository = providerProfileRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
 
@@ -353,5 +358,56 @@ public class AuthUseCase {
                 user.isEnabled(),
                 user.getRoles().stream().map(Role::name).collect(Collectors.toSet())
         );
+    }
+
+    /**
+     * Verificación de sesión en tiempo real mediante una única consulta de proyección SQL.
+     * Valida existencia y estado activo del usuario, extrayendo id, nombre, email y rol
+     * optimizando las consultas a base de datos.
+     */
+    @Transactional(readOnly = true)
+    public VerifySessionResponse verifySession(String username) {
+        if (username == null || username.isBlank()) {
+            throw new EntityNotFoundException("Sesión inválida: identificador de usuario no proporcionado");
+        }
+
+        String sql = """
+            SELECT 
+                u.id AS id,
+                u.username AS username,
+                u.email AS email,
+                COALESCE(c.full_name, p.company_name, u.username) AS nombre,
+                COALESCE(r.name, 'ROLE_CLIENTE') AS rol
+            FROM users u
+            LEFT JOIN client_profiles c ON c.user_id = u.id
+            LEFT JOIN provider_profiles p ON p.user_id = u.id
+            LEFT JOIN user_roles ur ON ur.user_id = u.id
+            LEFT JOIN roles r ON r.id = ur.role_id
+            WHERE (u.username = ? OR u.email = ?) AND u.enabled = true
+            ORDER BY (CASE WHEN r.name = 'ROLE_ADMIN' THEN 1 WHEN r.name = 'ROLE_PROVEEDOR' THEN 2 ELSE 3 END)
+            LIMIT 1
+        """;
+
+        java.util.List<VerifySessionResponse> results = jdbcTemplate.query(
+            sql,
+            (rs, rowNum) -> {
+                Object idObj = rs.getObject("id");
+                UUID id = idObj instanceof UUID ? (UUID) idObj : UUID.fromString(idObj.toString());
+                String uname = rs.getString("username");
+                String email = rs.getString("email");
+                String nombre = rs.getString("nombre");
+                String rawRole = rs.getString("rol");
+                String cleanRole = rawRole != null ? rawRole.replace("ROLE_", "").trim() : "CLIENTE";
+                return new VerifySessionResponse(id, nombre, email, cleanRole, uname);
+            },
+            username.trim(),
+            username.trim()
+        );
+
+        if (results.isEmpty()) {
+            throw new EntityNotFoundException("Usuario no encontrado o cuenta inactiva");
+        }
+
+        return results.get(0);
     }
 }
