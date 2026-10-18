@@ -379,16 +379,32 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         </div>
       </div>
 
-      <!-- Right Side: Dedicated Showcase (Permanent in DOM - ZERO FLASH) -->
+      <!-- Right Side: Dedicated Showcase (Permanent in DOM with Dual-Image Crossfade - ZERO FLASH) -->
       <div id="auth-showcase-box" class="lg:col-span-5 relative hidden lg:block overflow-hidden bg-slate-900 select-none min-h-[460px]">
-        <img src="${loginShowcaseImg}" class="w-full h-full object-cover object-center" alt="ToolRent Maquinaria y Equipos" />
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-7 text-white">
-          <h3 class="text-lg font-bold leading-tight font-display mb-1.5 text-white">
-            Gestión y alquiler de maquinaria pesada
-          </h3>
-          <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
-            Equipos de construcción certificados, disponibilidad inmediata y entrega coordinada en obra.
-          </p>
+        <!-- Showcase Slide 1: Login (loginAccessImg) -->
+        <div id="showcase-login" class="absolute inset-0 transition-opacity duration-300 ease-in-out ${currentTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}">
+          <img src="${loginAccessImg}" class="w-full h-full object-cover object-center" alt="Acceso a la plataforma ToolRent" />
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-7 text-white">
+            <h3 class="text-lg font-bold leading-tight font-display mb-1.5 text-white">
+              Acceso a la plataforma
+            </h3>
+            <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
+              Gestiona reservas, consulta disponibilidad y administra tus alquileres en tiempo real.
+            </p>
+          </div>
+        </div>
+
+        <!-- Showcase Slide 2: Register (loginShowcaseImg) -->
+        <div id="showcase-register" class="absolute inset-0 transition-opacity duration-300 ease-in-out ${currentTab === 'register' ? 'opacity-100' : 'opacity-0 pointer-events-none'}">
+          <img src="${loginShowcaseImg}" class="w-full h-full object-cover object-center" alt="Gestión y alquiler de maquinaria pesada" />
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-7 text-white">
+            <h3 class="text-lg font-bold leading-tight font-display mb-1.5 text-white">
+              Gestión y alquiler de maquinaria pesada
+            </h3>
+            <p class="text-xs text-slate-300 max-w-sm leading-relaxed">
+              Equipos de construcción certificados, disponibilidad inmediata y entrega coordinada en obra.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -618,6 +634,8 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
     const tabBtnRegister = content.querySelector('#auth-tab-register');
     const footerToRegister = content.querySelector('#footer-to-register');
     const footerToLogin = content.querySelector('#footer-to-login');
+    const showcaseLogin = content.querySelector('#showcase-login');
+    const showcaseRegister = content.querySelector('#showcase-register');
 
     if (currentTab === 'login') {
       viewRegister?.classList.add('hidden');
@@ -629,6 +647,16 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       footerToRegister?.classList.remove('hidden');
       footerToLogin?.classList.add('hidden');
 
+      // Cross-fade showcase panel to Login image
+      if (showcaseLogin) {
+        showcaseLogin.classList.remove('opacity-0', 'pointer-events-none');
+        showcaseLogin.classList.add('opacity-100');
+      }
+      if (showcaseRegister) {
+        showcaseRegister.classList.remove('opacity-100');
+        showcaseRegister.classList.add('opacity-0', 'pointer-events-none');
+      }
+
       triggerInputsEntrance(viewLogin);
     } else {
       viewLogin?.classList.add('hidden');
@@ -639,6 +667,16 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
 
       footerToRegister?.classList.add('hidden');
       footerToLogin?.classList.remove('hidden');
+
+      // Cross-fade showcase panel to Register image
+      if (showcaseRegister) {
+        showcaseRegister.classList.remove('opacity-0', 'pointer-events-none');
+        showcaseRegister.classList.add('opacity-100');
+      }
+      if (showcaseLogin) {
+        showcaseLogin.classList.remove('opacity-100');
+        showcaseLogin.classList.add('opacity-0', 'pointer-events-none');
+      }
 
       triggerInputsEntrance(viewRegister);
     }
