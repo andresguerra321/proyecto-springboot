@@ -121,6 +121,7 @@ export function createSingleDateCalendar({
 
   async function queryBackendAvailability(s, e) {
     if (!currentToolId && !isCatalog) return;
+    if (s && e && s > e) return;
     try {
       if (currentToolId) {
         const queryParams = (s && e) ? { from: s, to: e } : {};

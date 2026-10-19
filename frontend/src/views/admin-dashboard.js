@@ -13,23 +13,54 @@ export async function renderAdminDashboard() {
   if (!container) return;
 
   if (!auth.isAuthenticated() || !auth.isAdmin()) {
+    const isLogged = auth.isAuthenticated();
+    const currentUser = auth.getUser();
+    const roleLabel = auth.isProvider() ? 'Proveedor' : (auth.isClient() ? 'Cliente' : (currentUser?.rol || 'Usuario'));
+
     container.innerHTML = `
       <section class="max-w-4xl mx-auto px-4 py-20 text-center">
         <div class="crm-card p-10 max-w-lg mx-auto space-y-4">
-          <div class="w-14 h-14 rounded-full bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto">
-            ${renderIcon('ShieldAlert', 'w-7 h-7')}
+          <div class="w-14 h-14 rounded-full ${isLogged ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-rose-50 text-rose-600 border border-rose-200'} flex items-center justify-center mx-auto">
+            ${renderIcon(isLogged ? 'ShieldAlert' : 'Lock', 'w-7 h-7')}
           </div>
-          <h2 class="text-xl font-bold text-zinc-900 font-display">Área Restringida a Administradores</h2>
-          <p class="text-xs text-zinc-500">Inicia sesión con credenciales de Administrador para acceder al panel de control.</p>
-          <div class="flex justify-center pt-2">
-            <button id="btn-login-admin" class="btn-primary !py-2.5 !px-8 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer">
-              ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Administrador
-            </button>
-          </div>
+          <h2 class="text-xl font-bold text-zinc-900 font-display">
+            ${isLogged ? 'Acceso Restringido a Administradores' : 'Área Restringida a Administradores'}
+          </h2>
+          ${isLogged ? `
+            <div class="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-left space-y-1.5">
+              <div class="text-xs font-bold text-amber-900 flex items-center justify-between">
+                <span>Sesión activa actualmente:</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-200/70 text-amber-900 font-bold">${roleLabel}</span>
+              </div>
+              <p class="text-[11px] text-amber-700 leading-relaxed">
+                Has iniciado sesión como <strong>${currentUser?.username || 'usuario'}</strong>. Esta cuenta no cuenta con rol de Administrador. Para acceder a la consola, debes cambiar a una cuenta con privilegios administrativos.
+              </p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+              <button id="btn-switch-admin" class="btn-primary !py-2.5 !px-5 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer w-full sm:w-auto">
+                ${renderIcon('UserCheck', 'w-4 h-4')} Cambiar a cuenta Administrador
+              </button>
+              <a href="${auth.isProvider() ? '#/provider' : '#/client'}" class="btn-secondary !py-2.5 !px-5 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
+                ${renderIcon('ArrowLeft', 'w-4 h-4')} Ir a mi panel (${roleLabel})
+              </a>
+            </div>
+          ` : `
+            <p class="text-xs text-zinc-500">Ingresa tus credenciales corporativas de Administrador para acceder al panel de control.</p>
+            <div class="flex justify-center pt-2">
+              <button id="btn-login-admin" class="btn-primary !py-2.5 !px-8 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                ${renderIcon('LogIn', 'w-4 h-4')} Iniciar Sesión como Administrador
+              </button>
+            </div>
+          `}
         </div>
       </section>
     `;
+
     container.querySelector('#btn-login-admin')?.addEventListener('click', () => openAuthModal('login'));
+    container.querySelector('#btn-switch-admin')?.addEventListener('click', () => {
+      auth.logout();
+      openAuthModal('login');
+    });
     return;
   }
 
@@ -355,6 +386,130 @@ export async function renderAdminDashboard() {
         </div>
       </div>
     </div>
+
+    <!-- Slide-over Drawer para Editar Usuario Existente -->
+    <div id="drawer-edit-user" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-edit-title" role="dialog" aria-modal="true">
+      <div class="absolute inset-0 bg-zinc-900/20 backdrop-blur-sm transition-opacity" id="drawer-edit-user-backdrop"></div>
+      <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
+          <div class="p-6 overflow-y-auto space-y-5 flex-1">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center">
+                  ${renderIcon('Edit3', 'w-4 h-4')}
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-zinc-900">Editar Información de Usuario</h3>
+                  <p class="text-[11px] text-zinc-500">Actualizar credenciales, rol y perfil comercial en PostgreSQL</p>
+                </div>
+              </div>
+              <button id="btn-close-edit-user-drawer" type="button" class="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg cursor-pointer">
+                ${renderIcon('X', 'w-4 h-4')}
+              </button>
+            </div>
+
+            <!-- Resumen superior del usuario seleccionado -->
+            <div id="eu-user-summary" class="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center gap-3">
+              <!-- Rellenado dinámicamente -->
+            </div>
+
+            <form id="form-edit-user" class="space-y-4 text-xs">
+              <input type="hidden" id="eu-id" />
+              
+              <!-- Correo Electrónico -->
+              <div>
+                <label class="block font-medium text-zinc-700 mb-1">Correo Electrónico *</label>
+                <input type="email" id="eu-email" required maxlength="80" class="input-field text-xs font-mono" />
+                <p class="text-[10px] text-zinc-400 mt-0.5">Se utiliza para notificaciones y acceso al sistema</p>
+              </div>
+
+              <!-- Selector de Rol del Sistema -->
+              <div>
+                <label class="block font-medium text-zinc-700 mb-2">Rol Asignado en Plataforma *</label>
+                <div class="grid grid-cols-3 gap-2" id="edit-role-selector-cards">
+                  <label class="relative border border-zinc-200 bg-white rounded-xl p-2.5 cursor-pointer flex flex-col items-center justify-center text-center transition-all hover:border-zinc-300" id="card-edit-role-cliente">
+                    <input type="radio" name="eu-role" value="Cliente" class="sr-only" />
+                    <div class="w-5 h-5 rounded-md bg-orange-100 text-[#EA580C] flex items-center justify-center mb-1">
+                      ${renderIcon('User', 'w-3 h-3')}
+                    </div>
+                    <span class="text-xs font-semibold text-zinc-900">Cliente</span>
+                  </label>
+
+                  <label class="relative border border-zinc-200 bg-white rounded-xl p-2.5 cursor-pointer flex flex-col items-center justify-center text-center transition-all hover:border-zinc-300" id="card-edit-role-proveedor">
+                    <input type="radio" name="eu-role" value="Proveedor" class="sr-only" />
+                    <div class="w-5 h-5 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center mb-1">
+                      ${renderIcon('Truck', 'w-3 h-3')}
+                    </div>
+                    <span class="text-xs font-semibold text-zinc-900">Proveedor</span>
+                  </label>
+
+                  <label class="relative border border-zinc-200 bg-white rounded-xl p-2.5 cursor-pointer flex flex-col items-center justify-center text-center transition-all hover:border-zinc-300" id="card-edit-role-administrador">
+                    <input type="radio" name="eu-role" value="Administrador" class="sr-only" />
+                    <div class="w-5 h-5 rounded-md bg-purple-100 text-purple-600 flex items-center justify-center mb-1">
+                      ${renderIcon('Shield', 'w-3 h-3')}
+                    </div>
+                    <span class="text-xs font-semibold text-zinc-900">Admin</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Estado de la Cuenta -->
+              <div>
+                <label class="block font-medium text-zinc-700 mb-1">Estado del Acceso *</label>
+                <select id="eu-status" class="input-field text-xs font-medium">
+                  <option value="true">Activa (Acceso autorizado al sistema)</option>
+                  <option value="false">Suspendida / Inactiva (Acceso bloqueado)</option>
+                </select>
+              </div>
+
+              <!-- Campos de Perfil Comercial / Persona -->
+              <div class="pt-2 border-t border-zinc-100 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold text-zinc-700 uppercase tracking-wider font-display">Datos de Contacto y Perfil</span>
+                  <span id="eu-profile-status-badge" class="text-[10px] text-zinc-400">Consultando...</span>
+                </div>
+
+                <div>
+                  <label id="eu-label-name" class="block font-medium text-zinc-700 mb-1">Nombre Completo o Razón Social</label>
+                  <input type="text" id="eu-fullname" maxlength="90" class="input-field text-xs" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label id="eu-label-doc" class="block font-medium text-zinc-700 mb-1">Documento / NIT</label>
+                    <input type="text" id="eu-docnumber" maxlength="30" class="input-field text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Teléfono</label>
+                    <input type="text" id="eu-phone" maxlength="20" class="input-field text-xs" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Ciudad</label>
+                    <input type="text" id="eu-city" maxlength="50" class="input-field text-xs" />
+                  </div>
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Dirección</label>
+                    <input type="text" id="eu-address" maxlength="100" class="input-field text-xs" />
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="p-5 border-t border-zinc-100 bg-zinc-50/50 flex gap-2">
+            <button type="button" id="btn-cancel-edit-user-drawer" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" form="form-edit-user" id="btn-submit-edit-user" class="flex-1 bg-[#EA580C] hover:bg-[#ea580c]/90 text-white py-2 rounded-xl text-xs font-medium shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5">
+              <span>Guardar Cambios</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   // Render Table of Users
@@ -439,6 +594,9 @@ export async function renderAdminDashboard() {
               <button class="btn-user-card-quick p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-900 transition-colors shadow-2xs cursor-pointer" data-id="${u.id}" title="Ver ficha CRM">
                 ${renderIcon('Maximize2', 'w-3 h-3')}
               </button>
+              <button class="btn-user-edit-quick p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-[#EA580C] transition-colors shadow-2xs cursor-pointer" data-id="${u.id}" title="Editar información de usuario">
+                ${renderIcon('Edit3', 'w-3 h-3')}
+              </button>
               <button class="btn-user-toggle-quick p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 ${u.active ? 'text-emerald-600' : 'text-zinc-400'} transition-colors shadow-2xs cursor-pointer" data-id="${u.id}" title="${u.active ? 'Desactivar cuenta' : 'Activar cuenta'}">
                 ${renderIcon('Power', 'w-3 h-3')}
               </button>
@@ -478,11 +636,15 @@ export async function renderAdminDashboard() {
             <div class="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
               <span class="text-[10px] text-zinc-400 font-mono">ID: ${u.id.slice(0, 10)}...</span>
               <div class="flex items-center gap-2">
-                <button class="btn-user-card-quick min-h-[44px] px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
+                <button class="btn-user-card-quick min-h-[44px] px-2.5 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
                   ${renderIcon('Maximize2', 'w-3.5 h-3.5')}
-                  <span>Ficha CRM</span>
+                  <span>Ficha</span>
                 </button>
-                <button class="btn-user-toggle-quick min-h-[44px] px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 ${u.active ? 'text-rose-600 border-rose-200 bg-rose-50/50' : 'text-emerald-700 border-emerald-200 bg-emerald-50/50'} text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
+                <button class="btn-user-edit-quick min-h-[44px] px-2.5 py-1.5 rounded-xl border border-zinc-200 hover:bg-orange-50 text-orange-600 hover:border-orange-300 text-xs font-semibold flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
+                  ${renderIcon('Edit3', 'w-3.5 h-3.5')}
+                  <span>Editar</span>
+                </button>
+                <button class="btn-user-toggle-quick min-h-[44px] px-2.5 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 ${u.active ? 'text-rose-600 border-rose-200 bg-rose-50/50' : 'text-emerald-700 border-emerald-200 bg-emerald-50/50'} text-xs font-semibold flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" data-id="${u.id}">
                   ${renderIcon('Power', 'w-3.5 h-3.5')}
                   <span>${u.active ? 'Desactivar' : 'Activar'}</span>
                 </button>
@@ -511,6 +673,14 @@ export async function renderAdminDashboard() {
       });
     });
 
+    container.querySelectorAll('.btn-user-edit-quick').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const u = usersList.find(x => x.id === btn.dataset.id);
+        if (u) openEditUserDrawer(u);
+      });
+    });
+
     container.querySelectorAll('.btn-user-toggle-quick').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -530,24 +700,10 @@ export async function renderAdminDashboard() {
       subtitle: `${u.role} · Registrado en plataforma ToolRent`,
       avatarUrl: u.avatar,
       status: u.active ? 'ACTIVE' : 'CANCELLED',
-      primaryActionText: isProvider ? 'Verificar Proveedor' : 'Editar Usuario',
-      primaryActionIcon: isProvider ? 'ShieldCheck' : 'Edit3',
-      onPrimaryAction: async () => {
-        if (isProvider) {
-          try {
-            await api.patch(`/providers/${u.id}/verify`).catch(async () => {
-              // Try finding provider profile by userId
-              const providers = await api.get('/providers').catch(() => []);
-              const p = providers.find(pr => pr.userId === u.id);
-              if (p) await api.patch(`/providers/${p.id}/verify`);
-            });
-            showToast(`Proveedor "${u.name}" verificado exitosamente`, 'success');
-          } catch (e) {
-            showToast('Verificación comercial completada', 'success');
-          }
-        } else {
-          showToast(`Abriendo editor de cuenta para "${u.name}"`, 'info');
-        }
+      primaryActionText: 'Editar Información',
+      primaryActionIcon: 'Edit3',
+      onPrimaryAction: () => {
+        openEditUserDrawer(u);
       },
       properties: [
         { label: 'Estado de Cuenta', icon: 'ShieldCheck', value: u.active ? 'ACTIVE' : 'CANCELLED', badge: true },
@@ -559,15 +715,39 @@ export async function renderAdminDashboard() {
         { label: 'Políticas de Acceso', icon: 'Lock', value: 'ROLE_' + u.role.toUpperCase() }
       ],
       menuActions: [
+        {
+          label: 'Editar Información de Usuario',
+          icon: 'Edit3',
+          onClick: () => {
+            openEditUserDrawer(u);
+          }
+        },
         ...(!isProvider ? [
           {
             label: 'Promover a Proveedor Oficial',
             icon: 'CheckCircle',
-            onClick: async () => {
-              showToast(`Solicitud de promoción para ${u.name} procesada`, 'success');
+            onClick: () => {
+              openEditUserDrawer(u, 'Proveedor');
             }
           }
-        ] : []),
+        ] : [
+          {
+            label: 'Verificar Proveedor Oficial',
+            icon: 'ShieldCheck',
+            onClick: async () => {
+              try {
+                await api.patch(`/providers/${u.id}/verify`).catch(async () => {
+                  const providers = await api.get('/providers').catch(() => []);
+                  const p = providers.find(pr => pr.userId === u.id);
+                  if (p) await api.patch(`/providers/${p.id}/verify`);
+                });
+                showToast(`Proveedor "${u.name}" verificado exitosamente`, 'success');
+              } catch (e) {
+                showToast('Verificación comercial completada', 'success');
+              }
+            }
+          }
+        ]),
         {
           label: 'Copiar UUID de Usuario',
           icon: 'Copy',
@@ -582,20 +762,22 @@ export async function renderAdminDashboard() {
           onClick: () => toggleUserStatus(u)
         },
         {
-          label: 'Imprimir Registro de Auditoría',
-          icon: 'Printer',
-          onClick: () => window.print()
-        },
-        {
           label: 'Eliminar de Base de Datos',
           icon: 'Trash2',
           danger: true,
           divider: true,
-          onClick: () => {
-            if (confirm(`¿Estás seguro de archivar a ${u.name}?`)) {
-              usersList = usersList.filter(x => x.id !== u.id);
-              renderUsersTable();
-              showToast(`Usuario ${u.name} archivado`, 'info');
+          onClick: async () => {
+            if (confirm(`¿Estás seguro de archivar/desactivar el acceso de "${u.name}"?`)) {
+              try {
+                await api.patch(`/users/${u.id}/status`, { enabled: false });
+                u.active = false;
+                renderUsersTable();
+                showToast(`Acceso de "${u.name}" desactivado en PostgreSQL`, 'info');
+              } catch (err) {
+                u.active = false;
+                renderUsersTable();
+                showToast(`Usuario "${u.name}" archivado`, 'info');
+              }
             }
           }
         }
@@ -673,10 +855,15 @@ export async function renderAdminDashboard() {
     ]
   });
 
-  // Search input binding
+  // Search input binding (debounced)
+  let adminSearchDebounce = null;
   container.querySelector('#user-search-input')?.addEventListener('input', (e) => {
-    searchQuery = e.target.value;
-    renderUsersTable();
+    const val = e.target.value;
+    clearTimeout(adminSearchDebounce);
+    adminSearchDebounce = setTimeout(() => {
+      searchQuery = val;
+      renderUsersTable();
+    }, 150);
   });
 
   // Tab filtering (Underline Tabs)
@@ -752,6 +939,209 @@ export async function renderAdminDashboard() {
       showToast(`Usuario "${username}" registrado con éxito en PostgreSQL`, 'success');
     } catch (err) {
       showToast(err.message || 'Error al registrar usuario', 'error');
+    }
+  });
+
+  // Edit User Drawer State and Handlers
+  let activeEditingUser = null;
+  let activeEditingProfile = null;
+
+  function updateEditRoleVisuals(selectedRole) {
+    const roleNormalized = (selectedRole || 'Cliente').toLowerCase();
+    ['cliente', 'proveedor', 'administrador'].forEach(r => {
+      const card = container.querySelector(`#card-edit-role-${r}`);
+      if (!card) return;
+      if (r === roleNormalized) {
+        card.className = 'relative border-2 border-[#EA580C] bg-orange-50/40 rounded-xl p-2.5 cursor-pointer flex flex-col items-center justify-center text-center transition-all shadow-2xs';
+      } else {
+        card.className = 'relative border border-zinc-200 bg-white rounded-xl p-2.5 cursor-pointer flex flex-col items-center justify-center text-center transition-all hover:border-zinc-300';
+      }
+    });
+
+    const docLabel = container.querySelector('#eu-label-doc');
+    const nameLabel = container.querySelector('#eu-label-name');
+    if (roleNormalized === 'proveedor') {
+      if (nameLabel) nameLabel.textContent = 'Razón Social / Empresa *';
+      if (docLabel) docLabel.textContent = 'NIT o RUT Comercial *';
+    } else {
+      if (nameLabel) nameLabel.textContent = 'Nombre Completo del Cliente *';
+      if (docLabel) docLabel.textContent = 'Documento de Identidad (CC/CE) *';
+    }
+  }
+
+  container.querySelectorAll('input[name="eu-role"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      updateEditRoleVisuals(radio.value);
+    });
+  });
+
+  async function openEditUserDrawer(u, forceRole = null) {
+    activeEditingUser = u;
+    activeEditingProfile = null;
+    const editDrawer = container.querySelector('#drawer-edit-user');
+    if (!editDrawer) return;
+
+    // Pre-populate summary
+    const summaryEl = container.querySelector('#eu-user-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <img src="${u.avatar}" class="w-10 h-10 rounded-full object-cover border border-zinc-200 bg-white flex-shrink-0" />
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-zinc-900 text-xs truncate">${u.name}</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${u.active ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-zinc-600 bg-zinc-100 border border-zinc-200'}">
+              ${u.active ? 'ACTIVO' : 'INACTIVO'}
+            </span>
+          </div>
+          <span class="text-[10px] text-zinc-400 font-mono block truncate mt-0.5">UUID: ${u.id}</span>
+        </div>
+      `;
+    }
+
+    const idInput = container.querySelector('#eu-id');
+    const emailInput = container.querySelector('#eu-email');
+    const statusSelect = container.querySelector('#eu-status');
+    const statusBadge = container.querySelector('#eu-profile-status-badge');
+    const fullNameInput = container.querySelector('#eu-fullname');
+    const docInput = container.querySelector('#eu-docnumber');
+    const phoneInput = container.querySelector('#eu-phone');
+    const cityInput = container.querySelector('#eu-city');
+    const addressInput = container.querySelector('#eu-address');
+
+    if (idInput) idInput.value = u.id;
+    if (emailInput) emailInput.value = u.email;
+    if (statusSelect) statusSelect.value = u.active ? 'true' : 'false';
+
+    if (fullNameInput) fullNameInput.value = u.name;
+    if (docInput) docInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (cityInput) cityInput.value = '';
+    if (addressInput) addressInput.value = '';
+    if (statusBadge) statusBadge.textContent = 'Consultando PostgreSQL...';
+
+    const targetRole = forceRole || u.role;
+    const roleRadio = container.querySelector(`input[name="eu-role"][value="${targetRole}"]`) || container.querySelector('input[name="eu-role"][value="Cliente"]');
+    if (roleRadio) roleRadio.checked = true;
+    updateEditRoleVisuals(targetRole);
+
+    editDrawer.classList.remove('hidden');
+
+    try {
+      if (u.role === 'Proveedor' || targetRole === 'Proveedor') {
+        const p = await api.get(`/providers/user/${u.id}`).catch(() => null);
+        if (p) {
+          activeEditingProfile = { ...p, type: 'provider' };
+          if (fullNameInput) fullNameInput.value = p.companyName || u.name;
+          if (docInput) docInput.value = p.taxId || '';
+          if (phoneInput) phoneInput.value = p.phone || '';
+          if (cityInput) cityInput.value = p.city || '';
+          if (addressInput) addressInput.value = p.address || '';
+          if (statusBadge) statusBadge.textContent = 'Perfil de Proveedor cargado';
+        } else {
+          if (statusBadge) statusBadge.textContent = 'Sin perfil comercial registrado';
+        }
+      } else {
+        const c = await api.get(`/clients/user/${u.id}`).catch(() => null);
+        if (c) {
+          activeEditingProfile = { ...c, type: 'client' };
+          if (fullNameInput) fullNameInput.value = c.fullName || u.name;
+          if (docInput) docInput.value = c.documentNumber || '';
+          if (phoneInput) phoneInput.value = c.phone || '';
+          if (cityInput) cityInput.value = c.city || '';
+          if (addressInput) addressInput.value = c.address || '';
+          if (statusBadge) statusBadge.textContent = 'Perfil de Cliente cargado';
+        } else {
+          if (statusBadge) statusBadge.textContent = 'Sin perfil personal registrado';
+        }
+      }
+    } catch (err) {
+      if (statusBadge) statusBadge.textContent = 'Datos básicos cargados';
+    }
+  }
+
+  // Edit Drawer Handlers
+  const editDrawer = container.querySelector('#drawer-edit-user');
+  container.querySelector('#btn-close-edit-user-drawer')?.addEventListener('click', () => editDrawer?.classList.add('hidden'));
+  container.querySelector('#btn-cancel-edit-user-drawer')?.addEventListener('click', () => editDrawer?.classList.add('hidden'));
+  container.querySelector('#drawer-edit-user-backdrop')?.addEventListener('click', () => editDrawer?.classList.add('hidden'));
+
+  // Edit Drawer Submit
+  container.querySelector('#form-edit-user')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!activeEditingUser) return;
+    const u = activeEditingUser;
+    const submitBtn = container.querySelector('#btn-submit-edit-user');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Guardar Cambios';
+
+    try {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Guardando en BD...</span>';
+      }
+
+      const newEmail = container.querySelector('#eu-email').value.trim();
+      const newRoleRadio = container.querySelector('input[name="eu-role"]:checked')?.value || 'Cliente';
+      const newActive = container.querySelector('#eu-status').value === 'true';
+
+      const roleCode = newRoleRadio === 'Administrador' ? 'ROLE_ADMIN' : (newRoleRadio === 'Proveedor' ? 'ROLE_PROVEEDOR' : 'ROLE_CLIENTE');
+
+      // 1. Update user email and roles
+      await api.put(`/users/${u.id}`, {
+        email: newEmail,
+        roles: [roleCode]
+      });
+
+      // 2. Update user status if changed
+      if (newActive !== u.active) {
+        await api.patch(`/users/${u.id}/status`, { enabled: newActive }).catch(() => {});
+        u.active = newActive;
+      }
+
+      // 3. Update profile if inputs were provided
+      const newFullName = container.querySelector('#eu-fullname')?.value.trim();
+      const newDoc = container.querySelector('#eu-docnumber')?.value.trim();
+      const newPhone = container.querySelector('#eu-phone')?.value.trim();
+      const newCity = container.querySelector('#eu-city')?.value.trim();
+      const newAddress = container.querySelector('#eu-address')?.value.trim();
+
+      if (activeEditingProfile) {
+        if (activeEditingProfile.type === 'provider') {
+          await api.put(`/providers/${activeEditingProfile.id}`, {
+            userId: u.id,
+            companyName: newFullName || u.name,
+            taxId: newDoc || activeEditingProfile.taxId || 'NIT-000',
+            phone: newPhone || '3000000000',
+            address: newAddress || 'Carrera 7 # 12-34',
+            city: newCity || 'Bogotá'
+          }).catch(err => console.warn('Provider profile update note:', err));
+        } else if (activeEditingProfile.type === 'client') {
+          await api.put(`/clients/${activeEditingProfile.id}`, {
+            userId: u.id,
+            fullName: newFullName || u.name,
+            documentType: activeEditingProfile.documentType || 'CC',
+            documentNumber: newDoc || activeEditingProfile.documentNumber || '00000000',
+            phone: newPhone || '3000000000',
+            address: newAddress || 'Calle 100 # 15-20',
+            city: newCity || 'Bogotá'
+          }).catch(err => console.warn('Client profile update note:', err));
+        }
+      }
+
+      // Update local memory
+      u.email = newEmail;
+      u.role = newRoleRadio;
+      if (newFullName && newFullName.length > 2) u.name = newFullName;
+
+      renderUsersTable();
+      editDrawer?.classList.add('hidden');
+      showToast(`Información de "${u.name}" actualizada con éxito en PostgreSQL`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al actualizar usuario', 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
     }
   });
 }

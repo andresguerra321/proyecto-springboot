@@ -109,10 +109,11 @@ async function router() {
     const rawId = parts[2];
     const toolId = rawId && !isNaN(Number(rawId)) ? Number(rawId) : rawId;
     renderNavbar('catalog');
+    renderFooter();
     await renderProductPageView(toolId);
     if (navId === currentNavId) {
-      animateViewEntrance('#app-content');
       window.scrollTo({ top: 0, behavior: 'instant' });
+      animateViewEntrance('#app-content');
       setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
     }
     return;
@@ -121,7 +122,9 @@ async function router() {
   // 404 Handler for unknown routes
   if (hash && hash !== '#/' && !(cleanRoute in routes) && !cleanRoute.startsWith('#/product/')) {
     render404View();
+    renderFooter();
     if (navId === currentNavId) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
       animateViewEntrance('#app-content');
     }
     return;
@@ -131,6 +134,7 @@ async function router() {
   
   const activeRouteName = (routeKey === '#/' || routeKey === '#/home') ? 'home' : routeKey.replace('#/', '');
   renderNavbar(activeRouteName);
+  renderFooter();
 
   const viewHandler = routes[routeKey] || renderHomeView;
   await viewHandler();
@@ -138,8 +142,8 @@ async function router() {
   // If user navigated away while view was fetching/rendering, discard stale animation
   if (navId !== currentNavId) return;
 
-  animateViewEntrance('#app-content');
   window.scrollTo({ top: 0, behavior: 'instant' });
+  animateViewEntrance('#app-content');
   setTimeout(() => window.HSStaticMethods?.autoInit(), 50);
 }
 
@@ -153,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Reactive updates on authentication events
   window.addEventListener('auth:change', () => {
+    renderFooter();
     router();
   });
 

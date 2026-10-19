@@ -540,16 +540,21 @@ export async function renderClientDashboard() {
       `}
     `;
 
-    // Search input handler
+    // Search input handler (debounced)
+    let clientSearchDebounce = null;
     stage.querySelector('#client-search-input')?.addEventListener('input', (e) => {
-      searchQuery = e.target.value;
+      const val = e.target.value;
       const cursorPos = e.target.selectionStart;
-      renderTable();
-      const reInp = stage.querySelector('#client-search-input');
-      if (reInp) {
-        reInp.focus();
-        try { reInp.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
-      }
+      clearTimeout(clientSearchDebounce);
+      clientSearchDebounce = setTimeout(() => {
+        searchQuery = val;
+        renderTable();
+        const reInp = stage.querySelector('#client-search-input');
+        if (reInp) {
+          reInp.focus();
+          try { reInp.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+        }
+      }, 150);
     });
 
     // Select all handler

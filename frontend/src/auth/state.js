@@ -45,27 +45,35 @@ class AuthState {
   }
 
   getRoles() {
-    if (this.user?.roles) return this.user.roles;
+    if (Array.isArray(this.user?.roles) && this.user.roles.length > 0) return this.user.roles;
+    if (this.user?.rol) return [`ROLE_${String(this.user.rol).toUpperCase().replace('ROLE_', '')}`];
     const decoded = this.decodeJwt(this.token);
-    return decoded?.roles || [];
+    if (Array.isArray(decoded?.roles) && decoded.roles.length > 0) return decoded.roles;
+    return [];
   }
 
   hasRole(roleName) {
+    const cleanTarget = String(roleName).toUpperCase().replace('ROLE_', '');
+    const userRoleDirect = this.user?.rol ? String(this.user.rol).toUpperCase().replace('ROLE_', '') : '';
+    if (userRoleDirect === cleanTarget) return true;
+
     const roles = this.getRoles();
-    const cleanRole = roleName.startsWith('ROLE_') ? roleName : `ROLE_${roleName}`;
-    return roles.includes(cleanRole) || roles.includes(roleName);
+    return roles.some(r => {
+      const cleanR = String(r).toUpperCase().replace('ROLE_', '');
+      return cleanR === cleanTarget;
+    });
   }
 
   isAdmin() {
-    return this.hasRole('ADMIN') || this.hasRole('ROLE_ADMIN');
+    return this.hasRole('ADMIN');
   }
 
   isProvider() {
-    return this.hasRole('PROVEEDOR') || this.hasRole('ROLE_PROVEEDOR');
+    return this.hasRole('PROVEEDOR');
   }
 
   isClient() {
-    return this.hasRole('CLIENTE') || this.hasRole('ROLE_CLIENTE');
+    return this.hasRole('CLIENTE');
   }
 
   async login(username, password, onProgress = null) {

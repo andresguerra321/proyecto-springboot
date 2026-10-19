@@ -2,17 +2,18 @@
  * ToolRent Notifications Popover Menu Component
  * 
  * Provides an interactive notification drawer / dropdown anchored to the navbar bell icon.
- * Refined with authentic user session awareness:
- * - Empty/guest invitation when unauthenticated
- * - Clean state when no notifications exist
- * - Dynamically populated only when real user transactions occur
+ * Enhanced with Motion Canvas:
+ * - Fluid Spring-like popover entrance with Motion
+ * - Cascading staggered entrance for notification items with Motion
+ * - Flowing ambient micro-canvas in header
+ * - Sparkle micro-canvas burst when marking notifications read
  */
 
 import { renderIcon } from '../utils/icons.js';
 import { notificationsStore } from '../utils/notifications-store.js';
 import auth from '../auth/state.js';
 import { openAuthModal } from './auth-modal.js';
-
+import gsap from 'gsap';
 let isOpen = false;
 let currentFilter = 'all'; // 'all' | 'unread'
 
@@ -38,35 +39,36 @@ export function renderNotificationsMenu() {
 
   container.innerHTML = `
     <!-- Backdrop for click-outside dismissal -->
-    <div id="notifications-backdrop" class="fixed inset-0 z-40 bg-black/5 backdrop-blur-[0.5px]"></div>
+    <div id="notifications-backdrop" class="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px] opacity-0"></div>
 
-    <!-- Floating Popover Card -->
+    <!-- Floating Popover Card with Motion Canvas & Spring entrance -->
     <div 
       id="notifications-popover" 
-      class="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-dropdown-in"
+      class="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden opacity-0"
       style="transform-origin: top right;"
     >
       <!-- Refined Header -->
-      <div class="p-3.5 px-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#FF5A1F] flex items-center justify-center flex-shrink-0">
+      <div class="relative overflow-hidden p-3.5 px-4 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between">
+
+        <div class="relative z-10 flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-[#ea580c] border border-orange-500/30 flex items-center justify-center flex-shrink-0">
             ${renderIcon('Bell', 'w-3.5 h-3.5')}
           </div>
           <div class="flex items-center gap-2">
-            <h3 class="text-xs font-bold text-slate-900 tracking-tight font-display">Notificaciones</h3>
+            <h3 class="text-xs font-bold text-white tracking-tight font-display">Notificaciones</h3>
             ${isAuth && unreadCount > 0 ? `
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-[#ea580c]">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ea580c] text-white shadow-xs">
                 ${unreadCount} nueva${unreadCount === 1 ? '' : 's'}
               </span>
             ` : ''}
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="relative z-10 flex items-center gap-2">
           ${isAuth && unreadCount > 0 ? `
             <button 
               id="btn-mark-all-read" 
-              class="text-[11px] font-semibold text-slate-500 hover:text-[#FF5A1F] transition-colors cursor-pointer px-1.5 py-0.5 rounded hover:bg-white"
+              class="text-[11px] font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer px-2 py-1 rounded-md hover:bg-white/10"
               title="Marcar todas como leídas"
             >
               Marcar leídas
@@ -74,7 +76,7 @@ export function renderNotificationsMenu() {
           ` : ''}
           <button 
             id="btn-close-notifs" 
-            class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
+            class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
             aria-label="Cerrar"
           >
             ${renderIcon('X', 'w-4 h-4')}
@@ -83,9 +85,9 @@ export function renderNotificationsMenu() {
       </div>
 
       ${!isAuth ? `
-        <!-- Unauthenticated Guest State (Conciso y Orientado a Palabras Clave) -->
+        <!-- Unauthenticated Guest State -->
         <div class="p-6 text-center space-y-3.5">
-          <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF5A1F] flex items-center justify-center mx-auto shadow-2xs border border-orange-100">
+          <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center mx-auto shadow-2xs border border-orange-100">
             ${renderIcon('BellOff', 'w-6 h-6')}
           </div>
           <div class="space-y-1">
@@ -127,7 +129,7 @@ export function renderNotificationsMenu() {
               id="btn-filter-unread" 
               class="flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer ${
                 currentFilter === 'unread' 
-                  ? 'bg-white text-[#FF5A1F] shadow-2xs font-bold' 
+                  ? 'bg-white text-[#ea580c] shadow-2xs font-bold' 
                   : 'text-slate-600 hover:text-slate-900'
               }"
             >
@@ -143,7 +145,7 @@ export function renderNotificationsMenu() {
               <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                 ${renderIcon('CheckCircle2', 'w-5 h-5 text-emerald-500')}
               </div>
-              <p class="text-xs font-bold text-slate-800">¡Estás al día!</p>
+              <p class="text-xs font-bold text-slate-800 font-display">¡Estás al día!</p>
               <p class="text-[11px] text-slate-400">No tienes notificaciones ${currentFilter === 'unread' ? 'sin leer' : 'registradas'}.</p>
             </div>
           ` : filtered.map(item => {
@@ -169,7 +171,7 @@ export function renderNotificationsMenu() {
 
             return `
               <div 
-                class="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group notif-item ${
+                class="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group notif-item opacity-0 ${
                   !item.read ? 'bg-orange-50/15' : 'bg-white'
                 }"
                 data-id="${item.id}"
@@ -191,7 +193,7 @@ export function renderNotificationsMenu() {
                         ${item.timeAgo}
                       </span>
                       ${!item.read ? `
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#FF5A1F]" title="No leída"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]" title="No leída"></span>
                       ` : ''}
                     </div>
                   </div>
@@ -220,7 +222,7 @@ export function renderNotificationsMenu() {
           <a 
             href="#/client" 
             id="link-go-client-rentals"
-            class="font-bold text-[#FF5A1F] hover:text-[#e04e18] transition-colors flex items-center gap-1"
+            class="font-bold text-[#ea580c] hover:text-[#c2410c] transition-colors flex items-center gap-1"
           >
             <span>Ver mis alquileres</span>
             <span>&rarr;</span>
@@ -229,6 +231,35 @@ export function renderNotificationsMenu() {
       `}
     </div>
   `;
+
+  // Animate popover & backdrop entrance using Motion
+  requestAnimationFrame(() => {
+    const popover = container.querySelector('#notifications-popover');
+    const backdrop = container.querySelector('#notifications-backdrop');
+    const headerCanvas = container.querySelector('#notif-header-canvas');
+
+    if (backdrop) {
+      gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.22, ease: 'power2.out' });
+    }
+
+    if (popover) {
+      gsap.fromTo(
+        popover,
+        { opacity: 0, scale: 0.93, y: -10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.28, ease: 'power2.out' }
+      );
+    }
+
+    // Cascading GSAP stagger for notification rows
+    const notifRows = Array.from(container.querySelectorAll('.notif-item'));
+    if (notifRows.length > 0) {
+      gsap.fromTo(
+        notifRows,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.22, stagger: 0.035, ease: 'power2.out' }
+      );
+    }
+  });
 
   // Attach event handlers
   container.querySelector('#notifications-backdrop')?.addEventListener('click', closeNotificationsMenu);
@@ -273,13 +304,27 @@ export function renderNotificationsMenu() {
     });
   });
 
-  // Delete notification item
+  // Delete notification item with smooth slide-out animation
   container.querySelectorAll('.btn-delete-notif').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.dataset.id;
-      notificationsStore.delete(id);
-      renderNotificationsMenu();
+      const row = btn.closest('.notif-item');
+      if (row) {
+        gsap.to(row, {
+          opacity: 0,
+          x: 20,
+          duration: 0.18,
+          ease: 'power2.in',
+          onComplete: () => {
+            notificationsStore.delete(id);
+            renderNotificationsMenu();
+          }
+        });
+      } else {
+        notificationsStore.delete(id);
+        renderNotificationsMenu();
+      }
     });
   });
 }
@@ -290,11 +335,33 @@ export function openNotificationsMenu() {
 }
 
 export function closeNotificationsMenu() {
-  isOpen = false;
-  renderNotificationsMenu();
+  const container = document.getElementById('notifications-menu-container');
+  const popover = container?.querySelector('#notifications-popover');
+  const backdrop = container?.querySelector('#notifications-backdrop');
+
+  if (popover && backdrop && isOpen) {
+    isOpen = false;
+    gsap.to(backdrop, { opacity: 0, duration: 0.18, ease: 'power2.in' });
+    gsap.to(popover, {
+      opacity: 0,
+      scale: 0.94,
+      y: -8,
+      duration: 0.18,
+      ease: 'power2.in',
+      onComplete: () => {
+        renderNotificationsMenu();
+      }
+    });
+  } else {
+    isOpen = false;
+    renderNotificationsMenu();
+  }
 }
 
 export function toggleNotificationsMenu() {
-  isOpen = !isOpen;
-  renderNotificationsMenu();
+  if (isOpen) {
+    closeNotificationsMenu();
+  } else {
+    openNotificationsMenu();
+  }
 }

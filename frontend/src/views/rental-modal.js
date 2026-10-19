@@ -47,8 +47,11 @@ export async function openRentalModal(tool, options = {}) {
   content.className = 'p-6 space-y-5 bg-white text-slate-800';
 
   function calculateCosts() {
+    if (!startDate) {
+      return { days: 1, quantity, subtotal: 0, tax: 0, deposit: 0, total: 0, dailyPrice: tool.dailyPrice || 40000, unitDeposit: 0 };
+    }
     const [y1, m1, d1] = startDate.split('-').map(Number);
-    const [y2, m2, d2] = endDate.split('-').map(Number);
+    const [y2, m2, d2] = (endDate || startDate).split('-').map(Number);
     const start = new Date(y1, m1 - 1, d1);
     const end = new Date(y2, m2 - 1, d2);
     

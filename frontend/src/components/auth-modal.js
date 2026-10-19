@@ -4,11 +4,24 @@ import showToast from './toast.js';
 import loginShowcaseImg from '../assets/login-showcase.jpg';
 import loginAccessImg from '../assets/login-access.jpg';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
-import { animate, stagger } from 'motion';
+import gsap from 'gsap';
 
 export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE') {
+  if (auth.isAuthenticated()) {
+    showToast('Ya tienes una sesión activa en la plataforma.', 'info');
+    if (auth.isProvider()) {
+      window.location.hash = '#/provider';
+    } else if (auth.isAdmin()) {
+      window.location.hash = '#/admin';
+    } else {
+      window.location.hash = '#/client';
+    }
+    return;
+  }
+
   let currentTab = initialTab; // 'login' or 'register'
   let selectedRole = initialRole; // 'ROLE_CLIENTE' or 'ROLE_PROVEEDOR'
+  let isSwitchingTab = false;
 
   const content = document.createElement('div');
   content.className = 'w-full';
@@ -245,22 +258,36 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
             </div>
           </div>
 
-          <!-- Segmented Tab Switcher (Pill) -->
-          <div class="flex bg-slate-100 p-1 rounded-xl mb-3.5 max-w-xs border border-slate-200/80 select-none">
-            <button type="button" id="auth-tab-login" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
-              currentTab === 'login' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
-            }">
+          <!-- Segmented Tab Switcher (Unified clean segmented control) -->
+          <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-3.5 max-w-xs border border-slate-200/80 select-none gap-1" id="auth-tab-wrapper">
+            <button 
+              type="button" 
+              id="auth-tab-login" 
+              class="py-2 px-3 text-xs rounded-lg transition-all duration-200 text-center cursor-pointer ${
+                currentTab === 'login'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 font-semibold'
+              }"
+            >
               Iniciar sesión
             </button>
-            <button type="button" id="auth-tab-register" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
-              currentTab === 'register' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
-            }">
+            <button 
+              type="button" 
+              id="auth-tab-register" 
+              class="py-2 px-3 text-xs rounded-lg transition-all duration-200 text-center cursor-pointer ${
+                currentTab === 'register'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 font-semibold'
+              }"
+            >
               Crear cuenta
             </button>
           </div>
 
-          <!-- VIEW 1: INICIAR SESIÓN (Persistent in DOM) -->
-          <div id="view-login" class="${currentTab === 'login' ? 'block' : 'hidden'} space-y-3">
+          <!-- Views Container with Fluid Motion Transitions -->
+          <div id="auth-views-wrapper" class="relative overflow-hidden w-full">
+            <!-- VIEW 1: INICIAR SESIÓN (Persistent in DOM) -->
+            <div id="view-login" class="${currentTab === 'login' ? 'block' : 'hidden'} space-y-3">
             <div>
               <h2 class="text-lg font-bold text-slate-900 font-display">Acceso a la plataforma</h2>
               <p class="text-xs text-slate-500 mt-0.5">Ingresa tus credenciales corporativas para gestionar tus reservas.</p>
@@ -366,6 +393,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
               </div>
             </form>
           </div>
+          </div>
         </div>
 
         <!-- Bottom Footer Link (Persistent & toggled with zero flash) -->
@@ -379,7 +407,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
         </div>
       </div>
 
-      <!-- Right Side: Dedicated Showcase (Permanent in DOM with Dual-Image Crossfade - ZERO FLASH) -->
+      <!-- Right Side: Dedicated Showcase (Permanent in DOM with Motion Canvas & Dual-Image Crossfade) -->
       <div id="auth-showcase-box" class="lg:col-span-5 relative hidden lg:block overflow-hidden bg-slate-900 select-none min-h-[460px]">
         <!-- Showcase Slide 1: Login (loginAccessImg) -->
         <div id="showcase-login" class="absolute inset-0 transition-opacity duration-300 ease-in-out ${currentTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}">
@@ -406,6 +434,7 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
             </p>
           </div>
         </div>
+
       </div>
 
     </div>
@@ -594,27 +623,32 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
     };
   }
 
-  // Staggered cascade entrance animation for inputs using Motion
+  // Staggered cascade entrance animation for inputs using GSAP
   function triggerInputsEntrance(viewEl) {
     if (!viewEl) return;
     const rows = Array.from(viewEl.querySelectorAll('.auth-animated-row'));
     if (rows.length === 0) return;
 
-    animate(
+    gsap.fromTo(
       rows,
-      { opacity: [0, 1], y: [12, 0] },
+      { opacity: 0, y: 12 },
       {
-        duration: 0.24,
-        delay: stagger(0.035),
-        ease: [0.16, 1, 0.3, 1]
+        opacity: 1,
+        y: 0,
+        duration: 0.25,
+        stagger: 0.035,
+        ease: 'power2.out',
+        overwrite: 'auto'
       }
     );
   }
 
-  // Zero-Flash Tab Switching (Toggles view panels without destroying DOM)
-  function switchTab(newTab) {
-    if (currentTab === newTab) return;
+  // Fluid Directional Tab Switching with GSAP & Showcase Canvas Wave
+  async function switchTab(newTab) {
+    if (currentTab === newTab || isSwitchingTab) return;
+    const prevTab = currentTab;
     currentTab = newTab;
+    isSwitchingTab = true;
 
     // 1. Wipe all input fields in both forms
     content.querySelectorAll('input').forEach(inp => {
@@ -637,49 +671,85 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
     const showcaseLogin = content.querySelector('#showcase-login');
     const showcaseRegister = content.querySelector('#showcase-register');
 
-    if (currentTab === 'login') {
-      viewRegister?.classList.add('hidden');
-      viewLogin?.classList.remove('hidden');
-
-      if (tabBtnLogin) tabBtnLogin.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-white text-slate-900 shadow-xs font-bold';
-      if (tabBtnRegister) tabBtnRegister.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-slate-500 hover:text-slate-800';
+    // Update Tab Button Styles & Footer Link
+    if (newTab === 'login') {
+      tabBtnLogin?.classList.add('bg-white', 'text-slate-900', 'shadow-xs', 'border', 'border-slate-200/90', 'font-bold');
+      tabBtnLogin?.classList.remove('text-slate-600');
+      tabBtnRegister?.classList.remove('bg-white', 'text-slate-900', 'shadow-xs', 'border', 'border-slate-200/90', 'font-bold');
+      tabBtnRegister?.classList.add('text-slate-600');
 
       footerToRegister?.classList.remove('hidden');
       footerToLogin?.classList.add('hidden');
+    } else {
+      tabBtnRegister?.classList.add('bg-white', 'text-slate-900', 'shadow-xs', 'border', 'border-slate-200/90', 'font-bold');
+      tabBtnRegister?.classList.remove('text-slate-600');
+      tabBtnLogin?.classList.remove('bg-white', 'text-slate-900', 'shadow-xs', 'border', 'border-slate-200/90', 'font-bold');
+      tabBtnLogin?.classList.add('text-slate-600');
 
-      // Cross-fade showcase panel to Login image
+      footerToLogin?.classList.remove('hidden');
+      footerToRegister?.classList.add('hidden');
+    }
+
+    // 6. Cross-fade showcase panel to appropriate image with micro-zoom GSAP
+    if (newTab === 'login') {
       if (showcaseLogin) {
         showcaseLogin.classList.remove('opacity-0', 'pointer-events-none');
         showcaseLogin.classList.add('opacity-100');
+        gsap.fromTo(showcaseLogin, { scale: 1.03 }, { scale: 1, duration: 0.32, ease: 'power2.out' });
       }
       if (showcaseRegister) {
         showcaseRegister.classList.remove('opacity-100');
         showcaseRegister.classList.add('opacity-0', 'pointer-events-none');
       }
-
-      triggerInputsEntrance(viewLogin);
     } else {
-      viewLogin?.classList.add('hidden');
-      viewRegister?.classList.remove('hidden');
-
-      if (tabBtnLogin) tabBtnLogin.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-slate-500 hover:text-slate-800';
-      if (tabBtnRegister) tabBtnRegister.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-white text-slate-900 shadow-xs font-bold';
-
-      footerToRegister?.classList.add('hidden');
-      footerToLogin?.classList.remove('hidden');
-
-      // Cross-fade showcase panel to Register image
       if (showcaseRegister) {
         showcaseRegister.classList.remove('opacity-0', 'pointer-events-none');
         showcaseRegister.classList.add('opacity-100');
+        gsap.fromTo(showcaseRegister, { scale: 1.03 }, { scale: 1, duration: 0.32, ease: 'power2.out' });
       }
       if (showcaseLogin) {
         showcaseLogin.classList.remove('opacity-100');
         showcaseLogin.classList.add('opacity-0', 'pointer-events-none');
       }
-
-      triggerInputsEntrance(viewRegister);
     }
+
+    // 7. Directional GSAP Transition between Form Panels
+    // login -> register: direction = 1 (exit left, enter from right)
+    // register -> login: direction = -1 (exit right, enter from left)
+    const direction = newTab === 'register' ? 1 : -1;
+    const leavingView = prevTab === 'login' ? viewLogin : viewRegister;
+    const enteringView = newTab === 'login' ? viewLogin : viewRegister;
+
+    if (leavingView && enteringView) {
+      await new Promise((resolve) => {
+        gsap.to(leavingView, {
+          opacity: 0,
+          x: -22 * direction,
+          duration: 0.16,
+          ease: 'power2.in',
+          onComplete: resolve
+        });
+      });
+
+      leavingView.classList.add('hidden');
+      gsap.set(leavingView, { clearProps: 'transform,opacity' });
+
+      enteringView.classList.remove('hidden');
+      gsap.fromTo(
+        enteringView,
+        { opacity: 0, x: 22 * direction },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.26,
+          ease: 'power2.out'
+        }
+      );
+
+      triggerInputsEntrance(enteringView);
+    }
+
+    isSwitchingTab = false;
   }
 
   content.querySelector('#auth-tab-login')?.addEventListener('click', () => switchTab('login'));
@@ -726,16 +796,19 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       bindInputFilters(dynamicContainer);
       dynamicContainer.querySelectorAll('input').forEach(inp => { inp.value = ''; });
 
-      // Animate newly inserted profile inputs with Motion stagger
+      // Animate newly inserted profile inputs with GSAP stagger
       const dynamicRows = Array.from(dynamicContainer.querySelectorAll('.auth-animated-row'));
       if (dynamicRows.length > 0) {
-        animate(
+        gsap.fromTo(
           dynamicRows,
-          { opacity: [0, 1], y: [10, 0] },
+          { opacity: 0, y: 10 },
           {
+            opacity: 1,
+            y: 0,
             duration: 0.22,
-            delay: stagger(0.03),
-            ease: [0.16, 1, 0.3, 1]
+            stagger: 0.03,
+            ease: 'power2.out',
+            overwrite: 'auto'
           }
         );
       }

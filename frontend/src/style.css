@@ -57,44 +57,80 @@ input:-webkit-autofill:active {
   }
 }
 
-/* Animaciones suaves para Modales, Notificaciones y Overlays */
+/* Animaciones de alto rendimiento con aceleración por GPU (translate3d) */
 @keyframes modalEnterFade {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(8px);
+    transform: translate3d(0, 8px, 0) scale(0.96);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes dropdownSlideFade {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(-8px);
+    transform: translate3d(0, -6px, 0) scale(0.97);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-@keyframes overlayPulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.4);
+@keyframes viewEntranceKeyframes {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
   }
-  50% {
-    box-shadow: 0 0 45px 0px rgba(249, 115, 22, 0.65);
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
+}
+
+@keyframes cardStaggerEntrance {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.view-enter-active {
+  animation: viewEntranceKeyframes 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.tool-card-stagger {
+  animation: cardStaggerEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 
 .animate-modal-in {
   animation: modalEnterFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }
 
 .animate-dropdown-in {
-  animation: dropdownSlideFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dropdownSlideFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes overlayPulseGlow {
+  0%, 100% {
+    opacity: 0.85;
+    box-shadow: 0 0 20px -3px rgba(249, 115, 22, 0.35);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 35px 0px rgba(249, 115, 22, 0.55);
+  }
 }
 
 .animate-glow-pulse {
@@ -288,46 +324,49 @@ input:-webkit-autofill:active {
 @keyframes trFadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translate3d(0, 6px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes trScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(6px);
+    transform: translate3d(0, 6px, 0) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes springPopup {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(8px);
+    transform: translate3d(0, 8px, 0) scale(0.96);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 .animate-fade-in {
   animation: trFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }
 
 .animate-scale-in {
   animation: trScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }
 
 .animate-spring-modal {
   animation: springPopup 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }
 
 .card-lift {
@@ -494,5 +533,20 @@ input[type="search"]::-webkit-search-results-decoration {
 .crm-tab-inactive:hover {
   color: #52525b;
 }
+
+/* ============================================================== */
+/* ACCESIBILIDAD Y RENDIMIENTO: PREFERS-REDUCED-MOTION           */
+/* ============================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 

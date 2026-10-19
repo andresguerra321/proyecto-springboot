@@ -22,7 +22,7 @@ class ModalController {
     modalBackdrop.id = 'active-modal-backdrop';
 
     modalBackdrop.innerHTML = `
-      <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full ${maxWidth} mt-auto sm:my-8 transform transition-all duration-300 translate-y-6 sm:translate-y-0 sm:scale-95 opacity-0 overflow-hidden border border-slate-200/80 shadow-2xl relative max-h-[92vh] sm:max-h-[88vh] flex flex-col" id="modal-box">
+      <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full ${maxWidth} mt-auto sm:my-8 transform-gpu transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-6 sm:translate-y-0 sm:scale-95 opacity-0 overflow-hidden border border-slate-200/80 shadow-2xl relative max-h-[92vh] sm:max-h-[88vh] flex flex-col" id="modal-box">
         <!-- Mobile bottom-sheet drag handle -->
         <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0"></div>
 

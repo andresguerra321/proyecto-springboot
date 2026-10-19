@@ -767,11 +767,15 @@ export async function renderCatalogView() {
     });
   });
 
+  let priceDebounce = null;
   if (priceSlider) {
     priceSlider.addEventListener('input', (e) => {
       maxPrice = parseInt(e.target.value, 10);
       if (priceMaxBox) priceMaxBox.textContent = `$ ${maxPrice.toLocaleString('es-CO')}`;
-      renderProductsGrid();
+      clearTimeout(priceDebounce);
+      priceDebounce = setTimeout(() => {
+        renderProductsGrid();
+      }, 75);
     });
   }
 
@@ -791,7 +795,7 @@ export async function renderCatalogView() {
       searchDebounce = setTimeout(() => {
         searchQuery = val;
         renderProductsGrid();
-      }, 100);
+      }, 150);
     });
 
     searchInput.addEventListener('keydown', (e) => {

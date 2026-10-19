@@ -11,19 +11,60 @@ let lastNavbarUserId = Symbol('uninitialized');
 let lastNavbarIsAuth = Symbol('uninitialized');
 let lastNavbarRoles = Symbol('uninitialized');
 let currentActiveRoute = null;
+let navResizeObserver = null;
+let isNavResizeBound = false;
+let isNotificationsChangeBound = false;
 
 
 /**
- * Applies route-specific active indicators and Magic UI / Anime.js transitions
+ * Accurately calculates and positions the Magic UI sliding pill
+ * Uses pure 3D transforms with 0px base left to prevent coordinate drift or compounding errors.
+ */
+function updateActivePillPosition(container, immediate = false) {
+  if (!container) return;
+  const floatingNav = container.querySelector('#navbar-floating-pill');
+  const activePill = container.querySelector('#nav-active-pill');
+  if (!floatingNav || !activePill) return;
+
+  const targetLink = floatingNav.querySelector(`.nav-item[data-route="${currentActiveRoute}"]`);
+  if (!targetLink) {
+    activePill.style.opacity = '0';
+    return;
+  }
+
+  const targetWidth = targetLink.offsetWidth;
+  const targetLeft = targetLink.offsetLeft;
+
+  // If container is hidden (e.g. mobile breakpoint) or target link not laid out yet
+  if (targetWidth === 0) {
+    activePill.style.opacity = '0';
+    return;
+  }
+
+  activePill.style.left = '0px';
+  activePill.style.width = `${targetWidth}px`;
+  activePill.style.transform = `translate3d(${targetLeft}px, 0, 0)`;
+  activePill.style.opacity = '1';
+
+  if (immediate) {
+    activePill.style.transition = 'none';
+    requestAnimationFrame(() => {
+      activePill.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease';
+    });
+  } else {
+    activePill.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease';
+  }
+}
+
+/**
+ * Applies route-specific active indicators and transitions
  */
 function applyRouteVisuals(container, activeRoute, isInitial = false) {
   currentActiveRoute = activeRoute;
 
   // 1. Sliding Active Indicator for Floating Pill Menu
   const floatingNav = container.querySelector('#navbar-floating-pill');
-  const activePill = container.querySelector('#nav-active-pill');
-
-  if (floatingNav && activePill) {
+  if (floatingNav) {
     const allLinks = floatingNav.querySelectorAll('.nav-item');
     const targetLink = floatingNav.querySelector(`.nav-item[data-route="${activeRoute}"]`);
 
@@ -31,13 +72,13 @@ function applyRouteVisuals(container, activeRoute, isInitial = false) {
       const isTarget = link === targetLink;
       const icon = link.querySelector('svg');
       if (isTarget) {
-        link.className = 'nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5';
+        link.className = 'nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5 whitespace-nowrap flex-shrink-0';
         if (icon) {
           icon.classList.remove('text-slate-400');
           icon.classList.add('text-white');
         }
       } else {
-        link.className = 'nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/60 transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5';
+        link.className = 'nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/60 transition-colors duration-200 select-none cursor-pointer flex items-center gap-1.5 whitespace-nowrap flex-shrink-0';
         if (icon) {
           icon.classList.remove('text-white');
           icon.classList.add('text-slate-400');
@@ -46,36 +87,7 @@ function applyRouteVisuals(container, activeRoute, isInitial = false) {
     });
 
     requestAnimationFrame(() => {
-      if (!targetLink) {
-        activePill.style.display = 'none';
-        return;
-      }
-
-      activePill.style.display = 'block';
-      const targetLeft = targetLink.offsetLeft;
-      const targetWidth = targetLink.offsetWidth;
-
-      if (targetWidth === 0) return;
-
-      if (isInitial || activePill.style.opacity === '0' || !activePill.dataset.positioned) {
-        activePill.style.left = `${targetLeft}px`;
-        activePill.style.width = `${targetWidth}px`;
-        activePill.style.opacity = '1';
-        activePill.dataset.positioned = 'true';
-        anime(activePill, {
-          scale: [0.85, 1],
-          opacity: [0, 1],
-          duration: 350,
-          ease: 'outBack'
-        });
-      } else {
-        anime(activePill, {
-          left: `${targetLeft}px`,
-          width: `${targetWidth}px`,
-          duration: 380,
-          ease: 'outBack'
-        });
-      }
+      updateActivePillPosition(container, isInitial);
     });
   }
 
@@ -205,21 +217,21 @@ export function renderNavbar(activeRoute = 'catalog') {
           </a>
 
           <!-- 2. Center: Floating Nav Pill (Natural flex-centered with spring layout adaptation) -->
-          <div id="navbar-center-container" class="hidden md:flex items-center justify-center flex-shrink-0 transition-transform duration-300">
-            <nav id="navbar-floating-pill" class="relative flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100/90 backdrop-blur-md rounded-full border border-slate-200/80 shadow-xs">
+          <div id="navbar-center-container" class="hidden md:flex items-center justify-center flex-shrink-0 transition-transform duration-300 min-w-0">
+            <nav id="navbar-floating-pill" class="relative flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100 rounded-full border border-slate-200/80 shadow-xs flex-nowrap overflow-visible">
               
               <!-- Magic UI Sliding Active Pill Background -->
               <div 
                 id="nav-active-pill" 
-                class="absolute bg-[#ea580c] rounded-full shadow-xs pointer-events-none transition-none" 
-                style="top: 4px; bottom: 4px; left: 0px; width: 0px; opacity: 0;"
+                class="absolute bg-[#ea580c] rounded-full shadow-xs pointer-events-none transition-[transform,width,opacity] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                style="top: 4px; bottom: 4px; left: 0px; width: 0px; opacity: 0; transform: translate3d(0, 0, 0);"
               ></div>
 
               <!-- Inicio -->
               <a 
                 href="#/" 
                 data-route="home" 
-                class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
+                class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer whitespace-nowrap flex-shrink-0"
               >
                 Inicio
               </a>
@@ -228,9 +240,9 @@ export function renderNavbar(activeRoute = 'catalog') {
               <a 
                 href="#/about" 
                 data-route="about" 
-                class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
+                class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer whitespace-nowrap flex-shrink-0"
               >
-                Sobre Nosotros
+                <span class="hidden xl:inline">Sobre </span>Nosotros
               </a>
 
               ${!(isAuth && isProvider && !isAdmin) ? `
@@ -238,7 +250,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <a 
                   href="#/catalog" 
                   data-route="catalog" 
-                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer"
+                  class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Catálogo
                 </a>
@@ -249,7 +261,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <a 
                   href="#/provider" 
                   data-route="provider" 
-                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                  class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400')}
                   <span>Proveedor</span>
@@ -261,10 +273,10 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <a 
                   href="#/admin" 
                   data-route="admin" 
-                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                  class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   ${renderIcon('ShieldCheck', 'w-3.5 h-3.5 text-slate-400')}
-                  <span>Administración</span>
+                  <span><span class="hidden xl:inline">Administración</span><span class="xl:hidden">Admin</span></span>
                 </a>
               ` : ''}
 
@@ -273,7 +285,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <a 
                   href="#/client" 
                   data-route="client" 
-                  class="nav-item relative z-10 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                  class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   ${renderIcon('ClipboardList', 'w-3.5 h-3.5 text-slate-400')}
                   <span>Mis Alquileres</span>
@@ -285,7 +297,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <button 
                   id="btn-guest-provider-cta" 
                   type="button" 
-                  class="group relative z-10 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer select-none"
+                  class="group relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap flex-shrink-0"
                   title="Publica y monetiza tus herramientas en ToolRent"
                 >
                   ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#ea580c] transition-colors')}
@@ -734,38 +746,62 @@ export function renderNavbar(activeRoute = 'catalog') {
     mobToggle.addEventListener('click', () => mobMenu.classList.toggle('hidden'));
   }
 
-  // Reactive badge updates on notifications:change
-  window.addEventListener('notifications:change', (e) => {
-    const count = e.detail?.unreadCount ?? notificationsStore.getUnreadCount();
-    const badge = container.querySelector('#navbar-unread-badge');
-    const bottomBadge = container.querySelector('#bottom-unread-badge');
-    if (badge) {
-      badge.textContent = count.toString();
-      if (count > 0) {
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
-    }
-    if (bottomBadge) {
-      bottomBadge.textContent = count.toString();
-      if (count > 0) {
-        bottomBadge.classList.remove('hidden');
-      } else {
-        bottomBadge.classList.add('hidden');
-      }
-    }
+  // Auto-close mobile drawer on link clicks
+  container.querySelectorAll('#mobile-menu a').forEach(link => {
+    link.addEventListener('click', () => {
+      container.querySelector('#mobile-menu')?.classList.add('hidden');
+    });
   });
 
-  // Responsive resize handler to keep active pill perfectly calibrated
-  window.addEventListener('resize', () => {
-    const activePill = container.querySelector('#nav-active-pill');
-    const targetLink = container.querySelector(`.nav-item[data-route="${currentActiveRoute}"]`);
-    if (activePill && targetLink && targetLink.offsetWidth > 0) {
-      activePill.style.left = `${targetLink.offsetLeft}px`;
-      activePill.style.width = `${targetLink.offsetWidth}px`;
-    }
-  });
+  // Dynamic ResizeObserver on navbar floating pill to keep active indicator aligned
+  const floatingNav = container.querySelector('#navbar-floating-pill');
+  if (navResizeObserver) {
+    navResizeObserver.disconnect();
+    navResizeObserver = null;
+  }
+  if (floatingNav && typeof ResizeObserver !== 'undefined') {
+    navResizeObserver = new ResizeObserver(() => {
+      updateActivePillPosition(container, false);
+    });
+    navResizeObserver.observe(floatingNav);
+  }
+
+  // Global window resize listener bound strictly once
+  if (!isNavResizeBound) {
+    isNavResizeBound = true;
+    window.addEventListener('resize', () => {
+      const navContainer = document.getElementById('navbar-container');
+      if (navContainer) {
+        updateActivePillPosition(navContainer, false);
+      }
+    }, { passive: true });
+  }
+
+  // Reactive badge updates on notifications:change (bound once globally)
+  if (!isNotificationsChangeBound) {
+    isNotificationsChangeBound = true;
+    window.addEventListener('notifications:change', (e) => {
+      const count = e.detail?.unreadCount ?? notificationsStore.getUnreadCount();
+      const badge = document.querySelector('#navbar-unread-badge');
+      const bottomBadge = document.querySelector('#bottom-unread-badge');
+      if (badge) {
+        badge.textContent = count.toString();
+        if (count > 0) {
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+      if (bottomBadge) {
+        bottomBadge.textContent = count.toString();
+        if (count > 0) {
+          bottomBadge.classList.remove('hidden');
+        } else {
+          bottomBadge.classList.add('hidden');
+        }
+      }
+    });
+  }
 
   // Apply route visuals with initial entrance animation
   applyRouteVisuals(container, activeRoute, true);

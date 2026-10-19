@@ -1260,16 +1260,21 @@ export async function renderProviderDashboard() {
       });
     });
 
-    // Search input
+    // Search input (debounced to avoid layout thrashing)
+    let invSearchDebounce = null;
     tabContainer.querySelector('#inv-search-input')?.addEventListener('input', (e) => {
-      inventorySearch = e.target.value;
+      const val = e.target.value;
       const cursorPos = e.target.selectionStart;
-      renderTabContent();
-      const reInp = tabContainer.querySelector('#inv-search-input');
-      if (reInp) {
-        reInp.focus();
-        try { reInp.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
-      }
+      clearTimeout(invSearchDebounce);
+      invSearchDebounce = setTimeout(() => {
+        inventorySearch = val;
+        renderTabContent();
+        const reInp = tabContainer.querySelector('#inv-search-input');
+        if (reInp) {
+          reInp.focus();
+          try { reInp.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+        }
+      }, 150);
     });
 
     // Category and status select filters
@@ -1291,9 +1296,14 @@ export async function renderProviderDashboard() {
       });
     });
 
+    let reqSearchDebounce = null;
     tabContainer.querySelector('#requests-search-input')?.addEventListener('input', (e) => {
-      requestsSearch = e.target.value;
-      renderTabContent();
+      const val = e.target.value;
+      clearTimeout(reqSearchDebounce);
+      reqSearchDebounce = setTimeout(() => {
+        requestsSearch = val;
+        renderTabContent();
+      }, 150);
     });
 
     // ===================================================================
