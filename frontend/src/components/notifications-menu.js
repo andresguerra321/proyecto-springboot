@@ -17,6 +17,165 @@ import gsap from 'gsap';
 let isOpen = false;
 let currentFilter = 'all'; // 'all' | 'unread'
 
+export function formatShortCode(rawId, prefix = 'RNT') {
+  if (!rawId) return '';
+  const clean = String(rawId).trim().replace(/^[#\(\)]+|[#\(\)]+$/g, '');
+  if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}/i.test(clean)) {
+    return `${prefix}-${clean.slice(0, 6).toUpperCase()}`;
+  }
+  if (/^(RNT|FAC|GAR|RMB)-/i.test(clean)) {
+    return clean.toUpperCase();
+  }
+  if (clean.length > 8) {
+    return `${prefix}-${clean.slice(0, 6).toUpperCase()}`;
+  }
+  return clean;
+}
+
+/**
+ * Helper to format short date ranges like "19 Oct - 22 Oct"
+ */
+function formatDateSpan(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const clean = String(dateStr).trim().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+      const [y, m, d] = clean.split('-');
+      const date = new Date(Number(y), Number(m) - 1, Number(d));
+      const formatted = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      return formatted.replace(/\b([a-záéíóúñ]{3,})\b/gi, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(clean)) {
+      const [d, m, y] = clean.split('/');
+      const date = new Date(Number(y), Number(m) - 1, Number(d));
+      const formatted = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      return formatted.replace(/\b([a-záéíóúñ]{3,})\b/gi, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+    return dateStr;
+  } catch (_) {
+    return dateStr;
+  }
+}
+
+/**
+ * Intelligent parser that breaks down raw notification strings into a clean 3-row layout:
+ * - Fila 1: Title & Time
+ * - Fila 2: Tool Name
+ * - Fila 3: Metadata Badges (Code + Dates / Amount)
+ */
+export function parseNotificationDetails(item) {
+  const rawMsg = item.message || '';
+  let title = item.title || 'Notificación';
+  let toolName = '';
+  let code = '';
+  let extraInfo = '';
+
+  // 1. Format raw UUID in title if any
+  title = title.replace(/\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\b/g, (m) => formatShortCode(m, 'RNT'));
+
+  // 2. Differentiate Payment vs Rental if generated in the same minute / redundant
+  if (item.category === 'PAYMENT' || /alquiler y pago/i.test(title)) {
+    title = 'Factura Digital Generada';
+  }
+
+  // 3. Match Invoice / Payment messages:
+  // e.g. "Factura FAC-2ADFD9 emitida por $580.000 para Andamio de Carga..."
+  const invoiceMatch = rawMsg.match(/Factura\s+([A-Za-z0-9#-]+)\s+emitida\s+por\s+([^\s]+(?:\s*COP)?)\s+para\s+([^.]+)/i);
+  if (invoiceMatch) {
+    code = formatShortCode(invoiceMatch[1], 'FAC');
+    const rawAmt = invoiceMatch[2].replace('Total:', '').trim();
+    const cleanAmt = rawAmt.includes('COP') ? rawAmt : `${rawAmt} COP`;
+    toolName = invoiceMatch[3].trim();
+    extraInfo = `${cleanAmt} • Factura electrónica DIAN`;
+    return { title, toolName, code, extraInfo };
+  }
+
+  // 4. Match "Has reservado <ToolName> (<Code/UUID>) [del <Date1> al <Date2>] [Total: <Amount> | por <Amount>]"
+  const reservedMatch = rawMsg.match(/Has reservado\s+([^\(#]+?)(?:\s+[\(#]([^\)]+)[\)])?(?:\s+del\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\s+al\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4}))?(?:[^\$]*?(\$\s*[\d.,]+|\bTotal:\s*\$[\d.,]+))?/i);
+
+  if (reservedMatch) {
+    toolName = reservedMatch[1].trim();
+    const rawCode = reservedMatch[2];
+    const d1 = reservedMatch[3];
+    const d2 = reservedMatch[4];
+    const rawAmt = reservedMatch[5];
+
+    if (rawCode) {
+      code = formatShortCode(rawCode, item.category === 'PAYMENT' ? 'FAC' : 'RNT');
+    }
+
+    const parts = [];
+    if (d1 && d2) {
+      parts.push(`${formatDateSpan(d1)} - ${formatDateSpan(d2)}`);
+    }
+    if (rawAmt) {
+      const cleanAmt = rawAmt.replace('Total:', '').trim();
+      parts.push(cleanAmt.includes('COP') ? cleanAmt : `${cleanAmt} COP`);
+    } else if (item.category === 'PAYMENT') {
+      parts.push('Factura legal con QR');
+    }
+
+    extraInfo = parts.join(' • ');
+  } 
+  // 5. Match Dispatch notifications
+  else if (/despachad[ao]|camino a tu obra|frente de obra/i.test(rawMsg)) {
+    const codeMatch = rawMsg.match(/[\(#]([^\)]+)[\)]/);
+    if (codeMatch) {
+      code = formatShortCode(codeMatch[1], 'RNT');
+    }
+    toolName = 'Maquinaria en tránsito hacia tu obra';
+    extraInfo = 'Despachado con remisión oficial';
+  }
+  // 6. Match Warranty Claims
+  else if (/solicitud\s*\((EXCHANGE|REFUND)\)/i.test(rawMsg) || /falla/i.test(rawMsg) || /garantía/i.test(rawMsg)) {
+    const isExchange = /EXCHANGE|sustitución/i.test(rawMsg);
+    toolName = isExchange ? 'Sustitución de equipo por falla técnica' : 'Reembolso y custodia de garantía';
+    
+    const codeInTitle = (item.title || '').match(/#(GAR|RMB)-[\d-]+/i);
+    if (codeInTitle) {
+      code = codeInTitle[0].replace('#', '');
+    }
+    extraInfo = 'Prioridad Normal • En revisión técnica';
+  }
+  // 7. Match Payment/Invoice messages
+  else if (item.category === 'PAYMENT' || /factura/i.test(rawMsg)) {
+    const amtMatch = rawMsg.match(/\$\s*[\d.,]+/);
+    toolName = rawMsg.replace(/#\([^\)]+\)/g, '').replace(/Factura legal generada\.?/i, '').trim();
+    if (amtMatch) {
+      extraInfo = `${amtMatch[0]} COP • Factura electrónica DIAN`;
+    }
+  }
+  // 8. Generic fallback: clean any raw UUIDs
+  else {
+    toolName = rawMsg.replace(/\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\b/g, (m) => formatShortCode(m, 'RNT'));
+  }
+
+  // If toolName is still empty, fallback cleanly
+  if (!toolName) {
+    toolName = rawMsg.replace(/\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\b/g, (m) => formatShortCode(m, 'RNT'));
+  }
+
+  // If code was not extracted but message has a code/UUID, grab it
+  if (!code) {
+    const anyUuid = rawMsg.match(/\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\b/);
+    if (anyUuid) {
+      code = formatShortCode(anyUuid[1], item.category === 'PAYMENT' ? 'FAC' : 'RNT');
+    } else {
+      const anyCode = rawMsg.match(/\b(RNT-[A-Z0-9]+|FAC-[A-Z0-9]+|GAR-[A-Z0-9-]+|RMB-[A-Z0-9-]+)\b/i);
+      if (anyCode) {
+        code = formatShortCode(anyCode[1]);
+      }
+    }
+  }
+
+  return {
+    title,
+    toolName,
+    code,
+    extraInfo
+  };
+}
+
 export function renderNotificationsMenu() {
   const container = document.getElementById('notifications-menu-container');
   if (!container) return;
@@ -139,7 +298,7 @@ export function renderNotificationsMenu() {
         </div>
 
         <!-- Notifications List -->
-        <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-100 overscroll-contain">
+        <div class="max-h-[380px] overflow-y-auto custom-scrollbar-slim divide-y divide-slate-100 overscroll-contain">
           ${filtered.length === 0 ? `
             <div class="p-8 text-center space-y-2">
               <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
@@ -169,10 +328,15 @@ export function renderNotificationsMenu() {
               badgeClass = 'bg-rose-50/80 text-rose-600 border-rose-100';
             }
 
+            const parsed = parseNotificationDetails(item);
+            const isUnread = !item.read;
+
             return `
               <div 
-                class="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group notif-item opacity-0 ${
-                  !item.read ? 'bg-orange-50/15' : 'bg-white'
+                class="p-3.5 transition-colors flex items-start gap-3 cursor-pointer group notif-item opacity-0 ${
+                  isUnread 
+                    ? 'bg-orange-50/35 hover:bg-orange-50/60 border-l-[3px] border-[#F97316]' 
+                    : 'bg-white hover:bg-slate-50/80 border-l-[3px] border-transparent'
                 }"
                 data-id="${item.id}"
                 data-link="${item.link || '#/client'}"
@@ -182,50 +346,73 @@ export function renderNotificationsMenu() {
                   ${renderIcon(icon, 'w-4 h-4')}
                 </div>
 
-                <!-- Message Body -->
-                <div class="flex-1 min-w-0 pr-1">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <h4 class="text-xs leading-snug ${!item.read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">
-                      ${item.title}
+                <!-- Structured 3-Row Body -->
+                <div class="flex-1 min-w-0">
+                  <!-- Fila 1: Título de la notificación + Timestamp + Dot naranja / Botón Papelera alineado -->
+                  <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-xs leading-snug truncate ${isUnread ? 'font-bold text-[#0B2239]' : 'font-medium text-slate-700'}">
+                      ${parsed.title}
                     </h4>
-                    <div class="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
-                      <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                        ${item.timeAgo}
-                      </span>
-                      ${!item.read ? `
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#ea580c]" title="No leída"></span>
-                      ` : ''}
+                    
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <!-- Slot fijo para TimeAgo y Delete sin desplazamiento de layout -->
+                      <div class="relative flex items-center justify-end min-w-[70px]">
+                        <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap transition-opacity group-hover:opacity-0 pointer-events-none">
+                          ${item.timeAgo || 'Hace un momento'}
+                        </span>
+                        <button 
+                          class="btn-delete-notif absolute right-0 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 p-0.5 rounded transition-all cursor-pointer" 
+                          data-id="${item.id}"
+                          title="Eliminar notificación"
+                        >
+                          ${renderIcon('Trash2', 'w-3.5 h-3.5')}
+                        </button>
+                      </div>
+                      ${isUnread ? `
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#F97316] flex-shrink-0" title="No leída"></span>
+                      ` : `
+                        <span class="w-1.5 h-1.5 flex-shrink-0 opacity-0 pointer-events-none"></span>
+                      `}
                     </div>
                   </div>
-                  <p class="text-[11px] leading-relaxed line-clamp-2 ${!item.read ? 'text-slate-600 font-normal' : 'text-slate-400'}">
-                    ${item.message}
-                  </p>
-                </div>
 
-                <!-- Delete on hover -->
-                <div class="flex items-center flex-shrink-0 pt-0.5">
-                  <button 
-                    class="btn-delete-notif opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1 rounded transition-all cursor-pointer" 
-                    data-id="${item.id}"
-                    title="Eliminar notificación"
-                  >
-                    ${renderIcon('Trash2', 'w-3.5 h-3.5')}
-                  </button>
+                  <!-- Fila 2: Nombre de la herramienta en una línea limpia -->
+                  <p class="text-xs font-medium text-slate-700 truncate mt-0.5">
+                    ${parsed.toolName}
+                  </p>
+
+                  <!-- Fila 3: Píldoras de metadatos (Código corto + Fechas / Monto) -->
+                  <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    ${parsed.code ? `
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                        parsed.code.startsWith('FAC') 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200/80' 
+                          : 'bg-slate-100 text-slate-700 border border-slate-200/80'
+                      }">
+                        ${parsed.code}
+                      </span>
+                    ` : ''}
+                    ${parsed.extraInfo ? `
+                      <span class="text-[11px] text-slate-500 font-medium truncate">
+                        ${parsed.extraInfo}
+                      </span>
+                    ` : ''}
+                  </div>
                 </div>
               </div>
             `;
           }).join('')}
         </div>
 
-        <!-- Footer Actions -->
-        <div class="p-2.5 px-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end text-[11px]">
+        <!-- Fixed Full-Width Footer -->
+        <div class="w-full py-3 px-4 bg-slate-50/95 backdrop-blur-sm border-t border-slate-200/80 flex items-center justify-center rounded-b-2xl">
           <a 
             href="#/client" 
             id="link-go-client-rentals"
-            class="font-bold text-[#ea580c] hover:text-[#c2410c] transition-colors flex items-center gap-1"
+            class="text-xs font-bold text-[#F97316] hover:text-[#ea580c] transition-colors flex items-center gap-1.5 cursor-pointer select-none"
           >
             <span>Ver mis alquileres</span>
-            <span>&rarr;</span>
+            <span aria-hidden="true">&rarr;</span>
           </a>
         </div>
       `}

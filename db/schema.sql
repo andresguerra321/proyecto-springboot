@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS rentals (
     deposit NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (deposit >= 0),
     total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+    delivery_address VARCHAR(200),
+    contact_phone VARCHAR(30),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_rental_dates CHECK (end_date >= start_date)

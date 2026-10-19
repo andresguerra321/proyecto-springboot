@@ -149,7 +149,19 @@ export async function renderProviderDashboard() {
   const providerId = providerProfile?.id || (isAdmin ? null : user?.id);
 
   // State variables
-  let activeTab = 'inventory'; // 'inventory' | 'requests' | 'maintenance' | 'finances' | 'profile'
+  const getInitialTabFromHash = () => {
+    const hash = window.location.hash || '';
+    const qIndex = hash.indexOf('?');
+    if (qIndex !== -1) {
+      const params = new URLSearchParams(hash.slice(qIndex + 1));
+      const tab = params.get('tab');
+      if (tab === 'dispatch' || tab === 'despacho' || tab === 'requests' || tab === 'orders') return 'requests';
+      if (['inventory', 'requests', 'maintenance', 'finances', 'profile'].includes(tab)) return tab;
+    }
+    return 'inventory';
+  };
+
+  let activeTab = getInitialTabFromHash(); // 'inventory' | 'requests' | 'maintenance' | 'finances' | 'profile'
   let viewMode = 'table'; // default to high-density CRM table
   let inventorySearch = '';
   let inventoryCategory = 'ALL';
@@ -200,6 +212,8 @@ export async function renderProviderDashboard() {
 
   function switchTab(newTab) {
     activeTab = newTab;
+    const currentHash = window.location.hash.split('?')[0] || '#/provider';
+    window.history.replaceState(null, '', `${currentHash}?tab=${newTab}`);
     container.querySelectorAll('.crm-tab-btn').forEach(btn => {
       const isActive = btn.dataset.tab === activeTab;
       btn.className = `crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${
@@ -215,6 +229,7 @@ export async function renderProviderDashboard() {
     const rentedTools = toolsList.filter(t => t.status === 'RENTED').length;
     const maintenanceTools = toolsList.filter(t => t.status === 'MAINTENANCE').length;
     const pendingRequests = requestsList.filter(r => r.status === 'PENDING').length;
+    const readyToDispatch = requestsList.filter(r => r.status === 'CONFIRMED').length;
     const activeRentals = requestsList.filter(r => r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED').length;
     const completedRentals = requestsList.filter(r => r.status === 'COMPLETED').length;
     const totalBilled = requestsList
@@ -240,7 +255,18 @@ export async function renderProviderDashboard() {
     const bInv = container.querySelector('#badge-count-inventory');
     if (bInv) bInv.textContent = totalTools;
     const bReq = container.querySelector('#badge-count-requests');
-    if (bReq) bReq.textContent = requestsList.length;
+    if (bReq) {
+      if (readyToDispatch > 0) {
+        bReq.textContent = `${readyToDispatch} por despachar`;
+        bReq.className = 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-100 text-blue-800 border border-blue-300 font-bold';
+      } else if (pendingRequests > 0) {
+        bReq.textContent = `${pendingRequests} pend.`;
+        bReq.className = 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-orange-100 text-orange-800 border border-orange-300 font-bold';
+      } else {
+        bReq.textContent = requestsList.length;
+        bReq.className = 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-100 text-zinc-600 border border-zinc-200';
+      }
+    }
     const activeClaims = claimsList.filter(c => c.status !== 'RESOLVED' && c.status !== 'REJECTED').length;
     const bMaint = container.querySelector('#badge-count-maintenance');
     if (bMaint) {
@@ -257,6 +283,7 @@ export async function renderProviderDashboard() {
     const rentedTools = toolsList.filter(t => t.status === 'RENTED').length;
     const maintenanceTools = toolsList.filter(t => t.status === 'MAINTENANCE').length;
     const pendingRequests = requestsList.filter(r => r.status === 'PENDING').length;
+    const readyToDispatch = requestsList.filter(r => r.status === 'CONFIRMED').length;
     const activeRentals = requestsList.filter(r => r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED').length;
     const completedRentals = requestsList.filter(r => r.status === 'COMPLETED').length;
     const totalBilled = requestsList
@@ -328,25 +355,29 @@ export async function renderProviderDashboard() {
               </div>
             </div>
 
-            <!-- KPI 2: Alquileres Activos -->
-            <div class="crm-card p-4 flex items-center justify-between group hover:border-zinc-300 transition-colors">
+            <!-- KPI 2: Alquileres Activos y Despachos -->
+            <div id="card-kpi-active-rentals" class="crm-card p-4 flex items-center justify-between group hover:border-blue-400 transition-colors cursor-pointer" title="Ver despachos a obra y alquileres activos">
               <div class="space-y-1">
                 <span class="text-xs text-zinc-500 font-normal">Alquileres Activos</span>
                 <div id="kpi-active-rentals" class="text-2xl font-semibold text-zinc-900 tabular-nums tracking-tight font-display">
                   ${activeRentals}
                 </div>
                 <div class="flex items-center gap-1.5 text-xs">
-                  <span class="text-emerald-600 font-medium">${rentedTools}</span>
-                  <span class="text-zinc-400 text-[11px]">equipos en faena</span>
+                  ${readyToDispatch > 0 ? `
+                    <span class="text-blue-600 font-bold flex items-center gap-1">${renderIcon('Truck', 'w-3 h-3')} ${readyToDispatch} por despachar</span>
+                  ` : `
+                    <span class="text-emerald-600 font-medium">${rentedTools}</span>
+                    <span class="text-zinc-400 text-[11px]">equipos en faena</span>
+                  `}
                 </div>
               </div>
               <div class="pl-2">
-                ${renderSparkline({ color: 'emerald', points: [4, 8, 7, 12, 16, 19, 24], width: 84, height: 36 })}
+                ${renderSparkline({ color: readyToDispatch > 0 ? 'blue' : 'emerald', points: [4, 8, 7, 12, 16, 19, 24], width: 84, height: 36 })}
               </div>
             </div>
 
             <!-- KPI 3: Solicitudes Pendientes -->
-            <div class="crm-card p-4 flex items-center justify-between group hover:border-zinc-300 transition-colors">
+            <div id="card-kpi-pending-requests" class="crm-card p-4 flex items-center justify-between group hover:border-orange-400 transition-colors cursor-pointer" title="Ver solicitudes por confirmar">
               <div class="space-y-1">
                 <span class="text-xs text-zinc-500 font-normal">Por Confirmar</span>
                 <div id="kpi-pending-requests" class="text-2xl font-semibold text-zinc-900 tabular-nums tracking-tight font-display">
@@ -396,9 +427,12 @@ export async function renderProviderDashboard() {
               </button>
 
               <button data-tab="requests" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${activeTab === 'requests' ? 'crm-tab-active' : 'crm-tab-inactive'}">
-                <span>Solicitudes y Alquileres</span>
-                <span id="badge-count-requests" class="px-1.5 py-0.2 rounded text-[10px] font-mono ${pendingRequests > 0 ? 'bg-orange-50 text-orange-700 border border-orange-200 font-medium' : 'bg-zinc-100 text-zinc-600 border border-zinc-200'}">
-                  ${requestsList.length}
+                <span class="flex items-center gap-1.5">
+                  ${renderIcon('Truck', 'w-3.5 h-3.5 ' + (activeTab === 'requests' ? 'text-orange-600' : 'text-zinc-400'))}
+                  <span>Despachos y Solicitudes</span>
+                </span>
+                <span id="badge-count-requests" class="px-1.5 py-0.5 rounded text-[10px] font-mono ${readyToDispatch > 0 ? 'bg-blue-100 text-blue-800 border border-blue-300 font-bold' : (pendingRequests > 0 ? 'bg-orange-100 text-orange-800 border border-orange-300 font-bold' : 'bg-zinc-100 text-zinc-600 border border-zinc-200')}">
+                  ${readyToDispatch > 0 ? `${readyToDispatch} por despachar` : (pendingRequests > 0 ? `${pendingRequests} pend.` : requestsList.length)}
                 </span>
               </button>
 
@@ -440,6 +474,16 @@ export async function renderProviderDashboard() {
     // Underline Tabs click handlers
     container.querySelectorAll('.crm-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // KPI cards click to jump to requests
+    container.querySelector('#card-kpi-active-rentals')?.addEventListener('click', () => {
+      requestsFilterStatus = readyToDispatch > 0 ? 'CONFIRMED' : 'ALL';
+      switchTab('requests');
+    });
+    container.querySelector('#card-kpi-pending-requests')?.addEventListener('click', () => {
+      requestsFilterStatus = 'PENDING';
+      switchTab('requests');
     });
 
     // Render active tab content
@@ -764,13 +808,13 @@ export async function renderProviderDashboard() {
                 Todas (${requestsList.length})
               </button>
               <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'PENDING' ? 'bg-orange-600 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="PENDING">
-                Pendientes (${pendingRequests})
+                Por Confirmar (${pendingRequests})
               </button>
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'CONFIRMED' ? 'bg-blue-600 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="CONFIRMED">
-                Listas Despacho (${requestsList.filter(r => r.status === 'CONFIRMED').length})
+              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${requestsFilterStatus === 'CONFIRMED' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="CONFIRMED">
+                🚚 Listas para Despacho (${requestsList.filter(r => r.status === 'CONFIRMED').length})
               </button>
               <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'IN_PROGRESS' ? 'bg-zinc-800 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="IN_PROGRESS">
-                En Curso (${requestsList.filter(r => r.status === 'IN_PROGRESS').length})
+                🏗️ En Obra / Faena (${requestsList.filter(r => r.status === 'IN_PROGRESS').length})
               </button>
               <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'COMPLETED' ? 'bg-emerald-600 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="COMPLETED">
                 Completadas (${completedRentals})
@@ -812,7 +856,7 @@ export async function renderProviderDashboard() {
                         <input type="checkbox" id="select-all-requests" class="w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" />
                       </th>
                       <th class="py-3 px-3 whitespace-nowrap">Código / Fecha</th>
-                      <th class="py-3 px-3 min-w-0">Cliente</th>
+                      <th class="py-3 px-3 min-w-0">Cliente / Destino en Obra</th>
                       <th class="py-3 px-3 min-w-0">Equipos Solicitados</th>
                       <th class="py-3 px-3 whitespace-nowrap">Periodo</th>
                       <th class="py-3 px-3 whitespace-nowrap hidden 2xl:table-cell">Prioridad</th>
@@ -846,7 +890,11 @@ export async function renderProviderDashboard() {
                           </td>
                           <td class="py-3 px-3 min-w-0">
                             <div class="font-medium text-zinc-900 group-hover:text-orange-600 transition-colors truncate max-w-[140px] xl:max-w-none">${clientName}</div>
-                            <div class="text-[11px] text-zinc-400 font-mono mt-0.5">${clientContact}</div>
+                            <div class="text-[11px] text-zinc-500 flex items-center gap-1 mt-0.5 truncate max-w-[180px] xl:max-w-none" title="${req.deliveryAddress || client?.address || 'Obra Principal'}">
+                              ${renderIcon('MapPin', 'w-3 h-3 text-orange-600 flex-shrink-0')}
+                              <span class="truncate">${req.deliveryAddress || client?.address || 'Obra Principal'}</span>
+                            </div>
+                            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${req.contactPhone || clientContact}</div>
                           </td>
                           <td class="py-3 px-3 min-w-0">
                             <div class="flex items-center gap-2">
@@ -881,7 +929,7 @@ export async function renderProviderDashboard() {
                                   ${renderIcon('X', 'w-3.5 h-3.5')}
                                 </button>
                               ` : req.status === 'CONFIRMED' ? `
-                                <button class="btn-dispatch-req bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}" title="Registrar despacho y salida hacia la obra">
+                                <button class="btn-dispatch-req bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-2.5 py-1 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}" title="Registrar despacho y generar remisión técnica hacia obra">
                                   ${renderIcon('Truck', 'w-3.5 h-3.5')}
                                   <span>Despachar a Obra</span>
                                 </button>
@@ -893,12 +941,18 @@ export async function renderProviderDashboard() {
                                   ${renderIcon('ClipboardCheck', 'w-3.5 h-3.5')}
                                   <span>Registrar Retorno</span>
                                 </button>
+                                <button class="btn-view-remission p-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer" data-id="${req.id}" title="Ver Remisión de Despacho">
+                                  ${renderIcon('FileText', 'w-3.5 h-3.5 text-blue-600')}
+                                </button>
                                 <button class="btn-shipment-tracker p-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Seguimiento de envío">
                                   ${renderIcon('Navigation', 'w-3.5 h-3.5')}
                                 </button>
                               ` : `
                                 <button class="btn-view-invoice border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs flex items-center gap-1 transition-colors cursor-pointer" data-id="${req.id}">
                                   ${renderIcon('FileText', 'w-3 h-3 text-zinc-400')} Factura
+                                </button>
+                                <button class="btn-view-remission p-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Ver Remisión de Despacho">
+                                  ${renderIcon('FileText', 'w-3.5 h-3.5 text-zinc-500')}
                                 </button>
                                 <button class="btn-shipment-tracker p-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Ver historial de entrega">
                                   ${renderIcon('Navigation', 'w-3.5 h-3.5')}
@@ -1383,7 +1437,7 @@ export async function renderProviderDashboard() {
           onPrimary = () => confirmRentalRequest(req.id);
         } else if (isConfirmed) {
           primaryText = 'Despachar a Obra';
-          onPrimary = () => dispatchRental(req.id);
+          onPrimary = () => openDispatchModal(req);
         } else if (isInProgress) {
           primaryText = 'Registrar Retorno';
           onPrimary = () => openReturnInspectionModal(req);
@@ -1401,7 +1455,8 @@ export async function renderProviderDashboard() {
           properties: [
             { icon: 'FileText', label: 'Código de Reserva', value: req.rentalCode || `#TR-${req.id.slice(0, 8)}` },
             { icon: 'User', label: 'Cliente Titular', value: client?.fullName || 'Cliente' },
-            { icon: 'Phone', label: 'Teléfono Contacto', value: client?.phone || '+57 300 123 4567' },
+            { icon: 'MapPin', label: 'Destino en Obra', value: req.deliveryAddress || client?.address || 'Calle 134 # 19-45, Bogotá D.C.' },
+            { icon: 'Phone', label: 'Contacto en Obra', value: req.contactPhone || client?.phone || '+57 300 123 4567' },
             { icon: 'Calendar', label: 'Periodo Alquiler', value: `${formatDate(req.startDate)} → ${formatDate(req.endDate)} (${req.totalDays || 1} días)` },
             { icon: 'DollarSign', label: 'Total Transacción', value: formatCurrency(req.totalAmount || 180000) },
             { icon: 'Layers', label: 'Herramienta', value: tool?.name || 'Equipo Industrial' },
@@ -1413,11 +1468,12 @@ export async function renderProviderDashboard() {
               navigator.clipboard.writeText(code).catch(() => {});
               showToast(`Código ${code} copiado al portapapeles`, 'success');
             } },
+            { icon: 'FileText', label: 'Ver Remisión de Despacho', action: () => openDispatchRemissionViewer(buildRemissionData(req)) },
             ...(tool ? [
               { icon: 'Layers', label: 'Ver Ficha de la Maquinaria', action: () => { window.location.hash = `#/product/${tool.id}`; } }
             ] : []),
             { icon: 'Phone', label: 'Contactar Cliente Titular', action: () => {
-              showToast(`Teléfono cliente: ${client?.phone || '+57 300 123 4567'}`, 'info');
+              showToast(`Teléfono cliente: ${req.contactPhone || client?.phone || '+57 300 123 4567'}`, 'info');
             } },
             { icon: 'Printer', label: 'Imprimir Resumen de Reserva', action: () => window.print() },
             ...(isPending ? [
@@ -1560,7 +1616,17 @@ export async function renderProviderDashboard() {
     tabContainer.querySelectorAll('.btn-dispatch-req').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        dispatchRental(btn.dataset.id);
+        const req = requestsList.find(r => r.id === btn.dataset.id);
+        if (req) openDispatchModal(req);
+      });
+    });
+
+    // View remission button
+    tabContainer.querySelectorAll('.btn-view-remission').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const req = requestsList.find(r => r.id === btn.dataset.id);
+        if (req) openDispatchRemissionViewer(buildRemissionData(req));
       });
     });
 
@@ -1737,16 +1803,408 @@ export async function renderProviderDashboard() {
     }
   }
 
+  function buildRemissionData(req, customLogistics = {}) {
+    const client = clientsList.find(c => c.id === req.clientId);
+    const firstItem = req?.items?.[0];
+    const tool = firstItem ? toolsList.find(t => t.id === firstItem.toolId) : null;
+    const remissionNumber = customLogistics.remissionNumber || `REM-2026-${(req.rentalCode?.replace(/[^a-zA-Z0-9]/g, '') || req.id.slice(0, 6)).toUpperCase()}`;
+
+    return {
+      remissionNumber,
+      issueDate: formatDate(new Date().toISOString().split('T')[0]),
+      rentalCode: req.rentalCode || `#TR-${req.id.slice(0, 8)}`,
+      provider: {
+        name: providerProfile?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.',
+        taxId: providerProfile?.taxId || '900.123.456-1',
+        address: providerProfile?.address || 'Av. Boyacá # 68-45, Bogotá D.C.',
+        phone: providerProfile?.phone || '+57 310 111 2233',
+        email: user?.email || 'contacto@maquinariabogota.com'
+      },
+      client: {
+        name: client?.fullName || 'Constructora Cliente S.A.S.',
+        taxId: client?.documentNumber ? `${client.documentType || 'CC'} ${client.documentNumber}` : 'CC 1018234567',
+        deliveryAddress: req.deliveryAddress || client?.address || 'Calle 134 # 19-45, Bogotá D.C.',
+        contactPhone: req.contactPhone || client?.phone || '+57 300 123 4567',
+        email: client?.email || 'cliente@constructora.com'
+      },
+      tool: {
+        name: tool?.name || firstItem?.toolName || 'Maquinaria Industrial',
+        brand: tool?.brand || 'Industrial',
+        model: tool?.model || 'Modelo Estándar',
+        serialNumber: tool?.serialNumber || 'SN-2026-BOG-01',
+        replacementValue: tool?.replacementValue || (tool?.dailyPrice ? tool.dailyPrice * 35 : 2500000)
+      },
+      rentalPeriod: {
+        startDate: formatDate(req.startDate),
+        endDate: formatDate(req.endDate),
+        days: req.totalDays || 1
+      },
+      logistics: {
+        carrier: customLogistics.carrier || 'Flota Logística ToolRent - Cuadrilla de Despacho',
+        driver: customLogistics.driver || 'Jorge Rivas (C.C. 79.845.120)',
+        plate: customLogistics.plate || 'WXZ-482 (Furgón NPR)',
+        driverPhone: customLogistics.driverPhone || '+57 312 456 7890',
+        notes: customLogistics.notes || 'Equipo probado en banco de prueba. Aceite, filtros y batería verificados al 100%. Sin fugas ni averías mecánicas. Accesorios y arneses de anclaje entregados completos.'
+      }
+    };
+  }
+
+  function openDispatchRemissionViewer(remission) {
+    const content = document.createElement('div');
+    content.className = 'bg-[#f1f5f9] p-4 sm:p-8 min-h-screen';
+
+    content.innerHTML = `
+      <div class="max-w-4xl mx-auto space-y-4">
+        <!-- Top Action Bar -->
+        <div class="flex items-center justify-between">
+          <button id="remission-btn-back" class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer">
+            ${renderIcon('ArrowLeft', 'w-4 h-4')} Volver
+          </button>
+          <div class="flex items-center gap-2">
+            <button id="remission-btn-print" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
+              ${renderIcon('Printer', 'w-3.5 h-3.5')} Imprimir Remisión Oficial
+            </button>
+          </div>
+        </div>
+
+        <!-- Printable Remission Paper Card -->
+        <div id="printable-remission-sheet" class="bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6 sm:p-12 space-y-6 font-sans text-slate-800">
+          
+          <!-- Header -->
+          <div class="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b border-slate-200">
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-[#ea580c] flex items-center justify-center text-white font-black text-base shadow-xs">T</span>
+                <div>
+                  <span class="text-lg font-black tracking-tight text-slate-900 font-display">ToolRent<span class="text-[#ea580c]">.co</span></span>
+                  <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Sistema de Remisiones y Despacho</span>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 font-medium">Comprobante Oficial de Salida de Bodega y Entrega en Obra</p>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 mb-1">
+                ${renderIcon('Truck', 'w-3.5 h-3.5')} Remisión de Entrega
+              </span>
+              <p class="text-xl font-black text-slate-900 font-mono tracking-tight">${remission.remissionNumber}</p>
+              <p class="text-[11px] text-slate-400">Fecha de Despacho: <strong class="text-slate-700">${remission.issueDate}</strong></p>
+              <p class="text-[11px] text-slate-400">Contrato: <strong class="text-slate-700 font-mono">${remission.rentalCode}</strong></p>
+            </div>
+          </div>
+
+          <!-- Parties Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+            <!-- Provider Info -->
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Proveedor / Bodega de Salida</span>
+              <p class="font-bold text-slate-900 text-sm">${remission.provider.name}</p>
+              <p class="text-slate-600 font-mono">NIT: ${remission.provider.taxId}</p>
+              <p class="text-slate-600">${remission.provider.address}</p>
+              <p class="text-slate-600">Tel: ${remission.provider.phone} • ${remission.provider.email}</p>
+            </div>
+
+            <!-- Client & Obra Destination -->
+            <div class="space-y-1.5 border-t sm:border-t-0 sm:border-l sm:pl-6 border-slate-200 pt-3 sm:pt-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-orange-600 block">Cliente Titular y Destino en Obra</span>
+              <p class="font-bold text-slate-900 text-sm">${remission.client.name}</p>
+              <p class="text-slate-600 font-mono">${remission.client.taxId}</p>
+              <p class="font-semibold text-slate-900 flex items-center gap-1">
+                ${renderIcon('MapPin', 'w-3.5 h-3.5 text-orange-600 flex-shrink-0')}
+                ${remission.client.deliveryAddress}
+              </p>
+              <p class="text-slate-600">Contacto en obra: <strong class="text-slate-900">${remission.client.contactPhone}</strong></p>
+            </div>
+          </div>
+
+          <!-- Equipment Table -->
+          <div class="space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Maquinaria Despachada para Alquiler</span>
+            <div class="border border-slate-200 rounded-xl overflow-hidden text-xs">
+              <table class="w-full text-left">
+                <thead class="bg-slate-100 text-slate-700 font-semibold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th class="py-2.5 px-3">Equipo / Descripción</th>
+                    <th class="py-2.5 px-3">Marca / Modelo</th>
+                    <th class="py-2.5 px-3">Serial / Chasis</th>
+                    <th class="py-2.5 px-3 text-center">Periodo en Obra</th>
+                    <th class="py-2.5 px-3 text-right">Estado de Salida</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr>
+                    <td class="py-3 px-3 font-semibold text-slate-900">
+                      ${remission.tool.name}
+                    </td>
+                    <td class="py-3 px-3 text-slate-600">
+                      ${remission.tool.brand} • ${remission.tool.model}
+                    </td>
+                    <td class="py-3 px-3 font-mono text-slate-600">
+                      ${remission.tool.serialNumber}
+                    </td>
+                    <td class="py-3 px-3 text-center text-slate-700 font-medium">
+                      ${remission.rentalPeriod.startDate} → ${remission.rentalPeriod.endDate} (${remission.rentalPeriod.days} días)
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        100% Operativo
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Logistics Info -->
+          <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Datos del Transporte y Despacho Logístico</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-700">
+              <div>
+                <span class="text-slate-400 block text-[10px]">Transportista / Cuadrilla:</span>
+                <span class="font-semibold text-slate-900">${remission.logistics.carrier}</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">Conductor y Teléfono:</span>
+                <span class="font-semibold text-slate-900">${remission.logistics.driver} (${remission.logistics.driverPhone})</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">Placa del Vehículo:</span>
+                <span class="font-mono font-bold text-slate-900">${remission.logistics.plate}</span>
+              </div>
+            </div>
+            <div class="pt-1.5 border-t border-slate-200/80">
+              <span class="text-slate-400 block text-[10px]">Observaciones Técnicas de Salida:</span>
+              <p class="text-slate-600 text-[11px] italic mt-0.5">${remission.logistics.notes}</p>
+            </div>
+          </div>
+
+          <!-- Legal & Signatures -->
+          <div class="space-y-4 pt-4 border-t border-slate-200">
+            <p class="text-[10px] text-slate-400 leading-relaxed text-justify">
+              El receptor en obra certifica haber recibido a satisfacción la maquinaria detallada en este documento, en perfecto estado mecánico, de seguridad y con sus accesorios completos. A partir de este momento, asume la custodia, operación conforme al manual del fabricante y reporte inmediato ante cualquier eventualidad o falla técnica dentro de la garantía establecida.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 text-center text-xs">
+              <div class="border-t border-slate-300 pt-2 space-y-0.5">
+                <span class="font-bold text-slate-900 block">Despachador de Bodega</span>
+                <span class="text-[10px] text-slate-500 block">Firma y Sello de Salida</span>
+              </div>
+              <div class="border-t border-slate-300 pt-2 space-y-0.5">
+                <span class="font-bold text-slate-900 block">${remission.logistics.driver.split('(')[0]}</span>
+                <span class="text-[10px] text-slate-500 block">Transportista Responsable</span>
+              </div>
+              <div class="border-t border-slate-300 pt-2 space-y-0.5">
+                <span class="font-bold text-slate-900 block">Residente / Receptor en Obra</span>
+                <span class="text-[10px] text-slate-500 block">Firma, C.C. y Fecha de Recepción</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    content.querySelector('#remission-btn-back')?.addEventListener('click', () => modal.close());
+    content.querySelector('#remission-btn-print')?.addEventListener('click', () => window.print());
+
+    modal.open({
+      title: '',
+      content: content,
+      maxWidth: 'max-w-4xl',
+      hideHeader: true
+    });
+  }
+
+  function openDispatchModal(req) {
+    const firstItem = req?.items?.[0];
+    const tool = firstItem ? toolsList.find(t => t.id === firstItem.toolId) : null;
+    const client = clientsList.find(c => c.id === req.clientId);
+    const toolImg = tool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200';
+
+    const deliveryAddress = req.deliveryAddress || client?.address || 'Calle 134 # 19-45, Bogotá D.C.';
+    const contactPhone = req.contactPhone || client?.phone || '+57 300 123 4567';
+    const clientName = client?.fullName || 'Constructora Cliente';
+    const defaultRemission = `REM-2026-${(req.rentalCode?.replace(/[^a-zA-Z0-9]/g, '') || req.id.slice(0, 6)).toUpperCase()}`;
+
+    const content = document.createElement('div');
+    content.className = 'space-y-4 text-xs animate-scale-in';
+
+    content.innerHTML = `
+      <div class="space-y-4 text-xs text-zinc-700">
+        <!-- Order Header Badge -->
+        <div class="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200/80 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <img src="${toolImg}" class="w-12 h-12 rounded-xl object-contain bg-white border border-zinc-200 p-1 flex-shrink-0" />
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-[11px] text-zinc-500 font-bold">${req.rentalCode || `#TR-${req.id.slice(0, 8)}`}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Listo para Despacho</span>
+              </div>
+              <h4 class="font-bold text-zinc-900 text-xs truncate mt-0.5">${tool?.name || 'Maquinaria de Construcción'}</h4>
+              <span class="text-[11px] text-zinc-500 font-medium">${tool?.brand || 'Industrial'} • Serie: ${tool?.serialNumber || 'N/A'}</span>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-[10px] text-zinc-400 block uppercase tracking-wider font-semibold">Periodo Alquiler</span>
+            <span class="font-medium text-zinc-800 text-[11px] block">${formatDate(req.startDate)} → ${formatDate(req.endDate)}</span>
+            <span class="text-[10px] text-orange-600 font-mono font-bold">${req.totalDays || 1} días en obra</span>
+          </div>
+        </div>
+
+        <!-- Obra Destination Card (from contract) -->
+        <div class="p-3.5 bg-orange-50/60 border border-orange-200/80 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-orange-900 flex items-center gap-1.5">
+              ${renderIcon('MapPin', 'w-3.5 h-3.5 text-orange-600')}
+              Destino y Residente en Obra (Contrato)
+            </span>
+            <span class="text-[10px] bg-white px-2 py-0.5 rounded-md border border-orange-200 text-orange-700 font-mono font-semibold">Validado en Pago</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-zinc-800">
+            <div class="bg-white/80 p-2.5 rounded-xl border border-orange-100">
+              <span class="text-[10px] text-zinc-400 block uppercase tracking-wide">Dirección de la Faena</span>
+              <span class="font-semibold text-zinc-900 text-xs flex items-center gap-1 mt-0.5">
+                ${deliveryAddress}
+              </span>
+            </div>
+            <div class="bg-white/80 p-2.5 rounded-xl border border-orange-100">
+              <span class="text-[10px] text-zinc-400 block uppercase tracking-wide">Contacto / Residente en Obra</span>
+              <span class="font-semibold text-zinc-900 text-xs flex items-center gap-1 mt-0.5">
+                ${clientName} • <span class="font-mono text-orange-700">${contactPhone}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logistics & Dispatch Form -->
+        <div class="space-y-3 bg-white p-3.5 border border-zinc-200/90 rounded-2xl shadow-2xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+              ${renderIcon('Truck', 'w-4 h-4 text-blue-600')}
+              Datos de Despacho y Transporte
+            </span>
+            <span class="font-mono text-[11px] text-zinc-500 font-semibold">Guía: <strong id="disp-remission-label" class="text-zinc-900">${defaultRemission}</strong></span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-zinc-700 text-[11px] mb-1">Empresa / Transportista</label>
+              <input type="text" id="dispatch-carrier" class="input-field text-xs" value="Flota Logística ToolRent - Cuadrilla de Despacho" placeholder="Nombre empresa transportista..." />
+            </div>
+            <div>
+              <label class="block font-medium text-zinc-700 text-[11px] mb-1">Nombre del Conductor</label>
+              <input type="text" id="dispatch-driver" class="input-field text-xs" value="Jorge Rivas (C.C. 79.845.120)" placeholder="Conductor responsable..." />
+            </div>
+            <div>
+              <label class="block font-medium text-zinc-700 text-[11px] mb-1">Placa Vehículo / Móvil</label>
+              <input type="text" id="dispatch-plate" class="input-field text-xs font-mono uppercase" value="WXZ-482 (Furgón NPR)" placeholder="Ej: WXZ-482..." />
+            </div>
+            <div>
+              <label class="block font-medium text-zinc-700 text-[11px] mb-1">Teléfono Conductor Móvil</label>
+              <input type="text" id="dispatch-driver-phone" class="input-field text-xs font-mono" value="+57 312 456 7890" placeholder="+57 300 000 0000" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-medium text-zinc-700 text-[11px] mb-1">Observaciones de Inspección Pre-Despacho</label>
+            <textarea id="dispatch-notes" class="input-field h-16 text-xs" placeholder="Estado del equipo al salir de bodega, nivel de fluidos, accesorios entregados...">Equipo probado en banco y 100% operativo. Fluidos verificados al máximo nivel, sin fugas ni defectos. Accesorios completos y manual técnico entregados.</textarea>
+          </div>
+
+          <!-- Quality Checklist -->
+          <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200/70 space-y-1.5">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Checklist de Salida de Bodega</span>
+            <label class="flex items-center gap-2 text-[11px] text-zinc-700 cursor-pointer">
+              <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0" />
+              <span>Inspección mecánica y prueba de encendido superadas</span>
+            </label>
+            <label class="flex items-center gap-2 text-[11px] text-zinc-700 cursor-pointer">
+              <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0" />
+              <span>Arneses, anclajes y accesorios de seguridad incluidos</span>
+            </label>
+            <label class="flex items-center gap-2 text-[11px] text-zinc-700 cursor-pointer">
+              <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0" />
+              <span>Acta de entrega física lista para firma del receptor en obra</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-zinc-100">
+          <button id="btn-cancel-dispatch" class="btn-secondary !py-2 !px-4 text-xs cursor-pointer">
+            Cancelar
+          </button>
+          <div class="flex items-center gap-2">
+            <button id="btn-preview-remission" class="px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs">
+              ${renderIcon('FileText', 'w-3.5 h-3.5 text-zinc-500')}
+              <span>Vista Previa Acta</span>
+            </button>
+            <button id="btn-confirm-dispatch-exec" class="btn-primary !py-2 !px-5 text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+              ${renderIcon('Truck', 'w-4 h-4')}
+              <span>Confirmar Despacho a Obra</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const getFormLogistics = () => ({
+      remissionNumber: defaultRemission,
+      carrier: content.querySelector('#dispatch-carrier')?.value?.trim() || 'Flota Logística ToolRent',
+      driver: content.querySelector('#dispatch-driver')?.value?.trim() || 'Jorge Rivas',
+      plate: content.querySelector('#dispatch-plate')?.value?.trim() || 'WXZ-482',
+      driverPhone: content.querySelector('#dispatch-driver-phone')?.value?.trim() || '+57 312 456 7890',
+      notes: content.querySelector('#dispatch-notes')?.value?.trim() || 'Salida conforme.'
+    });
+
+    content.querySelector('#btn-cancel-dispatch')?.addEventListener('click', () => modal.close());
+
+    content.querySelector('#btn-preview-remission')?.addEventListener('click', () => {
+      const remissionData = buildRemissionData(req, getFormLogistics());
+      openDispatchRemissionViewer(remissionData);
+    });
+
+    content.querySelector('#btn-confirm-dispatch-exec')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="inline-flex items-center gap-1.5">${renderIcon('Loader2', 'w-4 h-4 animate-spin')} Despachando...</span>`;
+
+      try {
+        await api.patch(`/rentals/${req.id}/start`);
+        req.status = 'IN_PROGRESS';
+        updateKpis();
+        renderTabContent();
+        modal.close();
+        showToast('¡Despacho registrado con éxito! El equipo ahora figura En Obra.', 'success');
+        const remissionData = buildRemissionData(req, getFormLogistics());
+        openDispatchRemissionViewer(remissionData);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `${renderIcon('Truck', 'w-4 h-4')} <span>Confirmar Despacho a Obra</span>`;
+        showToast(err.message || 'Error al registrar despacho', 'error');
+      }
+    });
+
+    modal.open({
+      title: `${renderIcon('Truck', 'w-4 h-4 text-blue-600')} Despacho y Remisión de Maquinaria hacia Obra`,
+      content: content,
+      maxWidth: 'max-w-2xl'
+    });
+  }
+
   async function dispatchRental(reqId) {
-    try {
-      await api.patch(`/rentals/${reqId}/start`);
-      const req = requestsList.find(r => r.id === reqId);
-      if (req) req.status = 'IN_PROGRESS';
-      updateKpis();
-      renderTabContent();
-      showToast('Entrega física registrada. Estado: En curso', 'success');
-    } catch (err) {
-      showToast(err.message || 'Error al registrar entrega', 'error');
+    const req = requestsList.find(r => r.id === reqId);
+    if (req) {
+      openDispatchModal(req);
+    } else {
+      try {
+        await api.patch(`/rentals/${reqId}/start`);
+        updateKpis();
+        renderTabContent();
+        showToast('Entrega física registrada', 'success');
+      } catch (err) {
+        showToast(err.message || 'Error al registrar entrega', 'error');
+      }
     }
   }
 
@@ -2000,16 +2458,16 @@ export async function renderProviderDashboard() {
         <!-- Shipment Address & Contact Info -->
         <div class="p-3 bg-zinc-50 border border-zinc-200/80 rounded-xl space-y-1.5 text-xs text-zinc-600">
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Destino de entrega:</span>
-            <span class="font-medium text-zinc-900">${client?.address || 'Obra Principal / Faena Centro'}, ${client?.city || 'Bogotá D.C.'}</span>
+            <span class="text-zinc-500">Destino de entrega en obra:</span>
+            <span class="font-medium text-zinc-900">${req.deliveryAddress || client?.address || 'Calle 134 # 19-45, Bogotá D.C.'}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Contacto en obra:</span>
-            <span class="font-medium text-zinc-900">${client?.fullName || 'Carlos Gómez'} (${client?.phone || '+57 300 123 4567'})</span>
+            <span class="text-zinc-500">Contacto / Residente en faena:</span>
+            <span class="font-medium text-zinc-900">${client?.fullName || 'Carlos Gómez'} (${req.contactPhone || client?.phone || '+57 300 123 4567'})</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-zinc-500">Vigencia contractual:</span>
-            <span class="font-medium text-zinc-900">${formatDate(req.startDate)} → ${formatDate(req.endDate)}</span>
+            <span class="font-medium text-zinc-900">${formatDate(req.startDate)} → ${formatDate(req.endDate)} (${req.totalDays || 1} días)</span>
           </div>
         </div>
 
@@ -2025,13 +2483,19 @@ export async function renderProviderDashboard() {
               </button>
             ` : isConfirmed ? `
               <button id="btn-tracker-advance" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
-                ${renderIcon('Truck', 'w-3.5 h-3.5')} Despachar y Registrar Entrega en Obra
+                ${renderIcon('Truck', 'w-3.5 h-3.5')} Despachar y Generar Remisión a Obra
               </button>
             ` : isInProgress ? `
+              <button id="btn-tracker-remission" class="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                ${renderIcon('FileText', 'w-3.5 h-3.5 text-blue-600')} Ver Remisión
+              </button>
               <button id="btn-tracker-advance" class="bg-amber-600 hover:bg-amber-500 text-white rounded-xl px-5 py-2 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
                 ${renderIcon('ClipboardCheck', 'w-3.5 h-3.5')} Registrar Retorno e Inspeccionar
               </button>
             ` : `
+              <button id="btn-tracker-remission" class="px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                ${renderIcon('FileText', 'w-3.5 h-3.5 text-zinc-500')} Ver Remisión
+              </button>
               <button id="btn-tracker-invoice" class="btn-primary !py-2 !px-5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
                 ${renderIcon('FileText', 'w-3.5 h-3.5')} Ver Factura Oficial
               </button>
@@ -2046,6 +2510,10 @@ export async function renderProviderDashboard() {
     content.querySelector('#btn-tracker-reject')?.addEventListener('click', async () => {
       modal.close();
       await rejectRentalRequest(req.id);
+    });
+
+    content.querySelector('#btn-tracker-remission')?.addEventListener('click', () => {
+      openDispatchRemissionViewer(buildRemissionData(req));
     });
 
     content.querySelector('#btn-tracker-invoice')?.addEventListener('click', () => {
@@ -2063,8 +2531,8 @@ export async function renderProviderDashboard() {
           await confirmRentalRequest(req.id);
           modal.close();
         } else if (isConfirmed) {
-          await dispatchRental(req.id);
           modal.close();
+          openDispatchModal(req);
         } else if (isInProgress) {
           modal.close();
           openReturnInspectionModal(req);

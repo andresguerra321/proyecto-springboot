@@ -273,7 +273,7 @@ export async function renderHomeView() {
   }
 
   const isUserProvider = auth.isProvider();
-  const manageHref = isUserProvider ? '#/provider' : '#/client';
+  const manageHref = isUserProvider ? '#/provider?tab=requests' : '#/client';
 
   container.innerHTML = `
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 pb-16">
@@ -489,10 +489,10 @@ export async function renderHomeView() {
               </div>
 
               <!-- 2. Progreso Minimalista: Dinámico según estado real -->
-              <div class="md:col-span-12 lg:col-span-4 lg:px-2 order-3 lg:order-2 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
+              <a href="${manageHref}" class="block md:col-span-12 lg:col-span-4 lg:px-2 order-3 lg:order-2 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 group cursor-pointer" title="Ver gestión y trazabilidad del despacho">
                 <div class="flex items-center justify-between text-xs mb-2">
-                  <span class="font-semibold text-slate-900">${shippingTitle}</span>
-                  <span class="text-slate-400 font-medium">${shippingStepText}</span>
+                  <span class="font-semibold text-slate-900 group-hover:text-[#ea580c] transition-colors">${shippingTitle}</span>
+                  <span class="text-slate-400 font-medium group-hover:text-slate-600 transition-colors">${shippingStepText} &rarr;</span>
                 </div>
                 
                 <!-- Barra ultrafina en naranja de marca -->
@@ -507,7 +507,7 @@ export async function renderHomeView() {
                   <span class="${isStep3Active ? 'text-[#ea580c] font-bold' : (activeRental?.status === 'COMPLETED' ? 'text-slate-700 font-medium' : 'text-slate-400')}">En obra</span>
                   <span class="${isStep4Active ? 'text-[#ea580c] font-bold' : 'text-slate-400'}">Retorno</span>
                 </div>
-              </div>
+              </a>
 
               <!-- 3. Precio y Acciones: items-start sm:items-end text-left sm:text-right con touch-targets de 42px -->
               <div class="md:col-span-5 lg:col-span-3 flex flex-col sm:flex-row md:flex-col items-start sm:items-end justify-between gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 order-2 lg:order-3">

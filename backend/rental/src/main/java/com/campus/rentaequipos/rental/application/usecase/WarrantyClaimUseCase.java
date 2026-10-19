@@ -9,6 +9,8 @@ import com.campus.rentaequipos.rental.domain.model.Rental;
 import com.campus.rentaequipos.rental.domain.model.WarrantyClaim;
 import com.campus.rentaequipos.rental.domain.repository.RentalRepository;
 import com.campus.rentaequipos.rental.domain.repository.WarrantyClaimRepository;
+import com.campus.rentaequipos.rental.domain.model.RentalStatus;
+import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException;
 import com.campus.rentaequipos.shared.domain.exception.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,24 +40,78 @@ public class WarrantyClaimUseCase {
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", rentalId));
 
+        if (rental.getStatus() == RentalStatus.CANCELLED) {
+            throw new BusinessRuleViolationException("No es posible radicar reclamos o garantías sobre un contrato de alquiler cancelado.");
+        }
+
         UUID toolId = request.toolId();
         if (toolId == null && !rental.getItems().isEmpty()) {
             toolId = rental.getItems().get(0).getToolId();
+        } else if (toolId != null && !rental.getItems().isEmpty()) {
+            final UUID checkId = toolId;
+            boolean belongsToRental = rental.getItems().stream().anyMatch(i -> i.getToolId().equals(checkId));
+            if (!belongsToRental) {
+                throw new BusinessRuleViolationException("La maquinaria seleccionada no corresponde a los equipos amparados en este contrato de alquiler.");
+            }
         }
 
-        String ticketNumber = "GAR-2026-" + ((int) (1000 + Math.random() * 9000));
+        String claimType = request.claimType() != null ? request.claimType().toUpperCase() : "EXCHANGE";
+        String ticketPrefix = "REFUND".equalsIgnoreCase(claimType) ? "RMB-2026-" : "GAR-2026-";
+        String ticketNumber = ticketPrefix + ((int) (1000 + Math.random() * 9000));
+
+        // Validación y autocompletado estricto con los datos de entrega de la compra original
+        if (rental.getDeliveryAddress() != null && !rental.getDeliveryAddress().trim().isEmpty()) {
+            if (request.deliveryAddress() != null && !request.deliveryAddress().trim().isEmpty()) {
+                String reqNorm = request.deliveryAddress().trim().replaceAll("\\s+", " ").toLowerCase();
+                String rentNorm = rental.getDeliveryAddress().trim().replaceAll("\\s+", " ").toLowerCase();
+                if (!reqNorm.equals(rentNorm)) {
+                    throw new BusinessRuleViolationException("La dirección de entrega no coincide con la registrada en la compra (" + rental.getDeliveryAddress() + ").");
+                }
+            }
+        }
+
+        if (rental.getContactPhone() != null && !rental.getContactPhone().trim().isEmpty()) {
+            if (request.contactPhone() != null && !request.contactPhone().trim().isEmpty()) {
+                String reqDigits = request.contactPhone().replaceAll("\\D", "");
+                String rentDigits = rental.getContactPhone().replaceAll("\\D", "");
+                if (!reqDigits.isEmpty() && !rentDigits.isEmpty() && !reqDigits.equals(rentDigits)) {
+                    throw new BusinessRuleViolationException("El teléfono de contacto no coincide con el registrado en la compra (" + rental.getContactPhone() + ").");
+                }
+            }
+        }
+
+        String deliveryAddress = request.deliveryAddress();
+        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
+            deliveryAddress = rental.getDeliveryAddress();
+        }
+        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
+            deliveryAddress = "Calle 134 # 19-45, Bogotá D.C.";
+        }
+
+        String contactPhone = request.contactPhone();
+        if (contactPhone == null || contactPhone.trim().isEmpty()) {
+            contactPhone = rental.getContactPhone();
+        }
+        if (contactPhone == null || contactPhone.trim().isEmpty()) {
+            contactPhone = "3001234567";
+        }
+
+        if ("REFUND".equalsIgnoreCase(claimType) && rental.getStatus() == RentalStatus.PENDING) {
+            rental.cancel();
+            rentalRepository.save(rental);
+        }
 
         WarrantyClaim claim = new WarrantyClaim(
                 UUID.randomUUID(),
                 ticketNumber,
                 rental.getId(),
                 toolId,
-                request.claimType() != null ? request.claimType() : "EXCHANGE",
-                request.faultType() != null ? request.faultType() : "MOTOR",
+                claimType,
+                request.faultType() != null ? request.faultType() : ("REFUND".equalsIgnoreCase(claimType) ? "SOLICITUD_REEMBOLSO" : "MOTOR"),
                 request.urgency() != null ? request.urgency() : "NORMAL",
-                request.description(),
-                request.contactPhone(),
-                request.deliveryAddress(),
+                request.description() != null ? request.description() : "Solicitud radicada bajo contrato " + rental.getRentalCode(),
+                contactPhone,
+                deliveryAddress,
                 "OPEN",
                 null,
                 LocalDateTime.now(),

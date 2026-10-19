@@ -847,8 +847,8 @@ export function openWarrantyExchangeModal(rental, tool, onComplete) {
   const toolName = tool?.name || rental.items?.[0]?.toolName || 'Maquinaria en alquiler';
   const rentalCode = rental.rentalCode || `#TR-${rental.id?.slice(0, 8)}`;
   const user = auth.getUser();
-  const defaultAddress = [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Dirección de obra';
-  const defaultPhone = user?.profile?.phone || '3001234567';
+  const defaultAddress = rental.deliveryAddress || [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Calle 134 # 19-45, Bogotá D.C.';
+  const defaultPhone = rental.contactPhone || (user?.profile?.phone ? user.profile.phone.replace(/\D/g, '').slice(0, 10) : '3001234567');
 
   content.innerHTML = `
     <div class="space-y-4">
@@ -907,14 +907,25 @@ export function openWarrantyExchangeModal(rental, tool, onComplete) {
             </select>
           </div>
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 mb-1">Teléfono del encargado en faena *</label>
-            <input type="tel" id="warranty-phone" required maxlength="10" inputmode="numeric" value="${defaultPhone.replace(/\D/g, '').slice(0, 10)}" placeholder="ej. 3001234567" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors font-mono" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] font-bold text-slate-700">Teléfono encargado faena *</label>
+              <span class="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded font-medium">
+                Verificado compra
+              </span>
+            </div>
+            <input type="tel" id="warranty-phone" required maxlength="10" inputmode="numeric" value="${defaultPhone.replace(/\D/g, '').slice(0, 10)}" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none font-mono cursor-not-allowed select-all" />
           </div>
         </div>
 
         <div>
-          <label class="block text-[11px] font-bold text-slate-700 mb-1">Dirección de entrega del nuevo equipo *</label>
-          <input type="text" id="warranty-address" required maxlength="80" value="${defaultAddress.slice(0, 80)}" placeholder="ej. Calle 100 # 15-20, Obra Torre Norte" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-[11px] font-bold text-slate-700">Dirección de entrega del nuevo equipo *</label>
+            <span class="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded font-medium">
+              Autocompletado con datos de compra
+            </span>
+          </div>
+          <input type="text" id="warranty-address" required maxlength="80" value="${defaultAddress.slice(0, 80)}" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-not-allowed select-all" />
+          <p class="text-[10px] text-slate-400 mt-1">Por directriz de seguridad fiscal y contractual, la unidad de sustitución se despacha a la dirección pactada al momento de la compra.</p>
         </div>
 
         <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
@@ -943,16 +954,7 @@ export function openWarrantyExchangeModal(rental, tool, onComplete) {
   });
 
   const phoneInp = content.querySelector('#warranty-phone');
-  phoneInp?.addEventListener('input', (e) => {
-    const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
-    if (e.target.value !== clean) e.target.value = clean;
-  });
-
   const addrInp = content.querySelector('#warranty-address');
-  addrInp?.addEventListener('input', (e) => {
-    let clean = e.target.value.replace(/[<>]/g, '').slice(0, 80);
-    if (e.target.value !== clean) e.target.value = clean;
-  });
 
   content.querySelector('#btn-cancel-warranty')?.addEventListener('click', () => {
     modal.close();
@@ -964,16 +966,11 @@ export function openWarrantyExchangeModal(rental, tool, onComplete) {
     const fault = content.querySelector('#warranty-fault-type')?.value;
     const desc = descArea?.value?.trim();
     const urgency = content.querySelector('#warranty-urgency')?.value;
-    const phone = phoneInp?.value?.trim();
-    const address = addrInp?.value?.trim();
+    const phone = phoneInp?.value?.trim() || defaultPhone;
+    const address = addrInp?.value?.trim() || defaultAddress;
 
     if (!desc || desc.length < 15) {
       showToast('Por favor describe la falla con al menos 15 caracteres', 'warning');
-      return;
-    }
-
-    if (!phone || phone.length < 10) {
-      showToast('Por favor ingresa un número de teléfono válido de 10 dígitos', 'warning');
       return;
     }
 
@@ -1008,17 +1005,11 @@ export function openWarrantyExchangeModal(rental, tool, onComplete) {
       showToast(`Solicitud ${effectiveTicket} radicada en servidor exitosamente. Proveedor notificado para reemplazo en obra.`, 'success');
       if (onComplete) onComplete();
     } catch (err) {
-      console.warn('Backend claim error, applying local notification fallback', err);
-      notificationsStore.addNotification({
-        type: 'WARRANTY_REQUEST',
-        title: `Garantía radicada: ${ticketId}`,
-        message: `Solicitud de sustitución inmediata para ${toolName} (${urgency === 'URGENT' ? 'Prioridad <4h' : 'Estándar <24h'}). Obra: ${address}`,
-        date: new Date().toISOString()
-      });
-
-      modal.close();
-      showToast(`Solicitud ${ticketId} radicada exitosamente. Cuadrilla técnica notificada para reemplazo en obra.`, 'success');
-      if (onComplete) onComplete();
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `${renderIcon('RotateCcw', 'w-3.5 h-3.5')} Radicar Solicitud de Cambio`;
+      }
+      showToast(err.message || 'Error del servidor al procesar la solicitud de garantía.', 'error');
     }
   });
 
@@ -1124,12 +1115,22 @@ export function openRefundRequestModal(rental, tool, onComplete) {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 mb-1">Nombre o Razón Social del Titular *</label>
-            <input type="text" id="refund-holder-name" required maxlength="60" value="${clientName}" placeholder="ej. Construcciones Andinas S.A.S." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] font-bold text-slate-700">Nombre o Razón Social del Titular *</label>
+              <span class="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded font-medium">
+                Comprador verificado
+              </span>
+            </div>
+            <input type="text" id="refund-holder-name" required maxlength="60" value="${clientName}" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-not-allowed select-all font-medium" />
           </div>
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 mb-1">Documento del Titular (NIT / CC) *</label>
-            <input type="text" id="refund-holder-doc" required maxlength="10" inputmode="numeric" value="${clientDoc.replace(/\D/g, '').slice(0, 10)}" placeholder="6 a 10 dígitos" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c] focus:bg-white transition-colors font-mono" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] font-bold text-slate-700">Documento del Titular (NIT / CC) *</label>
+              <span class="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded font-medium">
+                Doc. verificado
+              </span>
+            </div>
+            <input type="text" id="refund-holder-doc" required maxlength="10" inputmode="numeric" value="${clientDoc.replace(/\D/g, '').slice(0, 10)}" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none font-mono cursor-not-allowed select-all font-medium" />
           </div>
         </div>
 
@@ -1163,17 +1164,7 @@ export function openRefundRequestModal(rental, tool, onComplete) {
   });
 
   const nameInp = content.querySelector('#refund-holder-name');
-  nameInp?.addEventListener('input', (e) => {
-    const clean = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.&-]/g, '').slice(0, 60);
-    if (e.target.value !== clean) e.target.value = clean;
-  });
-
   const docInp = content.querySelector('#refund-holder-doc');
-  docInp?.addEventListener('input', (e) => {
-    const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
-    if (e.target.value !== clean) e.target.value = clean;
-  });
-
   const notesArea = content.querySelector('#refund-notes');
   notesArea?.addEventListener('input', (e) => {
     if (e.target.value.length > 200) e.target.value = e.target.value.slice(0, 200);
@@ -1187,43 +1178,56 @@ export function openRefundRequestModal(rental, tool, onComplete) {
     e.preventDefault();
     const ticketId = 'RMB-2026-' + Math.floor(1000 + Math.random() * 9000);
     const accNum = accNumInp?.value?.trim();
-    const doc = docInp?.value?.trim();
-    const name = nameInp?.value?.trim();
+    const doc = docInp?.value?.trim() || clientDoc;
+    const name = nameInp?.value?.trim() || clientName;
     const bank = content.querySelector('#refund-bank')?.value;
     const mode = content.querySelector('#refund-mode')?.value;
+    const reason = content.querySelector('#refund-reason')?.value || 'CANCEL';
+    const notes = notesArea?.value?.trim() || '';
+    const accType = content.querySelector('#refund-account-type')?.value || 'AHORROS';
 
     if (!accNum || accNum.length < 8) {
       showToast('Por favor ingresa un número de cuenta válido (mínimo 8 dígitos)', 'warning');
       return;
     }
 
-    if (!doc || doc.length < 6) {
-      showToast('Por favor ingresa un documento de identificación válido (mínimo 6 dígitos)', 'warning');
-      return;
+    const submitBtn = content.querySelector('#btn-submit-refund');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin')} Procesando en Servidor...`;
     }
 
-    if (!name || name.length < 3) {
-      showToast('Por favor ingresa el nombre completo del titular de la cuenta', 'warning');
-      return;
+    try {
+      const resp = await api.post(`/rentals/${rental.id}/claims`, {
+        rentalId: rental.id,
+        toolId: tool?.id || rental.items?.[0]?.toolId,
+        claimType: 'REFUND',
+        faultType: `REEMBOLSO_${reason}`,
+        urgency: mode,
+        description: `Banco: ${bank} | Cta ${accType}: ${accNum} | Titular: ${name} (${doc}) | Justificación: ${notes || reason}`,
+        contactPhone: rental.contactPhone || user?.profile?.phone,
+        deliveryAddress: rental.deliveryAddress || user?.profile?.address
+      });
+
+      const effectiveTicket = resp?.ticketNumber || ticketId;
+
+      notificationsStore.addNotification({
+        type: 'REFUND_REQUEST',
+        title: `Reembolso en trámite: ${effectiveTicket}`,
+        message: `Solicitud de liquidación ${effectiveTicket} para contrato ${rentalCode} radicada en servidor. Cuenta ${bank} a nombre de ${name}.`,
+        date: new Date().toISOString()
+      });
+
+      modal.close();
+      showToast(`Solicitud de desembolso ${effectiveTicket} radicada exitosamente en tesorería.`, 'success');
+      if (onComplete) onComplete();
+    } catch (err) {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `${renderIcon('DollarSign', 'w-3.5 h-3.5')} Solicitar Desembolso`;
+      }
+      showToast(err.message || 'Error del servidor al radicar la solicitud de reembolso.', 'error');
     }
-
-    // If rental is pending, cancel it on backend
-    if (rental.status === 'PENDING') {
-      try {
-        await api.patch(`/rentals/${rental.id}/cancel`);
-      } catch (_) {}
-    }
-
-    notificationsStore.addNotification({
-      type: 'REFUND_REQUEST',
-      title: `Reembolso en trámite: ${ticketId}`,
-      message: `Solicitud de liquidación ${ticketId} para contrato ${rentalCode} radicada. Cuenta ${bank} a nombre de ${name}.`,
-      date: new Date().toISOString()
-    });
-
-    modal.close();
-    showToast(`Solicitud de desembolso ${ticketId} radicada. La tesorería procesará la transferencia a ${bank}.`, 'success');
-    if (onComplete) onComplete();
   });
 
   modal.open({

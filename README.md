@@ -47,6 +47,19 @@ erDiagram
     TOOLS ||--o{ DAMAGE_REPORTS : "equipo afectado"
 ```
 
+## 🗄️ Scripts de Base de Datos y Normalización (4FN)
+
+El modelo de datos cumple rigurosamente con la **Cuarta Forma Normal (4FN)** (eliminación total de dependencias multivaluadas) y cuenta con **al menos 20 registros por cada entidad** en sus conjuntos de datos semilla. Se proporcionan scripts listos para ejecución tanto en el entorno contenerizado activo (PostgreSQL) como en MySQL para verificación directa de evaluación:
+
+- 🐘 **PostgreSQL 16 (Motor Activo en Docker):**
+  - DDL Esquema 4FN: [`db/schema.sql`](db/schema.sql)
+  - DML Población Semilla ($\ge 20$ reg/entidad): [`db/data.sql`](db/data.sql)
+  - Migraciones Flyway: `backend/bootstrap/src/main/resources/db/migration/`
+- 🐬 **MySQL 8.0+ (Soporte Directo para Evaluación):**
+  - DDL Esquema 4FN: [`db/mysql_schema.sql`](db/mysql_schema.sql)
+  - DML Población Semilla ($\ge 20$ reg/entidad): [`db/mysql_data.sql`](db/mysql_data.sql)
+- 📖 **Justificación Teórica de 4FN y Métricas de Entidades:** [`db/README.md`](db/README.md)
+
 ## Cómo Clonar y Ejecutar
 ### Pre-requisitos
 - Docker y Docker Compose instalados.

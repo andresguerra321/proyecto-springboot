@@ -8,5 +8,11 @@ public record RentalRequest(
         UUID clientId,
         LocalDate startDate,
         LocalDate endDate,
-        List<UUID> toolIds
-) {}
+        List<UUID> toolIds,
+        String deliveryAddress,
+        String contactPhone
+) {
+    public RentalRequest(UUID clientId, LocalDate startDate, LocalDate endDate, List<UUID> toolIds) {
+        this(clientId, startDate, endDate, toolIds, null, null);
+    }
+}

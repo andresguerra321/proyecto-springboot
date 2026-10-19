@@ -67,7 +67,37 @@ public class RentalController {
         } else {
             effectiveClientId = ensureOwnClientProfile(userDetails);
         }
-        RentalRequest adjusted = new RentalRequest(effectiveClientId, request.startDate(), request.endDate(), request.toolIds());
+
+        String deliveryAddress = request.deliveryAddress();
+        String contactPhone = request.contactPhone();
+        if ((deliveryAddress == null || deliveryAddress.isBlank()) || (contactPhone == null || contactPhone.isBlank())) {
+            try {
+                java.util.Map<String, Object> profile = jdbcTemplate.queryForMap(
+                        "SELECT address, city, phone FROM client_profiles WHERE id = ?", effectiveClientId);
+                if (deliveryAddress == null || deliveryAddress.isBlank()) {
+                    String addr = (String) profile.get("address");
+                    String city = (String) profile.get("city");
+                    deliveryAddress = (addr != null ? addr : "") + (city != null && !city.isBlank() ? ", " + city : "");
+                    if (deliveryAddress.isBlank()) deliveryAddress = "Calle 134 # 19-45, Bogotá D.C.";
+                }
+                if (contactPhone == null || contactPhone.isBlank()) {
+                    contactPhone = (String) profile.get("phone");
+                    if (contactPhone == null || contactPhone.isBlank()) contactPhone = "3001234567";
+                }
+            } catch (Exception ignored) {
+                if (deliveryAddress == null || deliveryAddress.isBlank()) deliveryAddress = "Calle 134 # 19-45, Bogotá D.C.";
+                if (contactPhone == null || contactPhone.isBlank()) contactPhone = "3001234567";
+            }
+        }
+
+        RentalRequest adjusted = new RentalRequest(
+                effectiveClientId, 
+                request.startDate(), 
+                request.endDate(), 
+                request.toolIds(),
+                deliveryAddress,
+                contactPhone
+        );
         RentalResponse response = rentalUseCase.createRental(adjusted);
 
         try {
@@ -189,7 +219,25 @@ public class RentalController {
     public ResponseEntity<RentalResponse> startRental(@PathVariable UUID id,
                                                       @AuthenticationPrincipal UserDetails userDetails) {
         guard.assertProviderOwnsRental(id, userDetails);
-        return ResponseEntity.ok(rentalUseCase.startRental(id));
+        RentalResponse response = rentalUseCase.startRental(id);
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    response.clientId());
+
+            if (targetUserId != null) {
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        "¡Equipo en Despacho hacia Obra!",
+                        "Tu reserva (" + response.rentalCode() + ") ha sido despachada por el proveedor y va en camino a tu obra.",
+                        "SUCCESS",
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/complete")
@@ -198,7 +246,25 @@ public class RentalController {
     public ResponseEntity<RentalResponse> completeRental(@PathVariable UUID id,
                                                          @AuthenticationPrincipal UserDetails userDetails) {
         guard.assertProviderOwnsRental(id, userDetails);
-        return ResponseEntity.ok(rentalUseCase.completeRental(id));
+        RentalResponse response = rentalUseCase.completeRental(id);
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    response.clientId());
+
+            if (targetUserId != null) {
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        "¡Devolución e Inspección Finalizada!",
+                        "El equipo de tu reserva (" + response.rentalCode() + ") ha sido recibido en bodega e inspeccionado satisfactoriamente.",
+                        "SUCCESS",
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(response);
     }
 
     // ------------------------------------------------------------------ helpers

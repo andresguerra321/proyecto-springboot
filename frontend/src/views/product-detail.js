@@ -202,6 +202,7 @@ export async function renderProductPageView(toolId) {
   let startDate = null;
   let endDate = null;
   let daysCount = 0;
+  let selectedQuantity = 1;
 
   let tool = null;
   try {
@@ -301,7 +302,7 @@ export async function renderProductPageView(toolId) {
 
   function render() {
     const dailyPrice = tool.dailyPrice || 40000;
-    const totalAmount = dailyPrice * daysCount;
+    const totalAmount = dailyPrice * daysCount * selectedQuantity;
     const hasStock = (tool.availableStock > 0);
     const specsList = getCuratedToolSpecs(tool);
     const highlights = getCuratedToolHighlights(tool);
@@ -657,6 +658,30 @@ export async function renderProductPageView(toolId) {
                   </div>
                 </div>
 
+                <!-- Quantity Selector (Permite seleccionar 1, 2 o más unidades según disponibilidad) -->
+                <div class="space-y-1.5 ${tool.totalStock > 1 ? '' : 'hidden'}" id="product-quantity-container">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Cantidad de Unidades
+                    </label>
+                    <span class="text-[11px] text-slate-500 font-medium" id="product-qty-max-label">
+                      Máx. ${tool.availableStock} disponibles
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between bg-slate-50 border border-slate-200/90 rounded-2xl p-2 px-3">
+                    <span class="text-xs text-slate-600 font-medium">Equipos para la obra:</span>
+                    <div class="flex items-center gap-2">
+                      <button type="button" id="btn-product-qty-minus" class="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-700 font-bold transition-colors select-none">
+                        -
+                      </button>
+                      <span id="product-qty-display" class="font-bold text-sm text-slate-900 w-6 text-center tabular-nums">${selectedQuantity}</span>
+                      <button type="button" id="btn-product-qty-plus" class="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-700 font-bold transition-colors select-none">
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Dynamic Notice: ONLY shown when stock is NOT available for the selected dates -->
                 <div id="product-unavailability-banner" class="${hasStock ? 'hidden' : ''}">
                   <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 flex items-start gap-2.5">
@@ -670,8 +695,8 @@ export async function renderProductPageView(toolId) {
                 <!-- 3. Clean Total Calculation -->
                 <div class="pt-3 border-t border-slate-100 space-y-1.5" id="product-cost-box">
                   <div class="flex items-center justify-between text-xs text-slate-500">
-                    <span id="product-cost-formula">${daysCount} días × ${formatCurrency(dailyPrice)}</span>
-                    <span class="font-mono text-slate-700">${formatCurrency(totalAmount)}</span>
+                    <span id="product-cost-formula">${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}</span>
+                    <span class="font-mono text-slate-700" id="product-cost-subtotal">${formatCurrency(totalAmount)}</span>
                   </div>
                   <div class="flex items-baseline justify-between pt-1">
                     <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Total a pagar:</span>
@@ -789,8 +814,8 @@ export async function renderProductPageView(toolId) {
               <span class="font-extrabold text-base text-slate-900 tabular-nums">${formatCurrency(dailyPrice)}</span>
               <span class="text-[10px] text-slate-500">/ día</span>
             </div>
-            <div class="text-[10px] text-slate-400 truncate">
-              ${daysCount} días · Total ${formatCurrency(totalAmount)}
+            <div class="text-[10px] text-slate-400 truncate" id="mobile-cost-sub">
+              ${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(totalAmount)}
             </div>
           </div>
 
@@ -845,6 +870,39 @@ export async function renderProductPageView(toolId) {
       updateGalleryImage(activeImageIndex + 1);
     });
 
+    // Quantity selector buttons
+    const updateQuantityDisplay = () => {
+      const qtyDisplay = container.querySelector('#product-qty-display');
+      const costFormula = container.querySelector('#product-cost-formula');
+      const costSubtotal = container.querySelector('#product-cost-subtotal');
+      const costTotal = container.querySelector('#product-cost-total');
+      const mobileCostSub = container.querySelector('#mobile-cost-sub');
+      const total = dailyPrice * daysCount * selectedQuantity;
+
+      if (qtyDisplay) qtyDisplay.textContent = selectedQuantity;
+      if (costFormula) costFormula.textContent = `${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}`;
+      if (costSubtotal) costSubtotal.textContent = formatCurrency(total);
+      if (costTotal) costTotal.textContent = formatCurrency(total);
+      if (mobileCostSub) mobileCostSub.textContent = `${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(total)}`;
+    };
+
+    container.querySelector('#btn-product-qty-minus')?.addEventListener('click', () => {
+      if (selectedQuantity > 1) {
+        selectedQuantity--;
+        updateQuantityDisplay();
+      }
+    });
+
+    container.querySelector('#btn-product-qty-plus')?.addEventListener('click', () => {
+      const max = Math.max(1, tool.availableStock || 1);
+      if (selectedQuantity < max) {
+        selectedQuantity++;
+        updateQuantityDisplay();
+      } else {
+        showToast(`Solo hay ${max} unidades disponibles para este equipo`, 'info');
+      }
+    });
+
     // 2. Calendar Two-Block Popover Mounting & Wiring
     const popoverStart = container.querySelector('#product-popover-start');
     const popoverEnd = container.querySelector('#product-popover-end');
@@ -865,13 +923,18 @@ export async function renderProductPageView(toolId) {
         const displayEnd = container.querySelector('#display-end-date');
         const daysCounter = container.querySelector('#product-days-counter');
         const costFormula = container.querySelector('#product-cost-formula');
+        const costSubtotal = container.querySelector('#product-cost-subtotal');
         const costTotal = container.querySelector('#product-cost-total');
+        const mobileCostSub = container.querySelector('#mobile-cost-sub');
+        const total = dailyPrice * newDays * selectedQuantity;
 
         if (displayStart) displayStart.textContent = formatDate(newS);
         if (displayEnd) displayEnd.textContent = formatDate(newE);
         if (daysCounter) daysCounter.textContent = `${newDays} ${newDays === 1 ? 'día' : 'días'}`;
-        if (costFormula) costFormula.textContent = `${newDays} días × ${formatCurrency(dailyPrice)}`;
-        if (costTotal) costTotal.textContent = formatCurrency(dailyPrice * newDays);
+        if (costFormula) costFormula.textContent = `${newDays} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}`;
+        if (costSubtotal) costSubtotal.textContent = formatCurrency(total);
+        if (costTotal) costTotal.textContent = formatCurrency(total);
+        if (mobileCostSub) mobileCostSub.textContent = `${newDays} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(total)}`;
 
         // Real-time backend query for selected dates
         try {
@@ -941,6 +1004,13 @@ export async function renderProductPageView(toolId) {
       const btnContainer = container.querySelector('#product-btn-action-container');
       const hasStockNow = (tool.availableStock > 0);
 
+      // Clamp selected quantity to available stock
+      selectedQuantity = Math.max(1, Math.min(selectedQuantity, tool.availableStock || 1));
+      const qtyDisplay = container.querySelector('#product-qty-display');
+      const maxLabel = container.querySelector('#product-qty-max-label');
+      if (qtyDisplay) qtyDisplay.textContent = selectedQuantity;
+      if (maxLabel) maxLabel.textContent = `Máx. ${tool.availableStock} disponibles`;
+
       // 1. Single unified stock indicator pill
       if (stockStatusBox) {
         stockStatusBox.innerHTML = hasStockNow ? `
@@ -1008,7 +1078,8 @@ export async function renderProductPageView(toolId) {
 
       openRentalModal(tool, {
         initialStartDate: startDate,
-        initialEndDate: endDate
+        initialEndDate: endDate,
+        initialQuantity: selectedQuantity
       });
     };
 

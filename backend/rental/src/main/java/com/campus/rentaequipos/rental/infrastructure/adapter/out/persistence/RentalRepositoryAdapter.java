@@ -76,7 +76,9 @@ public class RentalRepositoryAdapter implements RentalRepository {
                 Money.of(entity.getDeposit()),
                 Money.of(entity.getTotalAmount()),
                 RentalStatus.valueOf(entity.getStatus()),
-                items
+                items,
+                entity.getDeliveryAddress(),
+                entity.getContactPhone()
         );
     }
 
@@ -103,7 +105,9 @@ public class RentalRepositoryAdapter implements RentalRepository {
                 rental.getDeposit().getAmount(),
                 rental.getTotalAmount().getAmount(),
                 rental.getStatus().name(),
-                items
+                items,
+                rental.getDeliveryAddress(),
+                rental.getContactPhone()
         );
     }
 }

@@ -14,6 +14,8 @@ import api from '../api/client.js';
 import auth from '../auth/state.js';
 import showToast from '../components/toast.js';
 import { openAuthModal } from '../components/auth-modal.js';
+import { renderIcon } from '../utils/icons.js';
+import { openTechnicalReturnGuideModal, openEmergencySupportModal } from '../utils/client-utilities-modals.js';
 
 export function getAboutHtml(stats = {}) {
   const isAuth = auth.isAuthenticated();
@@ -73,12 +75,16 @@ export function getAboutHtml(stats = {}) {
                 </svg>
               </a>
 
-              <a 
-                href="#how-it-works-section" 
-                class="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-white hover:bg-slate-100 text-[#0B2239] border border-slate-300 font-semibold text-sm transition-all duration-200 shadow-2xs"
+              <button 
+                id="btn-about-how-it-works" 
+                type="button" 
+                class="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-white hover:bg-slate-100 text-[#0B2239] border border-slate-300 font-semibold text-sm transition-all duration-200 shadow-2xs cursor-pointer select-none"
               >
                 <span>¿Cómo Funciona?</span>
-              </a>
+                <svg class="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
 
             <!-- Mini Garantías en Línea -->
@@ -394,99 +400,108 @@ export function getAboutHtml(stats = {}) {
 
 
     <!-- =========================================================================
-         BLOQUE 4: CÓMO FUNCIONA NUESTRA WEB (Pasos 01, 02, 03 con Números Gigantes)
+         BLOQUE 4: CÓMO FUNCIONA NUESTRA WEB (Flujo Interactivo Dual: Cliente y Proveedor)
          ========================================================================= -->
-    <section id="how-it-works-section" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="how-it-works-section" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
       
       <!-- Cabecera Centrada -->
-      <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-16 space-y-3">
-        <span class="text-xs font-extrabold text-[#F97316] uppercase tracking-widest font-display block">
-          FLUJO DIGITAL
+      <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-14 space-y-3">
+        <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-orange-100/90 text-[#ea580c] text-xs font-black uppercase tracking-widest font-display">
+          ${renderIcon('Workflow', 'w-3.5 h-3.5 text-[#ea580c]')}
+          Flujo Técnico y Contractual en 4 Fases
         </span>
-        <h2 class="text-3xl sm:text-4xl font-black text-[#0B2239] font-display tracking-tight">
-          Cómo Funciona Tool Rent
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0B2239] font-display tracking-tight">
+          Cómo Funciona ToolRent
         </h2>
-        <p class="text-slate-600 text-sm sm:text-base">
-          Tres simples pasos para equipar tu proyecto de construcción con máxima seguridad y rapidez.
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          De la selección digital de maquinaria al acta técnica de devolución en obra. Conoce el paso a paso diseñado para eliminar tiempos muertos y proteger tus recursos financieros.
         </p>
+
+        <!-- Selector de Perspectiva (Tabs Interactivas: Cliente vs Proveedor) -->
+        <div class="pt-4 flex justify-center">
+          <div class="inline-flex p-1.5 bg-slate-200/80 backdrop-blur-md rounded-2xl border border-slate-300/80 shadow-inner">
+            <button 
+              id="tab-how-client" 
+              type="button" 
+              class="how-it-works-tab-btn px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer bg-white text-[#0B2239] shadow-sm"
+              data-role="client"
+            >
+              ${renderIcon('HardHat', 'w-4 h-4 text-[#ea580c]')}
+              <span>Para Contratistas y Obras</span>
+            </button>
+            <button 
+              id="tab-how-provider" 
+              type="button" 
+              class="how-it-works-tab-btn px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer text-slate-600 hover:text-slate-900"
+              data-role="provider"
+            >
+              ${renderIcon('Building2', 'w-4 h-4 text-slate-400')}
+              <span>Para Dueños de Maquinaria</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Contenedor Blanco Elevado con Sombra Suave -->
-      <div class="bg-white rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl border border-slate-100 max-w-6xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          
-          <!-- Paso 01 -->
-          <div class="relative bg-slate-50/70 border border-slate-200/80 rounded-2xl p-6 transition-all duration-300 hover:bg-white hover:border-[#F97316]/50 hover:shadow-lg hover:-translate-y-1 group cursor-default">
-            <!-- Número gigante en naranja pálido en la esquina superior -->
-            <div class="text-6xl font-black text-orange-500/20 group-hover:text-orange-500/30 font-display select-none transition-colors duration-200 leading-none mb-4">
-              01
-            </div>
-            
-            <div class="space-y-2 relative z-10">
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-orange-100/60 text-[#F97316] text-[11px] font-bold uppercase tracking-wider mb-1">
-                Paso 1
-              </div>
-              <h3 class="text-lg font-bold text-[#0B2239] group-hover:text-[#F97316] transition-colors">
-                Reserva y Fechas
-              </h3>
-              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Filtra herramientas por categoría, verifica disponibilidad en el calendario y solicita tu reserva en segundos sin trámites innecesarios.
-              </p>
-            </div>
-          </div>
+      <!-- Contenedor Principal de Pasos Dinámicos -->
+      <div id="how-it-works-content-mount" class="space-y-8">
+        <!-- Rendered dynamically by script (Client by default) -->
+      </div>
 
-          <!-- Paso 02 -->
-          <div class="relative bg-slate-50/70 border border-slate-200/80 rounded-2xl p-6 transition-all duration-300 hover:bg-white hover:border-[#F97316]/50 hover:shadow-lg hover:-translate-y-1 group cursor-default">
-            <!-- Número gigante en naranja pálido en la esquina superior -->
-            <div class="text-6xl font-black text-orange-500/20 group-hover:text-orange-500/30 font-display select-none transition-colors duration-200 leading-none mb-4">
-              02
-            </div>
-            
-            <div class="space-y-2 relative z-10">
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-orange-100/60 text-[#F97316] text-[11px] font-bold uppercase tracking-wider mb-1">
-                Paso 2
-              </div>
-              <h3 class="text-lg font-bold text-[#0B2239] group-hover:text-[#F97316] transition-colors">
-                Pago y Facturación
-              </h3>
-              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Realiza tu pago en línea de forma segura y descarga tu factura o comprobante legal al instante para tu control contable de obra.
-              </p>
-            </div>
+      <!-- Línea de Confianza y Garantías Institucionales -->
+      <div class="mt-10 p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-center lg:justify-between gap-4 text-xs text-slate-600">
+        <div class="flex items-center gap-2.5 font-medium">
+          <div class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+            ${renderIcon('ShieldCheck', 'w-3.5 h-3.5')}
           </div>
-
-          <!-- Paso 03 -->
-          <div class="relative bg-slate-50/70 border border-slate-200/80 rounded-2xl p-6 transition-all duration-300 hover:bg-white hover:border-[#F97316]/50 hover:shadow-lg hover:-translate-y-1 group cursor-default">
-            <!-- Número gigante en naranja pálido en la esquina superior -->
-            <div class="text-6xl font-black text-orange-500/20 group-hover:text-orange-500/30 font-display select-none transition-colors duration-200 leading-none mb-4">
-              03
-            </div>
-            
-            <div class="space-y-2 relative z-10">
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-orange-100/60 text-[#F97316] text-[11px] font-bold uppercase tracking-wider mb-1">
-                Paso 3
-              </div>
-              <h3 class="text-lg font-bold text-[#0B2239] group-hover:text-[#F97316] transition-colors">
-                Uso y Devolución
-              </h3>
-              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Recibe el equipo en obra y devuélvelo al finalizar el periodo con validación transparente de estado y cierre de acta digital.
-              </p>
-            </div>
+          <span><strong class="text-slate-800">Custodia Escrow:</strong> Fondos retenidos hasta entrega conforme.</span>
+        </div>
+        <div class="flex items-center gap-2.5 font-medium">
+          <div class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 border border-blue-100">
+            ${renderIcon('FileCheck', 'w-3.5 h-3.5')}
           </div>
+          <span><strong class="text-slate-800">Facturación DIAN:</strong> Válida para deducción contable.</span>
+        </div>
+        <div class="flex items-center gap-2.5 font-medium">
+          <div class="w-6 h-6 rounded-lg bg-orange-50 text-[#ea580c] flex items-center justify-center flex-shrink-0 border border-orange-100">
+            ${renderIcon('RotateCcw', 'w-3.5 h-3.5')}
+          </div>
+          <span><strong class="text-slate-800">Garantía en Faena:</strong> Sustitución técnica en &lt;24h.</span>
+        </div>
+      </div>
 
+      <!-- Bloque de Acción Principal y Enlaces de Asistencia (CTA Destacado y Espacioso) -->
+      <div class="mt-4 p-6 sm:p-8 bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="space-y-1 text-center lg:text-left">
+          <h4 class="text-base sm:text-lg font-black text-[#0B2239] font-display">
+            ¿Listo para poner en marcha tu proyecto u obra?
+          </h4>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Reserva maquinaria verificada con despacho directo y respaldo contractual 100% legal.
+          </p>
         </div>
 
-        <!-- Indicador de Flujo Inferior -->
-        <div class="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span class="font-medium text-slate-700">Garantía de reembolso si el equipo no cumple con la ficha técnica solicitada</span>
-          </div>
-          <a href="#/catalog" class="font-bold text-[#F97316] hover:text-[#ea580c] flex items-center gap-1">
-            <span>Iniciar ahora</span>
+        <div class="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
+          <button 
+            id="btn-about-return-protocol" 
+            type="button" 
+            class="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+          >
+            ${renderIcon('ClipboardCheck', 'w-4 h-4 text-slate-500')}
+            <span>Protocolo de Devolución</span>
+          </button>
+          <button 
+            id="btn-about-emergency-support" 
+            type="button" 
+            class="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+          >
+            ${renderIcon('Wrench', 'w-4 h-4 text-slate-500')}
+            <span>Soporte en Terreno</span>
+          </button>
+          <a 
+            href="#/catalog" 
+            class="px-7 py-3.5 rounded-xl bg-[#F97316] hover:bg-[#ea580c] text-white text-sm font-black flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-orange-500/25 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer whitespace-nowrap"
+          >
+            <span>Explorar Catálogo</span>
             <span aria-hidden="true">&rarr;</span>
           </a>
         </div>
@@ -851,6 +866,352 @@ export async function renderAboutView() {
   const displayTools = rawToolsCount < 20 ? 320 + rawToolsCount : rawToolsCount;
   const displayProviders = rawProvidersCount < 20 ? 45 + rawProvidersCount : rawProvidersCount;
 
+function getHowItWorksCardsHtml(role = 'client') {
+  if (role === 'client') {
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in relative">
+        <!-- Paso 01 -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            01
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('Calendar', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 01 · Selección</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Búsqueda y Disponibilidad Real
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Localiza maquinaria certificada con confirmación instantánea de stock en bodega.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Disponibilidad 100% garantizada</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-orange-100 text-[#ea580c] flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Liquidación por días de uso</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 02 -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            02
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('ShieldCheck', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 02 · Transacción</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Contrato Digital y Escrow
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Formaliza el alquiler en segundos con pasarela en línea y depósito en custodia.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Fondos protegidos en Escrow</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Factura legal con QR y CUFE DIAN</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 03 -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            03
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('Truck', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 03 · Logística</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Despacho y Remisión a Obra
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Entrega en tu obra con prueba técnica de encendido, chofer y placa asignados.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Chofer y placa verificados</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Remisión y checklist técnico</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 04 -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            04
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('RotateCcw', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 04 · Cierre</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Soporte en Faena y Reintegro
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Sustitución inmediata ante averías y reintegro ágil del depósito de garantía.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Sustitución en obra &lt;24 horas</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-orange-100 text-[#ea580c] flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Reembolso 100% en 24-48h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in relative">
+        <!-- Paso 01 Proveedor -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            01
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('Layers', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 01 · Inventario</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Publicación y Tarificación
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Registra tu flota con horómetros, fichas técnicas y tarifas autogestionadas.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Tarifas y stock autogestionados</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-orange-100 text-[#ea580c] flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Bodegas y sedes en tiempo real</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 02 Proveedor -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            02
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('CheckCircle2', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 02 · Garantía</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Órdenes Pagadas y Validadas
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Atiende solicitudes corporativas con canon y depósito ya recaudados en custodia.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Cero riesgo de cartera morosa</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Empresas y obras pre-verificadas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 03 Proveedor -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Conector de flujo lógico hacia el siguiente paso en desktop -->
+          <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 items-center justify-center shadow-xs group-hover:border-orange-300 group-hover:text-[#ea580c] transition-colors pointer-events-none">
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </div>
+
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            03
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('Truck', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 03 · Despacho</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Remisión Oficial de Salida
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Genera la guía formal de despacho con firmas digitales y checklist técnico.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">3 firmas legales requeridas</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Checklist técnico pre-despacho</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 04 Proveedor -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 flex flex-col justify-between group relative">
+          <!-- Número grande de fondo con opacidad-5 (marca de agua tipográfica) -->
+          <div class="absolute -top-3 -right-3 text-7xl font-black text-slate-900/5 group-hover:text-slate-900/10 font-display select-none transition-colors duration-300 pointer-events-none">
+            04
+          </div>
+
+          <div class="space-y-3.5 relative z-10">
+            <!-- Icono sobrio unificado con acento naranja en hover -->
+            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-[#0B2239] flex items-center justify-center shadow-2xs group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-[#ea580c] transition-all duration-200">
+              ${renderIcon('DollarSign', 'w-6 h-6')}
+            </div>
+
+            <div>
+              <span class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">Fase 04 · Liquidación</span>
+              <h3 class="text-base sm:text-lg font-black text-[#0B2239] mt-0.5 group-hover:text-[#ea580c] transition-colors leading-snug">
+                Inspección y Pago Bancario
+              </h3>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed font-normal">
+              Recepciona el equipo devuelto y recibe la dispersión directa en tu cuenta bancaria.
+            </p>
+          </div>
+
+          <!-- Micro-píldoras de beneficio directo -->
+          <div class="pt-3 mt-4 border-t border-slate-100 relative z-10 space-y-2">
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Dispersión bancaria nacional</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50/90 border border-slate-200/70 text-xs text-slate-700 font-medium shadow-2xs">
+              <span class="w-4 h-4 rounded-full bg-orange-100 text-[#ea580c] flex items-center justify-center flex-shrink-0 text-[10px] font-bold">✓</span>
+              <span class="truncate">Póliza de respaldo ante daños</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
   container.innerHTML = getAboutHtml(stats);
   initStatsCounter({
     rentalsTarget: displayRentals,
@@ -858,7 +1219,51 @@ export async function renderAboutView() {
     providersTarget: displayProviders
   });
 
-  // Enlazar modal o apertura de registro para el botón de proveedor
+  // 1. Botón Hero ¿Cómo Funciona? -> smooth scroll hacia #how-it-works-section
+  const btnHow = document.getElementById('btn-about-how-it-works');
+  if (btnHow) {
+    btnHow.addEventListener('click', () => {
+      document.getElementById('how-it-works-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  // 2. Tabs dinámicas de Cómo Funciona (Cliente vs Proveedor)
+  const tabClient = document.getElementById('tab-how-client');
+  const tabProvider = document.getElementById('tab-how-provider');
+  const mountHow = document.getElementById('how-it-works-content-mount');
+
+  function updateHowItWorksMount(role) {
+    if (!mountHow) return;
+    mountHow.innerHTML = getHowItWorksCardsHtml(role);
+
+    if (role === 'client') {
+      tabClient?.classList.add('bg-white', 'text-[#0B2239]', 'shadow-sm', 'font-bold');
+      tabClient?.classList.remove('text-slate-600', 'font-medium');
+      tabProvider?.classList.remove('bg-white', 'text-[#0B2239]', 'shadow-sm', 'font-bold');
+      tabProvider?.classList.add('text-slate-600', 'font-medium');
+    } else {
+      tabProvider?.classList.add('bg-white', 'text-[#0B2239]', 'shadow-sm', 'font-bold');
+      tabProvider?.classList.remove('text-slate-600', 'font-medium');
+      tabClient?.classList.remove('bg-white', 'text-[#0B2239]', 'shadow-sm', 'font-bold');
+      tabClient?.classList.add('text-slate-600', 'font-medium');
+    }
+  }
+
+  updateHowItWorksMount('client');
+
+  tabClient?.addEventListener('click', () => updateHowItWorksMount('client'));
+  tabProvider?.addEventListener('click', () => updateHowItWorksMount('provider'));
+
+  // 3. Modales de Protocolo de Devolución y Soporte de Emergencia
+  document.getElementById('btn-about-return-protocol')?.addEventListener('click', () => {
+    openTechnicalReturnGuideModal();
+  });
+
+  document.getElementById('btn-about-emergency-support')?.addEventListener('click', () => {
+    openEmergencySupportModal();
+  });
+
+  // 4. Enlazar modal o apertura de registro para el botón de proveedor
   const btnProvider = document.getElementById('btn-about-provider-register');
   if (btnProvider) {
     btnProvider.addEventListener('click', () => {

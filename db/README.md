@@ -70,8 +70,19 @@ El diseño del modelo relacional se fundamenta en los principios de normalizaci�
 
 ---
 
-## 🗃️ Versionamiento con Flyway
+## 🗃️ Versionamiento con Flyway y Scripts Multi-Motor
 
-Las migraciones de base de datos se encuentran versionadas bajo el estándar de Flyway en:
-- `bootstrap/src/main/resources/db/migration/V1__create_schema.sql`: Creación de extensiones, tablas, restricciones e índices.
-- `bootstrap/src/main/resources/db/migration/V2__seed_data.sql`: Población inicial con datos consistentes y hashes de contraseñas con BCrypt.
+### 1. PostgreSQL 16 (Motor Activo en Contenedor Docker)
+- DDL 4FN: [`db/schema.sql`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/db/schema.sql)
+- DML Semilla ($\ge 20$ registros): [`db/data.sql`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/db/data.sql)
+- Migraciones Flyway:
+  - `bootstrap/src/main/resources/db/migration/V1__create_schema.sql`
+  - `bootstrap/src/main/resources/db/migration/V2__seed_data.sql`
+  - `bootstrap/src/main/resources/db/migration/V3__fix_tools_and_images.sql`
+  - `bootstrap/src/main/resources/db/migration/V4__user_notifications.sql`
+  - `bootstrap/src/main/resources/db/migration/V5__add_rental_delivery_info.sql`
+
+### 2. MySQL 8.0+ (Soporte Directo para Evaluación)
+- DDL 4FN: [`db/mysql_schema.sql`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/db/mysql_schema.sql)
+- DML Semilla ($\ge 20$ registros): [`db/mysql_data.sql`](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/db/mysql_data.sql)
+

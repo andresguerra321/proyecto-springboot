@@ -106,7 +106,9 @@ public class RentalUseCase {
                 deposit,
                 totalAmount,
                 RentalStatus.PENDING,
-                items
+                items,
+                request.deliveryAddress(),
+                request.contactPhone()
         );
 
         Rental savedRental = rentalRepository.save(rental);
@@ -195,11 +197,21 @@ public class RentalUseCase {
                 }
             }
         } else {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            DateRange todayRange = new DateRange(today, today);
             for (Tool unit : allUnits) {
-                if (unit.getStatus() == ToolStatus.AVAILABLE) {
-                    availableUnits.add(unit);
-                } else {
+                if (unit.getStatus() == ToolStatus.MAINTENANCE || unit.getStatus() == ToolStatus.RETIRED) {
                     reservedUnits.add(unit);
+                    continue;
+                }
+                boolean overlapsToday = activeRentals.stream()
+                        .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(unit.getId())))
+                        .anyMatch(r -> r.getDateRange().overlaps(todayRange));
+
+                if (overlapsToday || unit.getStatus() == ToolStatus.RENTED) {
+                    reservedUnits.add(unit);
+                } else {
+                    availableUnits.add(unit);
                 }
             }
         }
@@ -210,13 +222,65 @@ public class RentalUseCase {
         boolean isAvailable = availableStock > 0;
         List<UUID> availableToolIds = availableUnits.stream().map(Tool::getId).collect(Collectors.toList());
 
-        List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto> bookedRanges = activeRentals.stream()
-                .map(r -> new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto(
-                        r.getDateRange().getStartDate(),
-                        r.getDateRange().getEndDate()
-                ))
-                .distinct()
+        // Un rango de fechas solo se considera "bloqueado / no disponible" en el calendario
+        // si TODAS las unidades operativas de este modelo se encuentran ocupadas simultáneamente.
+        // Si hay 2 unidades y una está ocupada pero la otra libre, el equipo NO se bloquea
+        // porque aún hay inventario libre para reservar.
+        List<Tool> operationalUnits = allUnits.stream()
+                .filter(u -> u.getStatus() != ToolStatus.MAINTENANCE && u.getStatus() != ToolStatus.RETIRED)
                 .collect(Collectors.toList());
+        int totalOperational = operationalUnits.size();
+
+        List<com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto> bookedRanges = new ArrayList<>();
+        if (totalOperational > 0 && !activeRentals.isEmpty()) {
+            java.time.LocalDate minStart = null;
+            java.time.LocalDate maxEnd = null;
+            for (Rental r : activeRentals) {
+                if (minStart == null || r.getDateRange().getStartDate().isBefore(minStart)) {
+                    minStart = r.getDateRange().getStartDate();
+                }
+                if (maxEnd == null || r.getDateRange().getEndDate().isAfter(maxEnd)) {
+                    maxEnd = r.getDateRange().getEndDate();
+                }
+            }
+
+            java.time.LocalDate horizonLimit = java.time.LocalDate.now().plusDays(365);
+            if (minStart != null && maxEnd != null) {
+                if (maxEnd.isAfter(horizonLimit)) {
+                    maxEnd = horizonLimit;
+                }
+                java.time.LocalDate rangeStart = null;
+                java.time.LocalDate cur = minStart;
+                while (!cur.isAfter(maxEnd)) {
+                    final java.time.LocalDate day = cur;
+                    long rentedUnitsCount = operationalUnits.stream()
+                            .filter(unit -> activeRentals.stream()
+                                    .filter(r -> r.getItems().stream().anyMatch(item -> item.getToolId().equals(unit.getId())))
+                                    .anyMatch(r -> !day.isBefore(r.getDateRange().getStartDate()) && !day.isAfter(r.getDateRange().getEndDate()))
+                            ).count();
+
+                    boolean fullyBooked = (rentedUnitsCount >= totalOperational);
+                    if (fullyBooked) {
+                        if (rangeStart == null) {
+                            rangeStart = day;
+                        }
+                    } else {
+                        if (rangeStart != null) {
+                            bookedRanges.add(new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto(
+                                    rangeStart, day.minusDays(1)
+                            ));
+                            rangeStart = null;
+                        }
+                    }
+                    cur = cur.plusDays(1);
+                }
+                if (rangeStart != null) {
+                    bookedRanges.add(new com.campus.rentaequipos.rental.application.dto.ToolAvailabilityResponse.DateRangeDto(
+                            rangeStart, maxEnd
+                    ));
+                }
+            }
+        }
 
         String message;
         if (tool.getStatus() == ToolStatus.MAINTENANCE || tool.getStatus() == ToolStatus.RETIRED) {
@@ -363,7 +427,9 @@ public class RentalUseCase {
                 rental.getDeposit().getAmount(),
                 rental.getTotalAmount().getAmount(),
                 rental.getStatus().name(),
-                itemResponses
+                itemResponses,
+                rental.getDeliveryAddress(),
+                rental.getContactPhone()
         );
     }
 }

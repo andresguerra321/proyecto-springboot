@@ -35,7 +35,7 @@ export async function openRentalModal(tool, options = {}) {
   let endDate = options.initialEndDate || formatDateInput(endDefault);
   let isCheckingAvailability = false;
   let isAvailable = true;
-  let quantity = 1;
+  let quantity = options.initialQuantity || 1;
   let totalStock = tool.totalStock || 1;
   let availableStock = tool.availableStock || 1;
   let reservedStock = tool.reservedStock || 0;
@@ -539,7 +539,9 @@ export async function openCheckoutModal(tool, rentalData) {
   content.className = 'p-6 space-y-5 bg-white text-slate-800';
 
   let currentMethod = 'CREDIT_CARD';
-  let pendingRental = rentalData.existingRental || null;
+  const user = auth.getUser();
+  const defaultDeliveryAddress = rentalData.deliveryAddress || [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Calle 134 # 19-45, Bogotá D.C.';
+  const defaultContactPhone = rentalData.contactPhone || (user?.profile?.phone ? user.profile.phone.replace(/\D/g, '').slice(0, 10) : '3001234567');
 
   function renderPaymentFields(method) {
     if (method === 'CREDIT_CARD') {
@@ -750,6 +752,46 @@ export async function openCheckoutModal(tool, rentalData) {
         </div>
       </div>
 
+      <!-- Delivery and Contact Information (Dirección de obra y contacto para el contrato oficial) -->
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            ${renderIcon('MapPin', 'w-3.5 h-3.5 text-[#ea580c]')} Datos de Entrega y Operación en Faena
+          </label>
+          <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-medium">
+            Garantía & Sustitución en Obra
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de Entrega en Obra *</label>
+            <input 
+              type="text" 
+              id="checkout-delivery-address" 
+              required 
+              maxlength="100" 
+              class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" 
+              value="${defaultDeliveryAddress}" 
+              placeholder="ej. Calle 134 # 19-45, Obra Torre Norte" 
+            />
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono Encargado en Obra *</label>
+            <input 
+              type="tel" 
+              id="checkout-contact-phone" 
+              required 
+              maxlength="10" 
+              inputmode="numeric" 
+              class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ea580c]" 
+              value="${defaultContactPhone}" 
+              placeholder="ej. 3001234567" 
+            />
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-400">Esta información vinculará formalmente el acta de entrega, garantías por falla técnica y liquidación del depósito.</p>
+      </div>
+
       <!-- Payment Method Selection -->
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Selecciona Método de Pago</label>
@@ -894,6 +936,26 @@ export async function openCheckoutModal(tool, rentalData) {
       }
     }
 
+    // Validación de datos de entrega en obra y teléfono de contacto
+    const addrInp = content.querySelector('#checkout-delivery-address');
+    const phoneInp = content.querySelector('#checkout-contact-phone');
+
+    const addressVal = (addrInp?.value || '').trim();
+    if (!addressVal || addressVal.length < 5) {
+      errBox.textContent = 'Por favor ingresa la dirección completa de entrega en obra (mínimo 5 caracteres).';
+      errBox.classList.remove('hidden');
+      addrInp?.focus();
+      return;
+    }
+
+    const phoneDigits = (phoneInp?.value || '').replace(/\D/g, '');
+    if (phoneDigits.length < 7 || phoneDigits.length > 10) {
+      errBox.textContent = 'Por favor ingresa un teléfono válido de contacto en obra (7 a 10 dígitos numéricos).';
+      errBox.classList.remove('hidden');
+      phoneInp?.focus();
+      return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = `${renderIcon('Loader2', 'w-4 h-4 animate-spin inline mr-1.5')} Procesando pago seguro...`;
 
@@ -907,9 +969,13 @@ export async function openCheckoutModal(tool, rentalData) {
           clientId: user.profile?.id || user.id,
           startDate: rentalData.startDate,
           endDate: rentalData.endDate,
-          toolIds: (rentalData.selectedToolIds && rentalData.selectedToolIds.length > 0) ? rentalData.selectedToolIds : [tool.id]
+          toolIds: (rentalData.selectedToolIds && rentalData.selectedToolIds.length > 0) ? rentalData.selectedToolIds : [tool.id],
+          deliveryAddress: addressVal,
+          contactPhone: phoneDigits
         };
         pendingRental = await api.post('/rentals', rentalPayload);
+        pendingRental.deliveryAddress = pendingRental.deliveryAddress || addressVal;
+        pendingRental.contactPhone = pendingRental.contactPhone || phoneDigits;
       }
 
       // 2. Determine official billed amount matching backend invoice (subtotal * 1.19)
@@ -930,12 +996,16 @@ export async function openCheckoutModal(tool, rentalData) {
 
       const paymentResult = await api.post('/billing/payments', paymentPayload);
 
-      // Trigger Notification in Notification Center and Toast
+      // Trigger Notification in Notification Center and Toast (differentiated from rental confirmation)
+      const shortCode = pendingRental.rentalCode 
+        ? pendingRental.rentalCode.replace('RNT-', 'FAC-')
+        : `FAC-${String(pendingRental.id).slice(0, 6).toUpperCase()}`;
+
       notificationsStore.add({
         category: 'PAYMENT',
         type: 'success',
-        title: '¡Alquiler y Pago Confirmados!',
-        message: `Has reservado ${tool.name} (#${pendingRental.id}) por ${formatCurrency(billedAmount)}. Factura legal generada.`,
+        title: 'Factura Digital Generada',
+        message: `Factura ${shortCode} emitida por ${formatCurrency(billedAmount)} para ${tool.name}. Comprobante fiscal y CUFE legal disponibles.`,
         link: '#/client'
       });
 
@@ -1012,8 +1082,8 @@ function showSuccessModal(rental, payment, tool, rentalData) {
         name: user?.fullName || user?.username || 'Cliente ToolRent',
         taxId: user?.documentNumber || '1.032.456.789',
         email: user?.email || 'cliente@toolrent.com',
-        phone: user?.phone || '+57 300 123 4567',
-        address: 'Bucaramanga, Santander'
+        phone: rental.contactPhone || user?.phone || '+57 300 123 4567',
+        address: rental.deliveryAddress || user?.profile?.address || 'Bucaramanga, Santander'
       },
       provider: {
         name: tool?.provider?.name || 'Constructoras del Norte S.A.S.',
@@ -1098,7 +1168,8 @@ export async function openRentalInvoiceModal(rentalId, targetRental = null, sele
       } catch (_) {}
     }
 
-    const clientAddress = [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente';
+    const clientAddress = targetRental?.deliveryAddress || [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Dirección registrada del cliente';
+    const clientPhone = targetRental?.contactPhone || user?.profile?.phone || '+57 300 123 4567';
 
     openInvoiceViewer({
       rawInvoiceId: invoice.id,
@@ -1108,7 +1179,7 @@ export async function openRentalInvoiceModal(rentalId, targetRental = null, sele
         name: user?.profile?.fullName || user?.username || 'Cliente Registrado',
         taxId: user?.profile?.documentNumber ? `${user.profile.documentType || 'CC'} ${user.profile.documentNumber}` : '1018234567',
         email: user?.email || 'cliente@constructora.com',
-        phone: user?.profile?.phone || '+57 300 123 4567',
+        phone: clientPhone,
         address: clientAddress
       },
       provider: providerData,

@@ -83,6 +83,18 @@ const routes = {
   '#/home': renderHomeView,
   '#/catalog': renderCatalogView,
   '#/about': renderAboutView,
+  '#/how-it-works': async () => {
+    await renderAboutView();
+    setTimeout(() => {
+      document.getElementById('how-it-works-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  },
+  '#/como-funciona': async () => {
+    await renderAboutView();
+    setTimeout(() => {
+      document.getElementById('how-it-works-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  },
   '#/client': renderClientDashboard,
   '#/provider': renderProviderDashboard,
   '#/admin': renderAdminDashboard,
@@ -95,6 +107,15 @@ async function router() {
   const navId = ++currentNavId;
   const hash = window.location.hash || '#/';
   const cleanRoute = hash.split('?')[0];
+
+  // Section anchor redirection for how-it-works
+  if (cleanRoute === '#how-it-works-section' || cleanRoute === '#/how-it-works-section') {
+    window.location.hash = '#/about';
+    setTimeout(() => {
+      document.getElementById('how-it-works-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+    return;
+  }
   
   // Providers cannot browse catalog or book equipment
   if (cleanRoute === '#/catalog' && auth.isAuthenticated() && auth.isProvider() && !auth.isAdmin()) {
