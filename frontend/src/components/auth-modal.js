@@ -6,9 +6,13 @@ import loginAccessImg from '../assets/login-access.jpg';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import gsap from 'gsap';
 
-export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE') {
+export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE', onSuccess = null) {
   if (auth.isAuthenticated()) {
     showToast('Ya tienes una sesión activa en la plataforma.', 'info');
+    if (typeof onSuccess === 'function') {
+      onSuccess(auth.getUser());
+      return;
+    }
     if (auth.isProvider()) {
       window.location.hash = '#/provider';
     } else if (auth.isAdmin()) {
@@ -323,6 +327,28 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
                 <button type="submit" id="login-submit-btn" class="w-full py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] hover:shadow-md text-white text-xs font-semibold shadow-sm active:scale-[0.99] transition-all cursor-pointer">
                   Iniciar sesión
                 </button>
+              </div>
+
+              <!-- Acceso Rápido Demo -->
+              <div class="auth-animated-row pt-2.5 mt-1 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Cuentas demo (clic para autollenar)</span>
+                  <span class="text-[10px] text-orange-600 font-mono font-medium">Password123*</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <button type="button" class="btn-demo-creds py-1.5 px-2 text-[11px] font-medium bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-slate-200 rounded-lg text-slate-700 transition-all text-center cursor-pointer" data-user="admin_principal" data-pass="Password123*">
+                    👑 Admin
+                  </button>
+                  <button type="button" class="btn-demo-creds py-1.5 px-2 text-[11px] font-medium bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-slate-200 rounded-lg text-slate-700 transition-all text-center cursor-pointer" data-user="prov_maquinaria_bog" data-pass="Password123*">
+                    🏗️ Proveedor
+                  </button>
+                  <button type="button" class="btn-demo-creds py-1.5 px-2 text-[11px] font-medium bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-slate-200 rounded-lg text-slate-700 transition-all text-center cursor-pointer" data-user="cliente_carlos_gomez" data-pass="Password123*">
+                    👷 Carlos
+                  </button>
+                  <button type="button" class="btn-demo-creds py-1.5 px-2 text-[11px] font-medium bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-slate-200 rounded-lg text-slate-700 transition-all text-center cursor-pointer" data-user="cliente_maria_rodriguez" data-pass="Password123*">
+                    👩‍💼 María
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -821,6 +847,22 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
   content.querySelector('#role-btn-client')?.addEventListener('click', () => updateRoleUI('ROLE_CLIENTE'));
   content.querySelector('#role-btn-provider')?.addEventListener('click', () => updateRoleUI('ROLE_PROVEEDOR'));
 
+  content.querySelectorAll('.btn-demo-creds').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const u = btn.dataset.user;
+      const p = btn.dataset.pass;
+      const userInput = content.querySelector('#login-username');
+      const passInput = content.querySelector('#login-password');
+      if (userInput) userInput.value = u;
+      if (passInput) passInput.value = p;
+      const errorBox = content.querySelector('#auth-login-error');
+      if (errorBox) { errorBox.classList.add('hidden'); errorBox.textContent = ''; }
+      userInput?.classList.remove('border-rose-500', 'bg-rose-50/40');
+      passInput?.classList.remove('border-rose-500', 'bg-rose-50/40');
+      showToast(`Credenciales cargadas para ${btn.textContent.trim()}`, 'info');
+    });
+  });
+
   // ==========================================
   // 1. SUBMIT LOGIN HANDLER
   // ==========================================
@@ -882,6 +924,18 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       showToast(`¡Bienvenido de nuevo, ${result.session?.nombre || username}!`, 'success');
       transition.close();
       modal.close();
+
+      if (typeof onSuccess === 'function') {
+        onSuccess(result);
+        return;
+      }
+
+      // Si el usuario estaba viendo un producto específico, no sacarlo al dashboard
+      const currentHash = window.location.hash || '';
+      if (currentHash.startsWith('#/product/')) {
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+        return;
+      }
 
       const verifiedRole = (result.rol || '').toUpperCase();
       if (verifiedRole === 'ADMIN' || verifiedRole === 'ROLE_ADMIN') {
@@ -1155,6 +1209,18 @@ export function openAuthModal(initialTab = 'login', initialRole = 'ROLE_CLIENTE'
       showToast(`¡Bienvenido a ToolRent! Sesión iniciada como ${result.rol || 'Cliente'}.`, 'success');
       transition.close();
       modal.close();
+
+      if (typeof onSuccess === 'function') {
+        onSuccess(result);
+        return;
+      }
+
+      // Si el usuario estaba viendo un producto específico, no sacarlo al dashboard
+      const currentHash = window.location.hash || '';
+      if (currentHash.startsWith('#/product/')) {
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+        return;
+      }
 
       const verifiedRole = (result.rol || '').toUpperCase();
       if (verifiedRole === 'ADMIN' || verifiedRole === 'ROLE_ADMIN') {

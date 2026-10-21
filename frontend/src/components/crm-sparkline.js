@@ -117,7 +117,11 @@ export function renderCrmStatusBadge(status = 'AVAILABLE', customLabel = null) {
     COMPLETED: { label: 'COMPLETADO', dot: 'bg-zinc-400', text: 'text-zinc-600', border: 'border-zinc-200' },
     CANCELLED: { label: 'CANCELADO', dot: 'bg-rose-400', text: 'text-zinc-600', border: 'border-zinc-200' },
     RETIRED: { label: 'RETIRADO', dot: 'bg-zinc-300', text: 'text-zinc-500', border: 'border-zinc-200' },
-    VERIFIED: { label: 'VERIFICADO', dot: 'bg-emerald-500', text: 'text-zinc-700', border: 'border-zinc-200' }
+    VERIFIED: { label: 'VERIFICADO', dot: 'bg-emerald-500', text: 'text-zinc-700', border: 'border-zinc-200' },
+    OVERDUE: { label: 'PLAZO VENCIDO', dot: 'bg-rose-600 animate-ping', text: 'text-rose-700 font-bold', border: 'border-rose-300 bg-rose-50/90' },
+    RETURN_DUE: { label: 'RETORNO HOY', dot: 'bg-amber-500 animate-pulse', text: 'text-amber-800 font-bold', border: 'border-amber-300 bg-amber-50/90' },
+    DISPATCHED: { label: 'EN CAMINO', dot: 'bg-indigo-500', text: 'text-indigo-700', border: 'border-indigo-200 bg-indigo-50/70' },
+    RECEIVED: { label: 'RECIBIDO EN OBRA', dot: 'bg-emerald-500', text: 'text-emerald-700', border: 'border-emerald-200 bg-emerald-50/70' }
   };
 
   const cfg = configs[s] || { label: s, dot: 'bg-zinc-400', text: 'text-zinc-600', border: 'border-zinc-200' };

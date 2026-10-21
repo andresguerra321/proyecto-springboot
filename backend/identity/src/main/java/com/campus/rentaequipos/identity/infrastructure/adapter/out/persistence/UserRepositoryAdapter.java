@@ -40,6 +40,16 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByUsernameIgnoreCase(String username) {
+        return userRepository.findByUsernameIgnoreCase(username).map(UserJpaEntity::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return userRepository.findByEmailIgnoreCase(email).map(UserJpaEntity::toDomain);
+    }
+
+    @Override
     public java.util.List<User> findAll() {
         return userRepository.findAll().stream().map(UserJpaEntity::toDomain).collect(Collectors.toList());
     }

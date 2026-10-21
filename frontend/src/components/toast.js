@@ -1,9 +1,26 @@
 import { renderIcon } from '../utils/icons.js';
 import gsap from 'gsap';
 
+const recentToasts = new Map();
+const MAX_VISIBLE_TOASTS = 3;
+
 export function showToast(message, type = 'success', durationMs = 4000, title = '') {
   const container = document.getElementById('toast-container');
-  if (!container) return;
+  if (!container || !message) return;
+
+  // Anti-Spam: Deduplicate identical toasts within 1800ms
+  const toastKey = `${type}:${message}`;
+  const now = Date.now();
+  if (recentToasts.has(toastKey) && now - recentToasts.get(toastKey) < 1800) {
+    return;
+  }
+  recentToasts.set(toastKey, now);
+
+  // Limit max visible toasts on screen to prevent waterfall spam
+  while (container.children.length >= MAX_VISIBLE_TOASTS) {
+    const oldest = container.firstElementChild;
+    if (oldest) oldest.remove();
+  }
 
   const toast = document.createElement('div');
   toast.className = `pointer-events-auto relative overflow-hidden flex items-start gap-3.5 p-4 rounded-2xl border bg-white/95 backdrop-blur-md shadow-[0_12px_32px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.04)] text-xs font-sans max-w-sm w-full opacity-0 transform-gpu select-none`;

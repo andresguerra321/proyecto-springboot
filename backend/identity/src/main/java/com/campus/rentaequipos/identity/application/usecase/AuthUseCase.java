@@ -265,6 +265,8 @@ public class AuthUseCase {
         String identifier = request.username() != null ? request.username().trim() : "";
         User user = userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findByUsernameIgnoreCase(identifier))
+                .or(() -> userRepository.findByEmailIgnoreCase(identifier))
                 .orElseThrow(() -> new BusinessRuleViolationException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -283,6 +285,8 @@ public class AuthUseCase {
         String identifier = username != null ? username.trim() : "";
         User user = userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findByUsernameIgnoreCase(identifier))
+                .or(() -> userRepository.findByEmailIgnoreCase(identifier))
                 .orElseThrow(() -> new EntityNotFoundException("User", username));
         return mapToUserResponse(user);
     }

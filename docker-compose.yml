@@ -56,14 +56,39 @@ services:
     networks:
       - renta_network
 
+  # ==============================================================================
+  # pgAdmin 4 Database Management Web UI
+  # ==============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: renta_herramientas_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@rentaequipos.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - renta_network
+
 # ==============================================================================
 # Persistent Volumes & Networks
 # ==============================================================================
 volumes:
   postgres_renta_data:
     name: renta_herramientas_pg_data
+  pgadmin_data:
+    name: renta_herramientas_pgadmin_data
 
 networks:
   renta_network:
     name: renta_herramientas_network
     driver: bridge
+

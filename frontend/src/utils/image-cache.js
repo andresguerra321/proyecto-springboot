@@ -140,6 +140,24 @@ export async function preloadCatalogImages(urls = []) {
   );
 }
 
+function getMachineryRealFallback(name = '', cat = '') {
+  const n = (name || '').toLowerCase();
+  const c = (cat || '').toLowerCase();
+  if (n.includes('andamio') || c.includes('elevaci')) return '/images/scaffold-1.jpg';
+  if (n.includes('mezcla') || c.includes('hormig')) return '/images/concrete-mixer.jpg';
+  if (n.includes('martillo') || n.includes('taladro') || c.includes('demoli')) return '/images/hammer-drill.jpg';
+  if (n.includes('generador') || c.includes('energ')) return '/images/generator.jpg';
+  if (n.includes('compacta') || n.includes('canguro') || c.includes('compact')) return '/images/compactor.jpg';
+  if (n.includes('tijera') || n.includes('plataforma')) return '/images/scissor-lift.jpg';
+  if (n.includes('excavadora') || c.includes('movimiento')) return '/images/excavator.jpg';
+  if (n.includes('corte') || n.includes('pavimento')) return 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800';
+  if (n.includes('soldad')) return 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800';
+  if (n.includes('pintura') || n.includes('airless')) return 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800';
+  if (n.includes('laser') || n.includes('láser') || c.includes('topogra')) return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800';
+  if (n.includes('hidro') || c.includes('limpieza')) return 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800';
+  return 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800';
+}
+
 /**
  * Global Image Error Handler (handles fallback resolution)
  * Attached automatically to <img> elements or invoked by onerror.
@@ -149,9 +167,8 @@ export async function handleImageError(imgEl, originalUrl, category = '', toolNa
 
   // Prevent infinite retry loops
   const retries = parseInt(imgEl.dataset.shieldRetries || '0', 10);
-  if (retries >= 2) {
-    imgEl.src = getBlueprintFallbackSvg(toolName || imgEl.alt, category);
-    imgEl.classList.add('opacity-90');
+  if (retries >= 3) {
+    imgEl.src = getMachineryRealFallback(toolName || imgEl.alt, category);
     return;
   }
 
@@ -164,9 +181,8 @@ export async function handleImageError(imgEl, originalUrl, category = '', toolNa
     return;
   }
 
-  // Step 2: Fallback to high-res engineering SVG blueprint
-  imgEl.src = getBlueprintFallbackSvg(toolName || imgEl.alt, category);
-  imgEl.classList.add('opacity-95');
+  // Step 2: Fallback to real curated machinery photography
+  imgEl.src = getMachineryRealFallback(toolName || imgEl.alt, category);
 }
 
 // Curated bank of real database tool image URLs (matching V2__seed_data.sql) for offline preloading

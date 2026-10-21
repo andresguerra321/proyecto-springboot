@@ -44,6 +44,26 @@ public class WarrantyClaimUseCase {
             throw new BusinessRuleViolationException("No es posible radicar reclamos o garantías sobre un contrato de alquiler cancelado.");
         }
 
+        // Validación de reclamaciones existentes: prevenir solicitudes infinitas de reembolso o garantías simultáneas
+        List<WarrantyClaim> existingClaims = warrantyClaimRepository.findByRentalId(rentalId);
+        boolean hasActiveClaim = existingClaims.stream()
+                .anyMatch(c -> !"RESOLVED".equalsIgnoreCase(c.getStatus()) && !"REJECTED".equalsIgnoreCase(c.getStatus()));
+        if (hasActiveClaim) {
+            String activeTicket = existingClaims.stream()
+                    .filter(c -> !"RESOLVED".equalsIgnoreCase(c.getStatus()) && !"REJECTED".equalsIgnoreCase(c.getStatus()))
+                    .findFirst().map(WarrantyClaim::getTicketNumber).orElse("en trámite");
+            throw new BusinessRuleViolationException("Este contrato de alquiler ya tiene una solicitud activa en trámite (" + activeTicket + "). No se permiten múltiples radicaciones simultáneas.");
+        }
+
+        String claimType = request.claimType() != null ? request.claimType().toUpperCase() : "EXCHANGE";
+        if ("REFUND".equalsIgnoreCase(claimType)) {
+            boolean alreadyRefunded = existingClaims.stream()
+                    .anyMatch(c -> "REFUND".equalsIgnoreCase(c.getClaimType()));
+            if (alreadyRefunded) {
+                throw new BusinessRuleViolationException("Este contrato de alquiler ya cuenta con un trámite de reembolso procesado previamente.");
+            }
+        }
+
         UUID toolId = request.toolId();
         if (toolId == null && !rental.getItems().isEmpty()) {
             toolId = rental.getItems().get(0).getToolId();
@@ -55,46 +75,20 @@ public class WarrantyClaimUseCase {
             }
         }
 
-        String claimType = request.claimType() != null ? request.claimType().toUpperCase() : "EXCHANGE";
         String ticketPrefix = "REFUND".equalsIgnoreCase(claimType) ? "RMB-2026-" : "GAR-2026-";
         String ticketNumber = ticketPrefix + ((int) (1000 + Math.random() * 9000));
 
-        // Validación y autocompletado estricto con los datos de entrega de la compra original
-        if (rental.getDeliveryAddress() != null && !rental.getDeliveryAddress().trim().isEmpty()) {
-            if (request.deliveryAddress() != null && !request.deliveryAddress().trim().isEmpty()) {
-                String reqNorm = request.deliveryAddress().trim().replaceAll("\\s+", " ").toLowerCase();
-                String rentNorm = rental.getDeliveryAddress().trim().replaceAll("\\s+", " ").toLowerCase();
-                if (!reqNorm.equals(rentNorm)) {
-                    throw new BusinessRuleViolationException("La dirección de entrega no coincide con la registrada en la compra (" + rental.getDeliveryAddress() + ").");
-                }
-            }
-        }
+        String deliveryAddress = (request.deliveryAddress() != null && !request.deliveryAddress().trim().isEmpty())
+                ? request.deliveryAddress().trim()
+                : (rental.getDeliveryAddress() != null && !rental.getDeliveryAddress().trim().isEmpty()
+                        ? rental.getDeliveryAddress().trim()
+                        : "Calle 134 # 19-45, Bogotá D.C.");
 
-        if (rental.getContactPhone() != null && !rental.getContactPhone().trim().isEmpty()) {
-            if (request.contactPhone() != null && !request.contactPhone().trim().isEmpty()) {
-                String reqDigits = request.contactPhone().replaceAll("\\D", "");
-                String rentDigits = rental.getContactPhone().replaceAll("\\D", "");
-                if (!reqDigits.isEmpty() && !rentDigits.isEmpty() && !reqDigits.equals(rentDigits)) {
-                    throw new BusinessRuleViolationException("El teléfono de contacto no coincide con el registrado en la compra (" + rental.getContactPhone() + ").");
-                }
-            }
-        }
-
-        String deliveryAddress = request.deliveryAddress();
-        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
-            deliveryAddress = rental.getDeliveryAddress();
-        }
-        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
-            deliveryAddress = "Calle 134 # 19-45, Bogotá D.C.";
-        }
-
-        String contactPhone = request.contactPhone();
-        if (contactPhone == null || contactPhone.trim().isEmpty()) {
-            contactPhone = rental.getContactPhone();
-        }
-        if (contactPhone == null || contactPhone.trim().isEmpty()) {
-            contactPhone = "3001234567";
-        }
+        String contactPhone = (request.contactPhone() != null && !request.contactPhone().trim().isEmpty())
+                ? request.contactPhone().trim()
+                : (rental.getContactPhone() != null && !rental.getContactPhone().trim().isEmpty()
+                        ? rental.getContactPhone().trim()
+                        : "3001234567");
 
         if ("REFUND".equalsIgnoreCase(claimType) && rental.getStatus() == RentalStatus.PENDING) {
             rental.cancel();

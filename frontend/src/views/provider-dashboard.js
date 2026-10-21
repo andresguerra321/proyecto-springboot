@@ -11,6 +11,25 @@ import { renderSparkline, renderSegmentedLevel, renderCrmStatusBadge } from '../
 import { openCrmOverviewCard } from '../components/crm-overview-card.js';
 import { setupCrmBulkBar } from '../components/crm-bulk-bar.js';
 
+function sanitizeEncoding(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str
+    .replace(/Sof\?\?a/gi, 'Sofía')
+    .replace(/Ib\?{2,4}ez/gi, 'Ibáñez')
+    .replace(/Mar\?\?a/gi, 'María')
+    .replace(/Rodr\?{2}guez/gi, 'Rodríguez')
+    .replace(/Le\?{2}n/gi, 'León')
+    .replace(/G\?{2}mez/gi, 'Gómez')
+    .replace(/P\?{2}rez/gi, 'Pérez')
+    .replace(/S\?{2}nchez/gi, 'Sánchez')
+    .replace(/Mart\?\?nez/gi, 'Martínez')
+    .replace(/D\?\?az/gi, 'Díaz')
+    .replace(/Hern\?\?ndez/gi, 'Hernández')
+    .replace(/Bogot\?\?/gi, 'Bogotá')
+    .replace(/Medell\?\?n/gi, 'Medellín')
+    .replace(/\?{2,}/g, '');
+}
+
 // Predefined quick-start templates for providers to populate tools with 1 click
 const QUICK_TEMPLATES = [
   {
@@ -86,6 +105,29 @@ export async function renderProviderDashboard() {
   const isAdmin = auth.isAdmin();
   let isProvider = auth.isProvider();
 
+  // If user is Admin, they cannot operate as provider
+  if (isAdmin) {
+    container.innerHTML = `
+      <section class="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
+        <div class="crm-card p-10 max-w-lg mx-auto space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center mx-auto shadow-2xs">
+            ${renderIcon('ShieldAlert', 'w-7 h-7')}
+          </div>
+          <h2 class="text-xl font-bold text-zinc-900 font-display">Acceso Restringido a Administradores</h2>
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            Como <strong>Administrador General</strong>, gestionas el sistema centralmente desde la consola administrativa y no puedes operar como proveedor ni publicar herramientas en catálogo.
+          </p>
+          <div class="flex items-center justify-center gap-3 pt-2">
+            <a href="#/admin" class="btn-primary !py-2.5 !px-6 text-xs font-semibold flex items-center gap-2 shadow-sm">
+              ${renderIcon('ShieldCheck', 'w-4 h-4')} Ir a la Consola de Administración
+            </a>
+          </div>
+        </div>
+      </section>
+    `;
+    return;
+  }
+
   // Pre-hidratar perfil desde sessionStorage (toolrent_user_context) para evitar roundtrips innecesarios
   const storedContext = auth.getVerifiedSession();
   if (storedContext && (storedContext.rol === 'PROVEEDOR' || storedContext.rol === 'ROLE_PROVEEDOR')) {
@@ -100,7 +142,7 @@ export async function renderProviderDashboard() {
     }
   }
 
-  if (!isProvider && !isAdmin) {
+  if (!isProvider) {
     try {
       const me = await api.get('/users/me');
       if (me.roles?.some(r => r.includes('PROVEEDOR'))) {
@@ -112,7 +154,7 @@ export async function renderProviderDashboard() {
     } catch (e) {}
   }
 
-  if (!isProvider && !isAdmin) {
+  if (!isProvider) {
     container.innerHTML = `
       <section class="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
         <div class="crm-card p-10 max-w-lg mx-auto space-y-4">
@@ -146,7 +188,7 @@ export async function renderProviderDashboard() {
     }
   }
 
-  const providerId = providerProfile?.id || (isAdmin ? null : user?.id);
+  const providerId = providerProfile?.id || null;
 
   // State variables
   const getInitialTabFromHash = () => {
@@ -169,6 +211,15 @@ export async function renderProviderDashboard() {
 
   let requestsFilterStatus = 'ALL';
   let requestsSearch = '';
+
+  let pageInventory = 1;
+  const pageSizeInventory = 8;
+
+  let pageRequests = 1;
+  const pageSizeRequests = 8;
+
+  let pageInvoices = 1;
+  const pageSizeInvoices = 6;
 
   let toolsList = [];
   let requestsList = [];
@@ -296,7 +347,7 @@ export async function renderProviderDashboard() {
 
     container.innerHTML = `
       <div class="min-h-screen crm-panel-bg text-zinc-800 pb-20 select-none">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div class="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           
           <!-- 1. Minimalist CRM Brand Header (Linear / Attio style) -->
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -420,7 +471,10 @@ export async function renderProviderDashboard() {
             <nav class="flex items-center space-x-6 overflow-x-auto no-scrollbar" id="provider-tabs-nav">
               
               <button data-tab="inventory" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${activeTab === 'inventory' ? 'crm-tab-active' : 'crm-tab-inactive'}">
-                <span>Inventario y Maquinaria</span>
+                <span class="flex items-center gap-1.5">
+                  ${renderIcon('Wrench', 'w-3.5 h-3.5 ' + (activeTab === 'inventory' ? 'text-orange-600' : 'text-zinc-400'))}
+                  <span>Inventario y Maquinaria</span>
+                </span>
                 <span id="badge-count-inventory" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 text-zinc-600 border border-zinc-200">
                   ${toolsList.length}
                 </span>
@@ -437,18 +491,27 @@ export async function renderProviderDashboard() {
               </button>
 
               <button data-tab="maintenance" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${activeTab === 'maintenance' ? 'crm-tab-active' : 'crm-tab-inactive'}">
-                <span>Taller y Garantías</span>
+                <span class="flex items-center gap-1.5">
+                  ${renderIcon('ShieldAlert', 'w-3.5 h-3.5 ' + (activeTab === 'maintenance' ? 'text-orange-600' : 'text-zinc-400'))}
+                  <span>Taller y Garantías</span>
+                </span>
                 <span id="badge-count-maintenance" class="px-1.5 py-0.2 rounded text-[10px] font-mono ${claimsList.filter(c => c.status !== 'RESOLVED' && c.status !== 'REJECTED').length > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300 font-bold' : 'bg-zinc-100 text-zinc-600 border border-zinc-200'}">
                   ${maintenanceTools + claimsList.filter(c => c.status !== 'RESOLVED' && c.status !== 'REJECTED').length}
                 </span>
               </button>
 
               <button data-tab="finances" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${activeTab === 'finances' ? 'crm-tab-active' : 'crm-tab-inactive'}">
-                <span>Facturación e Ingresos</span>
+                <span class="flex items-center gap-1.5">
+                  ${renderIcon('FileText', 'w-3.5 h-3.5 ' + (activeTab === 'finances' ? 'text-orange-600' : 'text-zinc-400'))}
+                  <span>Facturación e Ingresos</span>
+                </span>
               </button>
 
               <button data-tab="profile" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer ${activeTab === 'profile' ? 'crm-tab-active' : 'crm-tab-inactive'}">
-                <span>Perfil Comercial</span>
+                <span class="flex items-center gap-1.5">
+                  ${renderIcon('Building2', 'w-3.5 h-3.5 ' + (activeTab === 'profile' ? 'text-orange-600' : 'text-zinc-400'))}
+                  <span>Perfil Comercial</span>
+                </span>
               </button>
 
             </nav>
@@ -488,6 +551,92 @@ export async function renderProviderDashboard() {
 
     // Render active tab content
     renderTabContent();
+  }
+
+  function renderPaginationControls({ currentPage, totalItems, pageSize, changeClass, label = 'registros' }) {
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (totalPages <= 1) {
+      return `
+        <div class="px-4 py-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 bg-white">
+          <span>Total: <strong class="text-zinc-800 font-medium">${totalItems}</strong> ${label}</span>
+          <span class="text-[11px] text-zinc-400">Página 1 de 1</span>
+        </div>
+      `;
+    }
+
+    const startItem = (currentPage - 1) * pageSize + 1;
+    const endItem = Math.min(currentPage * pageSize, totalItems);
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== '...') {
+        pages.push('...');
+      }
+    }
+
+    return `
+      <div class="px-4 py-3 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-white select-none">
+        <div class="text-zinc-500 text-xs">
+          Mostrando <strong class="text-zinc-800 font-medium">${startItem}-${endItem}</strong> de <strong class="text-zinc-800 font-medium">${totalItems}</strong> ${label}
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap justify-center">
+          <button 
+            type="button"
+            class="${changeClass} px-2.5 py-1 rounded-lg border text-xs font-medium flex items-center gap-1 transition-colors ${
+              currentPage > 1
+                ? 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 cursor-pointer shadow-2xs'
+                : 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
+            }"
+            data-page="${currentPage - 1}"
+            ${currentPage <= 1 ? 'disabled' : ''}
+            title="Página anterior"
+          >
+            ${renderIcon('ChevronLeft', 'w-3.5 h-3.5')}
+            <span class="hidden sm:inline">Anterior</span>
+          </button>
+
+          <div class="flex items-center gap-1">
+            ${pages.map(p => {
+              if (p === '...') {
+                return `<span class="px-1.5 py-1 text-zinc-400 text-xs select-none">…</span>`;
+              }
+              const isCurrent = p === currentPage;
+              return `
+                <button 
+                  type="button"
+                  class="${changeClass} min-w-[28px] h-7 sm:min-w-[32px] sm:h-8 px-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                    isCurrent
+                      ? 'bg-orange-600 text-white shadow-2xs'
+                      : 'border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'
+                  }"
+                  data-page="${p}"
+                >
+                  ${p}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <button 
+            type="button"
+            class="${changeClass} px-2.5 py-1 rounded-lg border text-xs font-medium flex items-center gap-1 transition-colors ${
+              currentPage < totalPages
+                ? 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 cursor-pointer shadow-2xs'
+                : 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
+            }"
+            data-page="${currentPage + 1}"
+            ${currentPage >= totalPages ? 'disabled' : ''}
+            title="Página siguiente"
+          >
+            <span class="hidden sm:inline">Siguiente</span>
+            ${renderIcon('ChevronRight', 'w-3.5 h-3.5')}
+          </button>
+        </div>
+      </div>
+    `;
   }
 
   function renderTabContent() {
@@ -535,7 +684,7 @@ export async function renderProviderDashboard() {
     const completedRentals = requestsList.filter(r => r.status === 'COMPLETED').length;
     const maintenanceTools = toolsList.filter(t => t.status === 'MAINTENANCE').length;
     const totalBilled = requestsList
-      .filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS')
+      .filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED')
       .reduce((acc, r) => acc + (parseFloat(r.totalAmount) || 0), 0);
 
     const companyName = providerProfile?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.';
@@ -550,6 +699,12 @@ export async function renderProviderDashboard() {
     // TAB 1: INVENTARIO (High-Density CRM Table)
     // ===================================================================
     if (activeTab === 'inventory') {
+      const totalToolsCount = filteredTools.length;
+      const maxToolsPages = Math.ceil(totalToolsCount / pageSizeInventory) || 1;
+      if (pageInventory > maxToolsPages) pageInventory = maxToolsPages;
+      const startToolsIdx = (pageInventory - 1) * pageSizeInventory;
+      const paginatedTools = filteredTools.slice(startToolsIdx, startToolsIdx + pageSizeInventory);
+
       html = `
         <div class="space-y-4 animate-fade-in">
           
@@ -647,9 +802,9 @@ export async function renderProviderDashboard() {
               </div>
             </div>
           ` : viewMode === 'table' ? `
-            <!-- Dense CRM Table -->
-            <div class="crm-card overflow-hidden">
-              <div class="overflow-x-auto lg:overflow-x-hidden">
+            <!-- 1. Desktop & Tablet CRM Table -->
+            <div class="crm-card overflow-hidden hidden md:block">
+              <div class="overflow-x-auto w-full">
                 <table class="w-full text-left text-xs table-auto">
                   <thead class="crm-table-header border-b border-zinc-200/70 bg-zinc-50/50">
                     <tr>
@@ -666,7 +821,7 @@ export async function renderProviderDashboard() {
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-zinc-100">
-                    ${filteredTools.map((tool, idx) => {
+                    ${paginatedTools.map((tool, idx) => {
                       const img = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200';
                       const catName = tool.category?.name || tool.categoryName || 'Construcción';
                       const sku = tool.serialNumber || (tool.id ? `SKU-${tool.id.toString().slice(0, 8).toUpperCase()}` : 'SKU-0000');
@@ -725,15 +880,60 @@ export async function renderProviderDashboard() {
                 </table>
               </div>
 
-              <div class="px-4 py-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 bg-white">
-                <span>Mostrando <strong class="text-zinc-800 font-medium">${filteredTools.length}</strong> de ${toolsList.length} herramientas</span>
-                <span class="text-[11px] text-zinc-400">Haz clic en cualquier fila para abrir la Ficha CRM de 2 estados</span>
+              ${renderPaginationControls({ currentPage: pageInventory, totalItems: totalToolsCount, pageSize: pageSizeInventory, changeClass: 'btn-inv-page-nav', label: 'herramientas' })}
+            </div>
+
+            <!-- 2. Mobile Adaptive Cards (Visible on screens < md in table mode) -->
+            <div class="space-y-3 md:hidden">
+              ${paginatedTools.map(tool => {
+                const img = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200';
+                const catName = tool.category?.name || tool.categoryName || 'Construcción';
+                const sku = tool.serialNumber || (tool.id ? `SKU-${tool.id.toString().slice(0, 8).toUpperCase()}` : 'SKU-0000');
+
+                return `
+                  <div class="crm-card p-4 space-y-3 crm-tool-card hover:border-zinc-300 transition-all cursor-pointer" data-tool-id="${tool.id}">
+                    <div class="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="crm-row-checkbox w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" data-id="${tool.id}" onclick="event.stopPropagation()" />
+                        <span class="font-mono text-zinc-400 text-[11px]">${sku}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        ${renderCrmStatusBadge(tool.status)}
+                        <button class="btn-tool-popover p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer" data-id="${tool.id}" title="Más opciones" onclick="event.stopPropagation()">
+                          ${renderIcon('MoreHorizontal', 'w-4 h-4')}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                      <img src="${img}" class="w-12 h-12 rounded-xl object-contain bg-zinc-50 border border-zinc-200/80 p-1 flex-shrink-0" onerror="this.src='https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200'" />
+                      <div class="min-w-0 flex-1">
+                        <h4 class="font-semibold text-zinc-900 text-xs truncate" title="${tool.name}">${tool.name}</h4>
+                        <div class="text-[11px] text-zinc-400 mt-0.5">${catName} • ${tool.brand || 'ToolRent'}</div>
+                        <div class="text-xs font-bold text-zinc-900 tabular-nums mt-1">${formatCurrency(tool.dailyPrice)} <span class="text-[10px] text-zinc-400 font-normal">/ día</span></div>
+                      </div>
+                    </div>
+
+                    <div class="pt-1 flex items-center gap-2" onclick="event.stopPropagation()">
+                      <button class="btn-edit-tool flex-1 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 rounded-xl py-2 text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${tool.id}">
+                        ${renderIcon('Edit3', 'w-4 h-4 text-zinc-500')} Editar Ficha
+                      </button>
+                      <button class="btn-toggle-maint p-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${tool.id}" title="Taller">
+                        ${renderIcon('Wrench', 'w-4 h-4')}
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+
+              <div class="crm-card overflow-hidden mt-3">
+                ${renderPaginationControls({ currentPage: pageInventory, totalItems: totalToolsCount, pageSize: pageSizeInventory, changeClass: 'btn-inv-page-nav', label: 'herramientas' })}
               </div>
             </div>
           ` : `
             <!-- Cards View -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              ${filteredTools.map(tool => {
+              ${paginatedTools.map(tool => {
                 const img = tool.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600';
                 const catName = tool.category?.name || tool.categoryName || 'Construcción';
                 const sku = tool.serialNumber || (tool.id ? `SKU-${tool.id.toString().slice(0, 8).toUpperCase()}` : 'SKU-0000');
@@ -786,6 +986,9 @@ export async function renderProviderDashboard() {
                 `;
               }).join('')}
             </div>
+            <div class="crm-card overflow-hidden mt-3">
+              ${renderPaginationControls({ currentPage: pageInventory, totalItems: totalToolsCount, pageSize: pageSizeInventory, changeClass: 'btn-inv-page-nav', label: 'herramientas' })}
+            </div>
           `}
 
         </div>
@@ -796,32 +999,48 @@ export async function renderProviderDashboard() {
     // TAB 2: SOLICITUDES Y ALQUILERES (CRM Requests Table)
     // ===================================================================
     else if (activeTab === 'requests') {
+      const totalReqCount = filteredRequests.length;
+      const maxReqPages = Math.ceil(totalReqCount / pageSizeRequests) || 1;
+      if (pageRequests > maxReqPages) pageRequests = maxReqPages;
+      const startReqIdx = (pageRequests - 1) * pageSizeRequests;
+      const paginatedRequests = filteredRequests.slice(startReqIdx, startReqIdx + pageSizeRequests);
+
       html = `
         <div class="space-y-4 animate-fade-in">
           
           <!-- Filters Toolbar -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
             
             <!-- Underline Filter Status Pills -->
-            <div class="flex flex-wrap items-center gap-1.5">
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'ALL' ? 'bg-zinc-900 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="ALL">
-                Todas (${requestsList.length})
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
+              <button class="btn-filter-status inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${requestsFilterStatus === 'ALL' ? 'bg-zinc-900 text-white border border-zinc-900 shadow-xs' : 'bg-white border border-zinc-200/90 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'}" data-status="ALL">
+                ${renderIcon('Layers', 'w-3.5 h-3.5 flex-shrink-0 ' + (requestsFilterStatus === 'ALL' ? 'text-white' : 'text-zinc-500'))}
+                <span>Todas</span>
+                <span class="text-[11px] font-mono ${requestsFilterStatus === 'ALL' ? 'text-zinc-300' : 'text-zinc-400 font-normal'}">(${requestsList.length})</span>
               </button>
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'PENDING' ? 'bg-orange-600 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="PENDING">
-                Por Confirmar (${pendingRequests})
+              <button class="btn-filter-status inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${requestsFilterStatus === 'PENDING' ? 'bg-zinc-900 text-white border border-zinc-900 shadow-xs' : 'bg-white border border-zinc-200/90 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'}" data-status="PENDING">
+                ${renderIcon('Clock', 'w-3.5 h-3.5 flex-shrink-0 ' + (requestsFilterStatus === 'PENDING' ? 'text-white' : 'text-amber-500'))}
+                <span>Por Confirmar</span>
+                <span class="text-[11px] font-mono ${requestsFilterStatus === 'PENDING' ? 'text-zinc-300' : 'text-zinc-400 font-normal'}">(${pendingRequests})</span>
               </button>
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${requestsFilterStatus === 'CONFIRMED' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="CONFIRMED">
-                🚚 Listas para Despacho (${requestsList.filter(r => r.status === 'CONFIRMED').length})
+              <button class="btn-filter-status inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${requestsFilterStatus === 'CONFIRMED' ? 'bg-zinc-900 text-white border border-zinc-900 shadow-xs' : 'bg-white border border-zinc-200/90 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'}" data-status="CONFIRMED">
+                ${renderIcon('Truck', 'w-3.5 h-3.5 flex-shrink-0 ' + (requestsFilterStatus === 'CONFIRMED' ? 'text-white' : 'text-blue-500'))}
+                <span>Listas para Despacho</span>
+                <span class="text-[11px] font-mono ${requestsFilterStatus === 'CONFIRMED' ? 'text-zinc-300' : 'text-zinc-400 font-normal'}">(${requestsList.filter(r => r.status === 'CONFIRMED').length})</span>
               </button>
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'IN_PROGRESS' ? 'bg-zinc-800 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="IN_PROGRESS">
-                🏗️ En Obra / Faena (${requestsList.filter(r => r.status === 'IN_PROGRESS').length})
+              <button class="btn-filter-status inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${requestsFilterStatus === 'IN_PROGRESS' ? 'bg-zinc-900 text-white border border-zinc-900 shadow-xs' : 'bg-white border border-zinc-200/90 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'}" data-status="IN_PROGRESS">
+                ${renderIcon('HardHat', 'w-3.5 h-3.5 flex-shrink-0 ' + (requestsFilterStatus === 'IN_PROGRESS' ? 'text-white' : 'text-orange-500'))}
+                <span>En Obra / Faena</span>
+                <span class="text-[11px] font-mono ${requestsFilterStatus === 'IN_PROGRESS' ? 'text-zinc-300' : 'text-zinc-400 font-normal'}">(${requestsList.filter(r => r.status === 'IN_PROGRESS').length})</span>
               </button>
-              <button class="btn-filter-status px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${requestsFilterStatus === 'COMPLETED' ? 'bg-emerald-600 text-white' : 'bg-white border border-zinc-200/80 text-zinc-600 hover:bg-zinc-50'}" data-status="COMPLETED">
-                Completadas (${completedRentals})
+              <button class="btn-filter-status inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${requestsFilterStatus === 'COMPLETED' ? 'bg-zinc-900 text-white border border-zinc-900 shadow-xs' : 'bg-white border border-zinc-200/90 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300'}" data-status="COMPLETED">
+                ${renderIcon('CheckCircle2', 'w-3.5 h-3.5 flex-shrink-0 ' + (requestsFilterStatus === 'COMPLETED' ? 'text-white' : 'text-emerald-500'))}
+                <span>Completadas</span>
+                <span class="text-[11px] font-mono ${requestsFilterStatus === 'COMPLETED' ? 'text-zinc-300' : 'text-zinc-400 font-normal'}">(${completedRentals})</span>
               </button>
             </div>
 
-            <div class="relative w-full sm:w-64">
+            <div class="relative w-full lg:w-64 shrink-0">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                 ${renderIcon('Search', 'w-3.5 h-3.5')}
               </span>
@@ -847,28 +1066,70 @@ export async function renderProviderDashboard() {
               </p>
             </div>
           ` : `
-            <div class="crm-card overflow-hidden">
-              <div class="overflow-x-auto lg:overflow-x-hidden">
+            <!-- 1. Desktop & Laptop High-Density Data Table (Visible on md and up) -->
+            <div class="crm-card overflow-hidden hidden md:block">
+              <div class="overflow-x-auto w-full">
                 <table class="w-full text-left text-xs table-auto">
                   <thead class="crm-table-header border-b border-zinc-200/70 bg-zinc-50/50">
                     <tr>
-                      <th class="py-3 px-3 w-8 text-center">
+                      <th class="py-3 px-2.5 w-8 text-center shrink-0">
                         <input type="checkbox" id="select-all-requests" class="w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" />
                       </th>
-                      <th class="py-3 px-3 whitespace-nowrap">Código / Fecha</th>
-                      <th class="py-3 px-3 min-w-0">Cliente / Destino en Obra</th>
-                      <th class="py-3 px-3 min-w-0">Equipos Solicitados</th>
-                      <th class="py-3 px-3 whitespace-nowrap">Periodo</th>
-                      <th class="py-3 px-3 whitespace-nowrap hidden 2xl:table-cell">Prioridad</th>
-                      <th class="py-3 px-3 whitespace-nowrap">Total</th>
-                      <th class="py-3 px-3 whitespace-nowrap">Estado</th>
-                      <th class="py-3 px-3 text-right whitespace-nowrap w-24">Acciones</th>
+                      <th class="py-3 px-2.5 whitespace-nowrap w-28 lg:w-32">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('Hash', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Código / Fecha</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 min-w-0 max-w-[170px] lg:max-w-[210px]">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('User', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Cliente / Destino en Obra</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 min-w-0 max-w-[180px] lg:max-w-[220px]">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('Package', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Equipos Solicitados</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 whitespace-nowrap w-28 lg:w-36">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('Calendar', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Periodo</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 whitespace-nowrap hidden 2xl:table-cell w-20">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('ShieldAlert', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Prioridad</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 whitespace-nowrap w-24">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('DollarSign', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Total</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-2.5 whitespace-nowrap w-28">
+                        <div class="inline-flex items-center gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('Activity', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Estado</span>
+                        </div>
+                      </th>
+                      <th class="py-3 px-3 text-right whitespace-nowrap w-auto pr-3">
+                        <div class="inline-flex items-center justify-end gap-1.5 text-zinc-600 font-semibold">
+                          ${renderIcon('Sliders', 'w-3.5 h-3.5 text-zinc-400')}
+                          <span>Acciones</span>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-zinc-100">
-                    ${filteredRequests.map(req => {
+                    ${paginatedRequests.map(req => {
                       const client = clientsMap.get(req.clientId);
-                      const clientName = client?.fullName || 'Constructora Cliente';
+                      const rawClientName = client?.fullName || 'Constructora Cliente';
+                      const clientName = sanitizeEncoding(rawClientName);
                       const clientContact = client?.phone || client?.email || '+57 300 123 4567';
 
                       const firstItem = req.items?.[0];
@@ -881,44 +1142,53 @@ export async function renderProviderDashboard() {
 
                       return `
                         <tr class="crm-request-row hover:bg-zinc-50/80 transition-colors cursor-pointer group" data-req-id="${req.id}">
-                          <td class="py-3 px-3 text-center" onclick="event.stopPropagation()">
+                          <td class="py-2.5 px-2.5 text-center shrink-0" onclick="event.stopPropagation()">
                             <input type="checkbox" class="crm-row-checkbox w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" data-id="${req.id}" />
                           </td>
-                          <td class="py-3 px-3 whitespace-nowrap">
+                          <td class="py-2.5 px-2.5 whitespace-nowrap">
                             <span class="font-mono font-medium text-zinc-900 block">${req.rentalCode || `#TR-${req.id?.slice(0, 6)}`}</span>
-                            <span class="text-[10px] text-zinc-400 font-mono">${formatDate(req.createdAt || req.startDate)}</span>
+                            <span class="text-[10px] text-zinc-400 font-mono inline-flex items-center gap-1 mt-0.5">
+                              ${renderIcon('Calendar', 'w-2.5 h-2.5 text-zinc-400')}
+                              ${formatDate(req.createdAt || req.startDate)}
+                            </span>
                           </td>
-                          <td class="py-3 px-3 min-w-0">
-                            <div class="font-medium text-zinc-900 group-hover:text-orange-600 transition-colors truncate max-w-[140px] xl:max-w-none">${clientName}</div>
-                            <div class="text-[11px] text-zinc-500 flex items-center gap-1 mt-0.5 truncate max-w-[180px] xl:max-w-none" title="${req.deliveryAddress || client?.address || 'Obra Principal'}">
+                          <td class="py-2.5 px-2.5 min-w-0 max-w-[170px] lg:max-w-[210px]">
+                            <div class="font-medium text-zinc-900 group-hover:text-orange-600 transition-colors truncate" title="${clientName}">${clientName}</div>
+                            <div class="text-[11px] text-zinc-500 flex items-center gap-1 mt-0.5 truncate" title="${sanitizeEncoding(req.deliveryAddress || client?.address || 'Obra Principal')}">
                               ${renderIcon('MapPin', 'w-3 h-3 text-orange-600 flex-shrink-0')}
-                              <span class="truncate">${req.deliveryAddress || client?.address || 'Obra Principal'}</span>
+                              <span class="truncate">${sanitizeEncoding(req.deliveryAddress || client?.address || 'Obra Principal')}</span>
                             </div>
-                            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">${req.contactPhone || clientContact}</div>
+                            <div class="text-[10px] text-zinc-400 font-mono mt-0.5 flex items-center gap-1">
+                              ${renderIcon('Phone', 'w-2.5 h-2.5 text-zinc-400 flex-shrink-0')}
+                              <span>${req.contactPhone || clientContact}</span>
+                            </div>
                           </td>
-                          <td class="py-3 px-3 min-w-0">
+                          <td class="py-2.5 px-2.5 min-w-0 max-w-[180px] lg:max-w-[220px]">
                             <div class="flex items-center gap-2">
                               <img src="${toolImg}" class="w-8 h-8 rounded-lg object-contain bg-zinc-50 border border-zinc-200/80 p-0.5 flex-shrink-0" onerror="this.src='https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100'" />
                               <div class="min-w-0">
-                                <div class="font-medium text-zinc-800 text-xs truncate max-w-[150px] xl:max-w-none">${toolName}</div>
+                                <div class="font-medium text-zinc-800 text-xs truncate" title="${toolName}">${toolName}</div>
                                 <div class="text-[10px] text-zinc-400">${req.items?.length > 1 ? `+${req.items.length - 1} ítem(s)` : '1 unidad'}</div>
                               </div>
                             </div>
                           </td>
-                          <td class="py-3 px-3 whitespace-nowrap text-zinc-600">
+                          <td class="py-2.5 px-2.5 whitespace-nowrap text-zinc-600">
                             <div class="font-medium text-zinc-800">${formatDate(req.startDate)} → ${formatDate(req.endDate)}</div>
-                            <div class="text-[10px] text-zinc-400 mt-0.5">${req.totalDays || 1} día(s)</div>
+                            <div class="text-[10px] text-zinc-400 mt-0.5 inline-flex items-center gap-1">
+                              ${renderIcon('Clock', 'w-2.5 h-2.5 text-zinc-400')}
+                              <span>${req.totalDays || 1} día(s)</span>
+                            </div>
                           </td>
-                          <td class="py-3 px-3 whitespace-nowrap hidden 2xl:table-cell">
+                          <td class="py-2.5 px-2.5 whitespace-nowrap hidden 2xl:table-cell">
                             ${renderSegmentedLevel(priorityScore, 5, req.status === 'PENDING' ? 'orange' : req.status === 'CONFIRMED' ? 'blue' : 'emerald')}
                           </td>
-                          <td class="py-3 px-3 whitespace-nowrap font-medium text-zinc-900 tabular-nums">
+                          <td class="py-2.5 px-2.5 whitespace-nowrap font-medium text-zinc-900 tabular-nums">
                             ${totalFormatted}
                           </td>
-                          <td class="py-3 px-3 whitespace-nowrap">
+                          <td class="py-2.5 px-2.5 whitespace-nowrap">
                             ${renderCrmStatusBadge(req.status)}
                           </td>
-                          <td class="py-3 px-3 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                          <td class="py-2.5 px-3 text-right whitespace-nowrap pr-3" onclick="event.stopPropagation()">
                             <div class="flex items-center justify-end gap-1.5">
                               ${req.status === 'PENDING' ? `
                                 <button class="btn-confirm-req bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs flex items-center gap-1 transition-colors cursor-pointer" data-id="${req.id}" title="Aceptar y confirmar solicitud">
@@ -931,7 +1201,7 @@ export async function renderProviderDashboard() {
                               ` : req.status === 'CONFIRMED' ? `
                                 <button class="btn-dispatch-req bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-2.5 py-1 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}" title="Registrar despacho y generar remisión técnica hacia obra">
                                   ${renderIcon('Truck', 'w-3.5 h-3.5')}
-                                  <span>Despachar a Obra</span>
+                                  <span class="hidden lg:inline">Despachar</span>
                                 </button>
                                 <button class="btn-shipment-tracker p-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Seguimiento de envío">
                                   ${renderIcon('Navigation', 'w-3.5 h-3.5')}
@@ -939,7 +1209,7 @@ export async function renderProviderDashboard() {
                               ` : req.status === 'IN_PROGRESS' ? `
                                 <button class="btn-return-req bg-amber-600 hover:bg-amber-500 text-white rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}" title="Registrar devolución técnica e inspección">
                                   ${renderIcon('ClipboardCheck', 'w-3.5 h-3.5')}
-                                  <span>Registrar Retorno</span>
+                                  <span class="hidden lg:inline">Retorno</span>
                                 </button>
                                 <button class="btn-view-remission p-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer" data-id="${req.id}" title="Ver Remisión de Despacho">
                                   ${renderIcon('FileText', 'w-3.5 h-3.5 text-blue-600')}
@@ -949,7 +1219,10 @@ export async function renderProviderDashboard() {
                                 </button>
                               ` : `
                                 <button class="btn-view-invoice border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs flex items-center gap-1 transition-colors cursor-pointer" data-id="${req.id}">
-                                  ${renderIcon('FileText', 'w-3 h-3 text-zinc-400')} Factura
+                                  ${renderIcon('FileText', 'w-3 h-3 text-zinc-400')} <span class="hidden lg:inline">Factura</span>
+                                </button>
+                                <button class="btn-view-return-acta border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg px-2.5 py-1 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors cursor-pointer" data-id="${req.id}" title="Ver Acta de Recepción Técnica y Retorno">
+                                  ${renderIcon('FileCheck', 'w-3.5 h-3.5 text-emerald-600')} <span class="hidden lg:inline">Acta Retorno</span>
                                 </button>
                                 <button class="btn-view-remission p-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Ver Remisión de Despacho">
                                   ${renderIcon('FileText', 'w-3.5 h-3.5 text-zinc-500')}
@@ -970,9 +1243,121 @@ export async function renderProviderDashboard() {
                 </table>
               </div>
 
-              <div class="px-4 py-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 bg-white">
-                <span>Total de solicitudes: <strong class="text-zinc-800 font-medium">${filteredRequests.length}</strong></span>
-                <span class="text-[11px] text-zinc-400">Haz clic en la fila para abrir detalles del cliente y contrato</span>
+              ${renderPaginationControls({ currentPage: pageRequests, totalItems: totalReqCount, pageSize: pageSizeRequests, changeClass: 'btn-req-page-nav', label: 'solicitudes' })}
+            </div>
+
+            <!-- 2. Mobile & Tablet Adaptive Card View (Visible on screens < md) -->
+            <div class="space-y-3 md:hidden">
+              <div class="flex items-center justify-between px-1 py-1 text-xs text-zinc-500">
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" id="select-all-requests-mobile" class="w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" />
+                  <span class="font-medium text-zinc-700">Seleccionar todas (${filteredRequests.length})</span>
+                </label>
+                <span class="text-[11px] text-zinc-400">Pág. ${pageRequests} de ${maxReqPages}</span>
+              </div>
+
+              ${paginatedRequests.map(req => {
+                const client = clientsMap.get(req.clientId);
+                const rawClientName = client?.fullName || 'Constructora Cliente';
+                const clientName = sanitizeEncoding(rawClientName);
+                const clientContact = client?.phone || client?.email || '+57 300 123 4567';
+
+                const firstItem = req.items?.[0];
+                const tool = firstItem ? toolsMap.get(firstItem.toolId) : null;
+                const toolName = tool?.name || 'Equipo en alquiler';
+                const toolImg = tool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100';
+
+                const totalFormatted = formatCurrency(req.totalAmount || (req.subtotal ? req.subtotal + (req.deposit || 0) : 0));
+
+                return `
+                  <div class="crm-card p-4 space-y-3 crm-request-card hover:border-zinc-300 transition-all cursor-pointer" data-req-id="${req.id}">
+                    <div class="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2.5">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="crm-row-checkbox w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-0 cursor-pointer" data-id="${req.id}" onclick="event.stopPropagation()" />
+                        <div>
+                          <span class="font-mono font-bold text-zinc-900 text-xs">${req.rentalCode || `#TR-${req.id?.slice(0, 6)}`}</span>
+                          <span class="text-[10px] text-zinc-400 block font-mono">${formatDate(req.createdAt || req.startDate)}</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        ${renderCrmStatusBadge(req.status)}
+                        <button class="btn-req-popover p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer" data-id="${req.id}" title="Más opciones" onclick="event.stopPropagation()">
+                          ${renderIcon('MoreHorizontal', 'w-4 h-4')}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2.5">
+                        <img src="${toolImg}" class="w-10 h-10 rounded-lg object-contain bg-zinc-50 border border-zinc-200/80 p-0.5 flex-shrink-0" onerror="this.src='https://images.unsplash.com/photo-1504148455328-c376907d081c?w=100'" />
+                        <div class="min-w-0 flex-1">
+                          <h4 class="font-semibold text-zinc-900 text-xs truncate" title="${toolName}">${toolName}</h4>
+                          <span class="text-[11px] text-zinc-500">${req.items?.length > 1 ? `+${req.items.length - 1} ítem(s)` : '1 unidad asignada'}</span>
+                        </div>
+                      </div>
+
+                      <div class="bg-zinc-50/70 rounded-lg p-2.5 space-y-1 text-xs">
+                        <div class="flex items-center gap-1.5 text-zinc-800 font-medium truncate">
+                          ${renderIcon('User', 'w-3 h-3 text-zinc-400 flex-shrink-0')}
+                          <span class="truncate">${clientName}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-zinc-500 text-[11px] truncate">
+                          ${renderIcon('MapPin', 'w-3 h-3 text-orange-600 flex-shrink-0')}
+                          <span class="truncate">${sanitizeEncoding(req.deliveryAddress || client?.address || 'Obra Principal')}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-zinc-200/50 text-[11px]">
+                          <span class="text-zinc-500">${formatDate(req.startDate)} → ${formatDate(req.endDate)} (${req.totalDays || 1} d)</span>
+                          <span class="font-bold text-zinc-900 tabular-nums">${totalFormatted}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="pt-1 flex items-center gap-2" onclick="event.stopPropagation()">
+                      ${req.status === 'PENDING' ? `
+                        <button class="btn-confirm-req flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-2 text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}">
+                          ${renderIcon('Check', 'w-4 h-4')} Confirmar Solicitud
+                        </button>
+                        <button class="btn-reject-req p-2 rounded-xl border border-zinc-200 hover:bg-rose-50 hover:text-rose-600 text-zinc-400 transition-colors cursor-pointer" data-id="${req.id}" title="Rechazar">
+                          ${renderIcon('X', 'w-4 h-4')}
+                        </button>
+                      ` : req.status === 'CONFIRMED' ? `
+                        <button class="btn-dispatch-req flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-2 text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}">
+                          ${renderIcon('Truck', 'w-4 h-4')} Despachar a Obra
+                        </button>
+                        <button class="btn-shipment-tracker p-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Seguimiento">
+                          ${renderIcon('Navigation', 'w-4 h-4')}
+                        </button>
+                      ` : req.status === 'IN_PROGRESS' ? `
+                        <button class="btn-return-req flex-1 bg-amber-600 hover:bg-amber-500 text-white rounded-xl py-2 text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}">
+                          ${renderIcon('ClipboardCheck', 'w-4 h-4')} Registrar Retorno
+                        </button>
+                        <button class="btn-view-remission p-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 transition-colors cursor-pointer" data-id="${req.id}" title="Remisión">
+                          ${renderIcon('FileText', 'w-4 h-4 text-blue-600')}
+                        </button>
+                        <button class="btn-shipment-tracker p-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Seguimiento">
+                          ${renderIcon('Navigation', 'w-4 h-4')}
+                        </button>
+                      ` : `
+                        <button class="btn-view-invoice flex-1 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-800 rounded-xl py-2 text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}">
+                          ${renderIcon('FileText', 'w-4 h-4 text-zinc-500')} Factura
+                        </button>
+                        <button class="btn-view-return-acta flex-1 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl py-2 text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" data-id="${req.id}">
+                          ${renderIcon('FileCheck', 'w-4 h-4 text-emerald-600')} Acta Retorno
+                        </button>
+                        <button class="btn-view-remission p-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Remisión">
+                          ${renderIcon('FileText', 'w-4 h-4 text-zinc-500')}
+                        </button>
+                        <button class="btn-shipment-tracker p-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 transition-colors cursor-pointer" data-id="${req.id}" title="Seguimiento">
+                          ${renderIcon('Navigation', 'w-4 h-4')}
+                        </button>
+                      `}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+
+              <div class="crm-card overflow-hidden mt-3">
+                ${renderPaginationControls({ currentPage: pageRequests, totalItems: totalReqCount, pageSize: pageSizeRequests, changeClass: 'btn-req-page-nav', label: 'solicitudes' })}
               </div>
             </div>
           `}
@@ -1081,8 +1466,14 @@ export async function renderProviderDashboard() {
 
                         <div class="space-y-1">
                           <span class="text-[10px] font-bold uppercase text-zinc-400">Logística de Entrega</span>
-                          <p class="text-zinc-800 truncate" title="${c.deliveryAddress}">📍 ${c.deliveryAddress || 'Dirección de obra'}</p>
-                          <p class="text-zinc-600 font-mono text-[11px]">📞 Encargado: <a href="tel:${c.contactPhone}" class="text-blue-600 hover:underline">${c.contactPhone}</a></p>
+                          <p class="text-zinc-800 truncate flex items-center gap-1.5" title="${c.deliveryAddress}">
+                            ${renderIcon('MapPin', 'w-3 h-3 text-orange-600 flex-shrink-0')}
+                            <span class="truncate">${c.deliveryAddress || 'Dirección de obra'}</span>
+                          </p>
+                          <p class="text-zinc-600 font-mono text-[11px] flex items-center gap-1.5">
+                            ${renderIcon('Phone', 'w-3 h-3 text-zinc-500 flex-shrink-0')}
+                            <span>Encargado: <a href="tel:${c.contactPhone}" class="text-blue-600 hover:underline">${c.contactPhone}</a></span>
+                          </p>
                         </div>
                       </div>
 
@@ -1190,38 +1581,62 @@ export async function renderProviderDashboard() {
             <div class="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
               <div>
                 <h3 class="font-medium text-zinc-900 text-xs sm:text-sm">Historial de Facturas Emitidas</h3>
-                <p class="text-[11px] text-zinc-500">Comprobantes fiscales y contratos completados.</p>
+                <p class="text-[11px] text-zinc-500">Comprobantes fiscales y contratos comerciales con factura emitida.</p>
               </div>
+              <span class="text-xs font-medium text-zinc-500 bg-zinc-50 border border-zinc-200/80 px-2.5 py-1 rounded-lg">
+                ${(() => {
+                  const invs = requestsList.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED');
+                  return `${invs.length} factura${invs.length === 1 ? '' : 's'}`;
+                })()}
+              </span>
             </div>
 
             <div class="divide-y divide-zinc-100">
-              ${requestsList.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS').length === 0 ? `
-                <div class="py-10 text-center text-zinc-400">
-                  <p class="text-xs">Aún no se han generado facturas contables. Aparecerán aquí al completar alquileres.</p>
-                </div>
-              ` : requestsList.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS').map(r => `
-                <div class="px-4 py-3 flex items-center justify-between hover:bg-zinc-50/70 transition-colors">
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                      ${renderIcon('FileCheck', 'w-4 h-4')}
+              ${(() => {
+                const invoiceRentals = requestsList.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED');
+                const totalInvoicesCount = invoiceRentals.length;
+                const maxInvPages = Math.ceil(totalInvoicesCount / pageSizeInvoices) || 1;
+                if (pageInvoices > maxInvPages) pageInvoices = maxInvPages;
+                const startInvIdx = (pageInvoices - 1) * pageSizeInvoices;
+                const paginatedInvoices = invoiceRentals.slice(startInvIdx, startInvIdx + pageSizeInvoices);
+
+                if (totalInvoicesCount === 0) {
+                  return `
+                    <div class="py-10 text-center text-zinc-400">
+                      <p class="text-xs">Aún no se han generado facturas contables. Aparecerán aquí al completar alquileres o recibir pagos.</p>
                     </div>
-                    <div>
-                      <div class="font-medium text-zinc-900 text-xs font-mono">Factura #${r.rentalCode || r.id?.slice(0, 8)}</div>
-                      <div class="text-[11px] text-zinc-500">${formatDate(r.startDate)} • Cliente: ${clientsMap.get(r.clientId)?.fullName || 'Constructora'}</div>
+                  `;
+                }
+
+                return paginatedInvoices.map(r => `
+                  <div class="crm-invoice-row px-4 py-3 flex items-center justify-between hover:bg-zinc-50/70 transition-colors cursor-pointer group" data-id="${r.id}">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                        ${renderIcon('FileCheck', 'w-4 h-4')}
+                      </div>
+                      <div class="min-w-0">
+                        <div class="font-medium text-zinc-900 text-xs font-mono group-hover:text-orange-600 transition-colors truncate">Factura #${r.rentalCode || r.id?.slice(0, 8)}</div>
+                        <div class="text-[11px] text-zinc-500 truncate max-w-[140px] sm:max-w-xs">${formatDate(r.startDate)} • Cliente: ${clientsMap.get(r.clientId)?.fullName || 'Constructora Cliente'}</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="text-right">
+                        <div class="font-medium text-zinc-900 text-xs tabular-nums">${formatCurrency(r.totalAmount || 150000)}</div>
+                        <span class="text-[10px] text-emerald-600 font-mono font-medium uppercase">EMITIDA</span>
+                      </div>
+                      <button class="btn-view-invoice border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 rounded-lg px-2.5 py-1 text-xs font-medium cursor-pointer shadow-2xs hover:border-zinc-300" data-id="${r.id}" title="Ver Factura Electrónica">
+                        ${renderIcon('Eye', 'w-3 h-3 text-zinc-400')}
+                      </button>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3">
-                    <div class="text-right">
-                      <div class="font-medium text-zinc-900 text-xs tabular-nums">${formatCurrency(r.totalAmount || 150000)}</div>
-                      <span class="text-[10px] text-emerald-600 font-mono font-medium uppercase">EMITIDA</span>
-                    </div>
-                    <button class="btn-view-invoice border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 rounded-lg px-2.5 py-1 text-xs font-medium cursor-pointer shadow-2xs" data-id="${r.id}">
-                      ${renderIcon('Eye', 'w-3 h-3 text-zinc-400')}
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
+                `).join('');
+              })()}
             </div>
+
+            ${(() => {
+              const invoiceRentals = requestsList.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS' || r.status === 'CONFIRMED');
+              return renderPaginationControls({ currentPage: pageInvoices, totalItems: invoiceRentals.length, pageSize: pageSizeInvoices, changeClass: 'btn-invoice-page-nav', label: 'facturas' });
+            })()}
           </div>
 
         </div>
@@ -1322,6 +1737,7 @@ export async function renderProviderDashboard() {
       clearTimeout(invSearchDebounce);
       invSearchDebounce = setTimeout(() => {
         inventorySearch = val;
+        pageInventory = 1;
         renderTabContent();
         const reInp = tabContainer.querySelector('#inv-search-input');
         if (reInp) {
@@ -1334,11 +1750,13 @@ export async function renderProviderDashboard() {
     // Category and status select filters
     tabContainer.querySelector('#inv-category-filter')?.addEventListener('change', (e) => {
       inventoryCategory = e.target.value;
+      pageInventory = 1;
       renderTabContent();
     });
 
     tabContainer.querySelector('#inv-status-filter')?.addEventListener('change', (e) => {
       inventoryStatus = e.target.value;
+      pageInventory = 1;
       renderTabContent();
     });
 
@@ -1346,6 +1764,7 @@ export async function renderProviderDashboard() {
     tabContainer.querySelectorAll('.btn-filter-status').forEach(b => {
       b.addEventListener('click', () => {
         requestsFilterStatus = b.dataset.status;
+        pageRequests = 1;
         renderTabContent();
       });
     });
@@ -1356,6 +1775,7 @@ export async function renderProviderDashboard() {
       clearTimeout(reqSearchDebounce);
       reqSearchDebounce = setTimeout(() => {
         requestsSearch = val;
+        pageRequests = 1;
         renderTabContent();
       }, 150);
     });
@@ -1406,8 +1826,8 @@ export async function renderProviderDashboard() {
       });
     });
 
-    // Requests Row Click -> Overview Card
-    tabContainer.querySelectorAll('.crm-request-row').forEach(row => {
+    // Requests Row or Card Click -> Overview Card
+    tabContainer.querySelectorAll('.crm-request-row, .crm-request-card').forEach(row => {
       row.addEventListener('click', (e) => {
         if (e.target.closest('input[type="checkbox"]') || 
             e.target.closest('.btn-req-popover') || 
@@ -1469,6 +1889,9 @@ export async function renderProviderDashboard() {
               showToast(`Código ${code} copiado al portapapeles`, 'success');
             } },
             { icon: 'FileText', label: 'Ver Remisión de Despacho', action: () => openDispatchRemissionViewer(buildRemissionData(req)) },
+            ...(isCompleted ? [
+              { icon: 'FileCheck', label: 'Ver Acta de Recepción Técnica y Retorno', action: () => openCompletedReturnReceipt(req) }
+            ] : []),
             ...(tool ? [
               { icon: 'Layers', label: 'Ver Ficha de la Maquinaria', action: () => { window.location.hash = `#/product/${tool.id}`; } }
             ] : []),
@@ -1476,6 +1899,9 @@ export async function renderProviderDashboard() {
               showToast(`Teléfono cliente: ${req.contactPhone || client?.phone || '+57 300 123 4567'}`, 'info');
             } },
             { icon: 'Printer', label: 'Imprimir Resumen de Reserva', action: () => window.print() },
+            ...(req.status === 'COMPLETED' ? [
+              { icon: 'FileCheck', label: 'Ver Acta de Recepción Técnica y Retorno', action: () => openCompletedReturnReceipt(req) }
+            ] : []),
             ...(isPending ? [
               { divider: true },
               { icon: 'XCircle', label: 'Rechazar Solicitud', danger: true, action: () => rejectRentalRequest(req.id) }
@@ -1639,6 +2065,15 @@ export async function renderProviderDashboard() {
       });
     });
 
+    // View Return Acta button (Acta de Devolución e Inspección Técnica completada)
+    tabContainer.querySelectorAll('.btn-view-return-acta').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const req = requestsList.find(r => r.id === btn.dataset.id);
+        if (req) openCompletedReturnReceipt(req);
+      });
+    });
+
     // Shipment tracker button
     tabContainer.querySelectorAll('.btn-shipment-tracker').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -1648,12 +2083,49 @@ export async function renderProviderDashboard() {
       });
     });
 
-    // View invoice button
-    tabContainer.querySelectorAll('.btn-view-invoice').forEach(btn => {
+    // View invoice button & invoice row click
+    tabContainer.querySelectorAll('.crm-invoice-row, .btn-view-invoice').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const req = requestsList.find(r => r.id === btn.dataset.id);
         if (req) openInvoiceForRental(req);
+      });
+    });
+
+    // Pagination handlers
+    tabContainer.querySelectorAll('.btn-inv-page-nav').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const p = parseInt(btn.dataset.page, 10);
+        if (p && p >= 1) {
+          pageInventory = p;
+          renderTabContent();
+          tabContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    tabContainer.querySelectorAll('.btn-req-page-nav').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const p = parseInt(btn.dataset.page, 10);
+        if (p && p >= 1) {
+          pageRequests = p;
+          renderTabContent();
+          tabContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    tabContainer.querySelectorAll('.btn-invoice-page-nav').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const p = parseInt(btn.dataset.page, 10);
+        if (p && p >= 1) {
+          pageInvoices = p;
+          renderTabContent();
+          tabContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     });
 
@@ -1698,14 +2170,18 @@ export async function renderProviderDashboard() {
     }
 
     const selectAllRequests = tabContainer.querySelector('#select-all-requests');
-    if (selectAllRequests) {
-      selectAllRequests.addEventListener('change', (e) => {
-        tabContainer.querySelectorAll('.crm-row-checkbox').forEach(cb => {
-          cb.checked = e.target.checked;
-          cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
+    const selectAllRequestsMobile = tabContainer.querySelector('#select-all-requests-mobile');
+    const handleSelectAllRequests = (e) => {
+      const isChecked = e.target.checked;
+      tabContainer.querySelectorAll('.crm-row-checkbox').forEach(cb => {
+        cb.checked = isChecked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
       });
-    }
+      if (selectAllRequests && selectAllRequests !== e.target) selectAllRequests.checked = isChecked;
+      if (selectAllRequestsMobile && selectAllRequestsMobile !== e.target) selectAllRequestsMobile.checked = isChecked;
+    };
+    if (selectAllRequests) selectAllRequests.addEventListener('change', handleSelectAllRequests);
+    if (selectAllRequestsMobile) selectAllRequestsMobile.addEventListener('change', handleSelectAllRequests);
 
     // ===================================================================
     // FLOATING BULK ACTION BAR SETUP
@@ -2208,23 +2684,51 @@ export async function renderProviderDashboard() {
     }
   }
 
-  function openInvoiceForRental(req) {
-    const client = clientsList.find(c => c.id === req?.clientId);
-    const firstItem = req?.items?.[0];
+  async function openInvoiceForRental(req) {
+    if (!req) return;
+
+    let backendInvoice = null;
+    try {
+      backendInvoice = await api.get(`/billing/invoices/rental/${req.id}`);
+    } catch (_) {}
+
+    const client = clientsList.find(c => c.id === req.clientId);
+    const firstItem = req.items?.[0];
     const tool = firstItem ? toolsList.find(t => t.id === firstItem.toolId) : null;
-    const totalAmount = req?.totalAmount || 180000;
-    const subtotal = Math.round(totalAmount / 1.19);
-    const tax = totalAmount - subtotal;
+    const totalAmount = backendInvoice?.totalAmount || req.totalAmount || 180000;
+    const subtotal = backendInvoice?.subtotal || Math.round(totalAmount / 1.19);
+    const tax = backendInvoice?.tax !== undefined ? backendInvoice.tax : (totalAmount - subtotal);
+    const totalDays = req.totalDays || 1;
+
+    const items = (req.items && req.items.length > 0)
+      ? req.items.map(it => {
+          const t = toolsList.find(x => x.id === it.toolId);
+          return {
+            name: t?.name || it.toolName || 'Maquinaria en Alquiler',
+            days: totalDays,
+            dailyPrice: it.dailyPrice || Math.round(subtotal / totalDays),
+            subtotal: it.totalPrice || subtotal
+          };
+        })
+      : [
+          {
+            name: tool?.name || 'Maquinaria en Alquiler',
+            days: totalDays,
+            dailyPrice: firstItem?.dailyPrice || Math.round(subtotal / totalDays),
+            subtotal: subtotal
+          }
+        ];
 
     openInvoiceViewer({
-      invoiceNumber: req?.rentalCode || `TR-INV-${req?.id?.slice(0, 6) || '1001'}`,
-      issueDate: formatDate(req?.startDate || '2026-10-15'),
+      rawInvoiceId: backendInvoice?.id,
+      invoiceNumber: backendInvoice?.invoiceNumber || req.rentalCode || `TR-INV-${req.id.slice(0, 8).toUpperCase()}`,
+      issueDate: backendInvoice?.issueDate ? formatDate(backendInvoice.issueDate.split('T')[0]) : formatDate(req.startDate || '2026-10-15'),
       client: {
         name: client?.fullName || 'Constructora Gómez & Asoc.',
         taxId: client?.documentNumber ? `${client.documentType || 'CC'} ${client.documentNumber}` : 'CC 1018234567',
-        address: [client?.address, client?.city].filter(Boolean).join(', ') || 'Calle 134 # 19-45, Bogotá D.C.',
+        address: [client?.address, client?.city].filter(Boolean).join(', ') || req.deliveryAddress || 'Calle 134 # 19-45, Bogotá D.C.',
         email: client?.email || 'carlos.gomez@constructora.com',
-        phone: client?.phone || '+57 300 123 4567'
+        phone: client?.phone || req.contactPhone || '+57 300 123 4567'
       },
       provider: {
         name: providerProfile?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.',
@@ -2233,23 +2737,24 @@ export async function renderProviderDashboard() {
         email: user?.email || 'contacto@maquinariabogota.com',
         phone: providerProfile?.phone || '+57 310 111 2233'
       },
+      items: items,
       tool: {
         name: tool?.name || 'Maquinaria en Alquiler',
         sku: tool?.serialNumber || 'SKU-2026'
       },
       rentalPeriod: {
-        startDate: formatDate(req?.startDate || '2026-10-15'),
-        endDate: formatDate(req?.endDate || '2026-10-18'),
-        days: req?.totalDays || 3
+        startDate: formatDate(req.startDate || '2026-10-15'),
+        endDate: formatDate(req.endDate || '2026-10-18'),
+        days: totalDays
       },
-      dailyRate: firstItem?.dailyPrice || Math.round(subtotal / (req?.totalDays || 1)),
+      dailyRate: firstItem?.dailyPrice || Math.round(subtotal / totalDays),
       subtotal: subtotal,
       tax: tax,
       total: totalAmount,
-      paymentMethod: 'Transferencia electrónica bancaria',
+      paymentMethod: backendInvoice?.paymentMethod || 'Transferencia electrónica bancaria',
       bank: 'Bancolombia S.A.',
-      reference: req?.rentalCode || 'TR-REF-001',
-      paymentDate: formatDate(req?.startDate || '2026-10-15')
+      reference: backendInvoice?.paymentReference || req.rentalCode || `TR-REF-${req.id.slice(0, 6)}`,
+      paymentDate: formatDate(req.startDate || '2026-10-15')
     });
   }
 
@@ -2263,64 +2768,156 @@ export async function renderProviderDashboard() {
     const toolImg = tool?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200';
 
     const content = document.createElement('div');
-    content.className = 'space-y-4 text-xs animate-scale-in';
+    content.className = 'space-y-4 text-xs animate-scale-in text-zinc-700';
+
+    const scheduledEndDate = req.endDate ? req.endDate.split('T')[0] : '';
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isOverdue = scheduledEndDate && todayStr > scheduledEndDate;
+    const client = clientsList.find(c => c.id === req.clientId);
+    const depositAmount = req.deposit || 150000;
 
     content.innerHTML = `
       <div class="space-y-4">
-        <!-- Preview -->
-        <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center gap-3">
-          <img src="${toolImg}" class="w-11 h-11 rounded-lg object-contain bg-white border border-zinc-200 p-1 flex-shrink-0" />
-          <div class="min-w-0">
-            <h4 class="font-medium text-zinc-900 text-xs truncate">${tool?.name || 'Equipo en devolución'}</h4>
-            <span class="text-[11px] text-zinc-400">${tool?.category?.name || 'Maquinaria'} • Serie: ${tool?.serialNumber || 'N/A'}</span>
+        <!-- Preview and Contract Information -->
+        <div class="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <img src="${toolImg}" class="w-12 h-12 rounded-lg object-contain bg-white border border-zinc-200 p-1 flex-shrink-0" onerror="this.src='https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200'" />
+            <div class="min-w-0">
+              <h4 class="font-bold text-zinc-900 text-xs truncate">${tool?.name || 'Equipo en devolución'}</h4>
+              <span class="text-[11px] text-zinc-500">${tool?.brand || 'Industrial'} • Serie: ${tool?.serialNumber || 'N/A'}</span>
+              <p class="text-[10px] text-zinc-500 mt-0.5">Cliente: <strong class="text-zinc-800">${client?.fullName || 'Constructora Cliente'}</strong></p>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-[10px] text-zinc-400 block uppercase font-semibold">Fecha Límite Asignada</span>
+            <span class="font-bold text-xs ${isOverdue ? 'text-rose-600' : 'text-zinc-900'}">${formatDate(req.endDate)}</span>
+            <span id="insp-schedule-badge" class="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${isOverdue ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+              ${isOverdue ? 'Retorno con retraso' : 'Dentro de la fecha asignada'}
+            </span>
           </div>
         </div>
 
+        <!-- Date Compliance Selector -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white border border-zinc-200/90 rounded-xl">
+          <div>
+            <label class="block text-[11px] font-semibold text-zinc-700 mb-1">Fecha Asignada en Contrato</label>
+            <div class="p-2 bg-zinc-50 rounded-lg border border-zinc-200 text-xs font-mono font-medium text-zinc-700 flex items-center justify-between">
+              <span>${formatDate(req.endDate)}</span>
+              <span class="text-[10px] text-zinc-400 font-sans">(${req.totalDays || 1} d contratados)</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-zinc-700 mb-1">Fecha Efectiva de Recepción en Bodega *</label>
+            <input type="date" id="insp-return-date" class="input-field text-xs font-mono font-medium w-full" value="${todayStr}" />
+          </div>
+        </div>
+
+        <!-- Technical Reception Checklist -->
+        <div class="space-y-2 p-3 bg-zinc-50 rounded-xl border border-zinc-200/80">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-zinc-800 text-xs flex items-center gap-1.5">
+              ${renderIcon('CheckSquare', 'w-3.5 h-3.5 text-orange-600')}
+              Protocolo de Inspección Técnica en Bodega
+            </span>
+            <span class="text-[10px] text-zinc-400">Verificación 5 puntos</span>
+          </div>
+          <div class="space-y-2 pt-1 text-xs">
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" id="chk-motor" checked class="mt-0.5 text-orange-600 rounded focus:ring-0" />
+              <span class="text-zinc-700 text-[11px]">Sistema motriz, motor eléctrico u oleohidráulico 100% operativo sin fugas ni sobrecalentamiento.</span>
+            </label>
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" id="chk-accessories" checked class="mt-0.5 text-orange-600 rounded focus:ring-0" />
+              <span class="text-zinc-700 text-[11px]">Accesorios, adaptadores, mandriles, llaves y cableado entregados completos según remisión de despacho.</span>
+            </label>
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" id="chk-clean" checked class="mt-0.5 text-orange-600 rounded focus:ring-0" />
+              <span class="text-zinc-700 text-[11px]">Limpieza en bodega verificada (equipo despresurizado, sin sedimentos de hormigón fraguado ni sustancias corrosivas).</span>
+            </label>
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" id="chk-structure" checked class="mt-0.5 text-orange-600 rounded focus:ring-0" />
+              <span class="text-zinc-700 text-[11px]">Estructura, guardas de seguridad, interruptores de parada y chasis íntegros sin fracturas.</span>
+            </label>
+            <div class="pt-1.5 border-t border-zinc-200/60 flex items-center justify-between gap-3">
+              <label for="insp-horometer" class="text-[11px] font-semibold text-zinc-700 whitespace-nowrap">Horómetro final / Horas registradas:</label>
+              <input type="text" id="insp-horometer" class="input-field text-xs font-mono max-w-[180px] text-right" value="38.5 Horas" placeholder="Ej: 38.5 hrs" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Escrow Guarantee & Physical Status -->
         <div>
-          <label class="block font-medium text-zinc-700 uppercase tracking-[0.06em] text-[10px] mb-2">Estado Físico en Devolución</label>
-          <div class="grid grid-cols-2 gap-2.5">
+          <label class="block font-medium text-zinc-700 uppercase tracking-[0.06em] text-[10px] mb-2">Dictamen de Estado Físico y Garantía</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <label class="flex items-center gap-2 p-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 cursor-pointer">
               <input type="radio" name="insp-status" value="GOOD" checked class="text-orange-600 focus:ring-0" />
-              <span class="font-medium text-zinc-800 text-xs">Conforme / Sin Daños</span>
+              <div>
+                <span class="font-bold text-zinc-800 text-xs block">Conforme y Operativo</span>
+                <span class="text-[10px] text-emerald-600 font-medium">Liberar 100% garantía (${formatCurrency(depositAmount)})</span>
+              </div>
             </label>
             <label class="flex items-center gap-2 p-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 cursor-pointer">
               <input type="radio" name="insp-status" value="DAMAGED" class="text-orange-600 focus:ring-0" />
-              <span class="font-medium text-amber-700 text-xs">Con Averías / Daños</span>
+              <div>
+                <span class="font-bold text-amber-700 text-xs block">Con Averías / Daños</span>
+                <span class="text-[10px] text-amber-600 font-medium">Deducir costo técnico de la custodia</span>
+              </div>
             </label>
           </div>
         </div>
 
-        <div>
-          <label class="block font-medium text-zinc-700 mb-1">Notas de la inspección técnica</label>
-          <textarea id="insp-notes" class="input-field h-20 text-xs" placeholder="Detalles de horas de uso, limpieza o desgaste..."></textarea>
-        </div>
-
+        <!-- Damage box (conditional) -->
         <div id="damage-box" class="hidden p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 space-y-3">
           <span class="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
-            ${renderIcon('AlertTriangle', 'w-3.5 h-3.5')} Reporte Técnico de Avería
+            ${renderIcon('AlertTriangle', 'w-3.5 h-3.5')} Reporte Técnico de Avería en Obra
           </span>
           <div>
-            <label class="block text-[11px] font-medium text-zinc-700 mb-1">Descripción del daño</label>
-            <input type="text" id="dmg-desc" class="input-field text-xs" placeholder="Ej: Cable cortado, fisura en carcasa..." />
+            <label class="block text-[11px] font-medium text-zinc-700 mb-1">Descripción de la novedad técnica</label>
+            <input type="text" id="dmg-desc" class="input-field text-xs" placeholder="Ej: Desgaste anómalo en corona, cable seccionado..." />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-[11px] font-medium text-zinc-700 mb-1">Costo Estimado Reparación ($ COP)</label>
-              <input type="number" id="dmg-cost" class="input-field text-xs font-mono tabular-nums" value="75000" />
+              <label class="block text-[11px] font-medium text-zinc-700 mb-1">Costo Deducible de Reparación ($ COP)</label>
+              <input type="number" id="dmg-cost" class="input-field text-xs font-mono tabular-nums" value="85000" />
             </div>
             <div>
-              <label class="block text-[11px] font-medium text-zinc-700 mb-1">Destino del Equipo</label>
+              <label class="block text-[11px] font-medium text-zinc-700 mb-1">Destino Post-Retorno</label>
               <select id="dmg-action" class="input-field text-xs">
                 <option value="MAINTENANCE" selected>Enviar a Taller / Mantenimiento</option>
                 <option value="RETIRED">Dar de baja definitiva</option>
               </select>
             </div>
           </div>
+          <div class="p-2 bg-white rounded-lg border border-amber-200/80 flex items-center justify-between text-xs">
+            <span class="text-zinc-600 text-[11px]">Saldo de garantía a reembolsar al cliente:</span>
+            <span id="dmg-refund-preview" class="font-bold text-emerald-700 font-mono">${formatCurrency(Math.max(0, depositAmount - 85000))}</span>
+          </div>
+        </div>
+
+        <!-- Escrow Guarantee Status Box -->
+        <div class="p-3 bg-emerald-50/60 border border-emerald-200/80 rounded-xl flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            ${renderIcon('ShieldCheck', 'w-4 h-4 text-emerald-600 flex-shrink-0')}
+            <span class="text-emerald-950 font-medium text-[11px]">
+              Garantía en custodia ToolRent: <strong>${formatCurrency(depositAmount)} COP</strong>.
+            </span>
+          </div>
+          <span class="text-[10px] text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200 font-semibold shrink-0">
+            Liberación al cerrar
+          </span>
+        </div>
+
+        <div>
+          <label class="block font-medium text-zinc-700 mb-1 text-[11px]">Observaciones del Técnico de Recepción</label>
+          <textarea id="insp-notes" class="input-field h-16 text-xs leading-relaxed" placeholder="Anotaciones sobre desgaste normal, estado de pintura, horas de uso en faena..."></textarea>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
           <button id="btn-cancel-insp" class="btn-secondary !py-2 !px-4 text-xs cursor-pointer">Cancelar</button>
-          <button id="btn-submit-insp" class="btn-primary !py-2 !px-5 text-xs font-medium cursor-pointer">Completar e Inspeccionar</button>
+          <button id="btn-submit-insp" class="btn-primary !py-2 !px-5 text-xs font-semibold cursor-pointer flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 border-emerald-700">
+            ${renderIcon('CheckCircle2', 'w-3.5 h-3.5')}
+            <span>Confirmar Recepción y Cerrar Alquiler</span>
+          </button>
         </div>
       </div>
     `;
@@ -2328,39 +2925,259 @@ export async function renderProviderDashboard() {
     const radioDamaged = content.querySelector('input[value="DAMAGED"]');
     const radioGood = content.querySelector('input[value="GOOD"]');
     const dmgBox = content.querySelector('#damage-box');
+    const dmgCostInput = content.querySelector('#dmg-cost');
+    const dmgRefundPreview = content.querySelector('#dmg-refund-preview');
 
-    radioDamaged.addEventListener('change', () => dmgBox.classList.remove('hidden'));
-    radioGood.addEventListener('change', () => dmgBox.classList.add('hidden'));
+    const updateDmgRefund = () => {
+      const cost = parseFloat(dmgCostInput?.value) || 0;
+      const refund = Math.max(0, depositAmount - cost);
+      if (dmgRefundPreview) dmgRefundPreview.textContent = formatCurrency(refund);
+    };
+
+    radioDamaged?.addEventListener('change', () => {
+      dmgBox.classList.remove('hidden');
+      updateDmgRefund();
+    });
+    radioGood?.addEventListener('change', () => dmgBox.classList.add('hidden'));
+    dmgCostInput?.addEventListener('input', updateDmgRefund);
+
+    const dateInput = content.querySelector('#insp-return-date');
+    const scheduleBadge = content.querySelector('#insp-schedule-badge');
+    dateInput?.addEventListener('change', (e) => {
+      const sel = e.target.value;
+      if (!sel || !scheduledEndDate || !scheduleBadge) return;
+      if (sel <= scheduledEndDate) {
+        scheduleBadge.className = 'inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+        scheduleBadge.textContent = sel === scheduledEndDate ? '✓ Retorno exacto en fecha asignada' : '✓ Retorno anticipado en fecha asignada';
+      } else {
+        scheduleBadge.className = 'inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200';
+        scheduleBadge.textContent = '⚠ Retorno posterior a fecha asignada';
+      }
+    });
 
     content.querySelector('#btn-cancel-insp').addEventListener('click', () => modal.close());
 
     content.querySelector('#btn-submit-insp').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
-      btn.innerHTML = `<span class="inline-flex items-center gap-1.5">${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin')} Procesando...</span>`;
+      btn.innerHTML = `<span class="inline-flex items-center gap-1.5">${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin')} Procesando Recepción...</span>`;
+
+      const isDamaged = content.querySelector('input[name="insp-status"]:checked')?.value === 'DAMAGED';
+      const effectiveDate = dateInput?.value || todayStr;
+      const horometer = content.querySelector('#insp-horometer')?.value || '38.5 Horas';
+      const notes = content.querySelector('#insp-notes')?.value || (isDamaged ? 'Equipo recibido con novedades técnicas.' : 'Equipo recibido conforme a contrato en fecha asignada.');
+      const deductionCost = isDamaged ? (parseFloat(dmgCostInput?.value) || 0) : 0;
+      const dmgDesc = content.querySelector('#dmg-desc')?.value || '';
 
       try {
         await api.patch(`/rentals/${req.id}/complete`);
-        const isDamaged = content.querySelector('input[name="insp-status"]:checked')?.value === 'DAMAGED';
         req.status = 'COMPLETED';
+
         if (tool) {
           tool.status = isDamaged ? 'MAINTENANCE' : 'AVAILABLE';
         }
-        showToast('Devolución e inspección registradas exitosamente', 'success');
+
+        notificationsStore.addNotification({
+          type: 'RENTAL_RETURNED',
+          title: `Recepción de Maquinaria: ${req.rentalCode || req.id.slice(0, 8)}`,
+          message: `Recepción técnica y retorno completado para ${tool?.name || 'maquinaria'}. Estado ${isDamaged ? 'con avería técnica' : 'conforme y operativo'}. Depósito liquidado.`,
+          date: new Date().toISOString()
+        });
+
+        showToast('Devolución e inspección técnica registradas exitosamente', 'success');
         modal.close();
         updateKpis();
         renderTabContent();
+
+        // Open official return receipt for provider
+        openProviderReturnReceiptModal({
+          req,
+          tool,
+          client,
+          inspectionData: {
+            returnDate: effectiveDate,
+            horometer: horometer,
+            isDamaged: isDamaged,
+            deduction: deductionCost,
+            dmgDesc: dmgDesc,
+            notes: notes
+          }
+        });
+
       } catch (err) {
         btn.disabled = false;
-        btn.innerHTML = 'Completar e Inspeccionar';
+        btn.innerHTML = `${renderIcon('CheckCircle2', 'w-3.5 h-3.5')} Confirmar Recepción y Cerrar Alquiler`;
         showToast(err.message || 'Error al completar la devolución', 'error');
       }
     });
 
     modal.open({
-      title: `${renderIcon('ClipboardCheck', 'w-4 h-4 text-orange-600')} Acta de Devolución e Inspección`,
+      title: `${renderIcon('ClipboardCheck', 'w-4 h-4 text-orange-600')} Recepción Técnica y Retorno de Maquinaria`,
       content: content,
-      maxWidth: 'max-w-md'
+      maxWidth: 'max-w-xl'
+    });
+  }
+
+  function openProviderReturnReceiptModal(data) {
+    const { req, tool, client, inspectionData } = data;
+    const toolName = tool?.name || req.items?.[0]?.toolName || 'Maquinaria de Construcción';
+    const rentalCode = req.rentalCode || `#TR-${req.id?.slice(0, 8)}`;
+    const company = providerProfile?.companyName || 'Maquinaria y Equipos Bogotá S.A.S.';
+    const taxId = providerProfile?.taxId || '900123456-1';
+    const clientName = client?.fullName || 'Constructora Cliente';
+    const receiptCode = `ACTA-RET-${(req.rentalCode?.replace(/[^a-zA-Z0-9]/g, '') || req.id.slice(0, 6)).toUpperCase()}`;
+    const returnDate = inspectionData.returnDate || new Date().toISOString().split('T')[0];
+    const isDamaged = inspectionData.isDamaged || false;
+    const depositTotal = req.deposit || 150000;
+    const deduction = inspectionData.deduction || 0;
+    const netRefund = Math.max(0, depositTotal - deduction);
+
+    const scheduledEndDate = req.endDate ? req.endDate.split('T')[0] : '';
+    const isOnTime = !scheduledEndDate || returnDate <= scheduledEndDate;
+
+    const content = document.createElement('div');
+    content.className = 'space-y-4 text-xs animate-scale-in text-zinc-800';
+
+    content.innerHTML = `
+      <!-- Action Bar -->
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-200">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h3 class="font-bold text-sm text-zinc-900 font-display">Acta Digital de Recepción y Retorno Técnico</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-print-prov-return-receipt" class="btn-secondary !py-1.5 !px-3 text-xs flex items-center gap-1.5 cursor-pointer">
+            ${renderIcon('Printer', 'w-3.5 h-3.5')} Imprimir Acta
+          </button>
+          <button id="btn-close-prov-return-receipt" class="btn-primary !py-1.5 !px-3 text-xs cursor-pointer">
+            Cerrar
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Certificate Card -->
+      <div id="printable-prov-return-receipt" class="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4 shadow-xs">
+        <!-- Certificate Header -->
+        <div class="flex items-start justify-between border-b border-zinc-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-base font-black text-zinc-900 tracking-tight font-display">ToolRent<span class="text-orange-600">.co</span></span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold border border-emerald-200">
+                RECEPCIÓN EN BODEGA APROBADA
+              </span>
+            </div>
+            <p class="text-[11px] text-zinc-500 mt-1">${company} • NIT ${taxId}</p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-zinc-400 uppercase font-mono block">Nº Acta Retorno</span>
+            <span class="font-mono font-bold text-sm text-zinc-800">${receiptCode}</span>
+            <span class="text-[10px] text-zinc-500 block mt-0.5">Fecha: ${formatDate(returnDate)}</span>
+          </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-100 space-y-1">
+            <span class="text-[10px] text-zinc-400 uppercase font-bold block">Cliente Titular</span>
+            <strong class="text-zinc-900 block truncate">${clientName}</strong>
+            <span class="text-[11px] text-zinc-500 block">Contrato: ${rentalCode}</span>
+            <span class="text-[10px] text-zinc-400 block truncate">Destino: ${req.deliveryAddress || 'Obra Principal'}</span>
+          </div>
+          <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-100 space-y-1">
+            <span class="text-[10px] text-zinc-400 uppercase font-bold block">Equipo Reincorporado</span>
+            <strong class="text-zinc-900 block truncate">${toolName}</strong>
+            <span class="text-[11px] text-zinc-500 block">Serie: ${tool?.serialNumber || 'N/A'}</span>
+            <span class="text-[10px] text-zinc-400 block">Horómetro: ${inspectionData.horometer || '38.5 Horas'}</span>
+          </div>
+        </div>
+
+        <!-- Schedule Compliance Banner -->
+        <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-[10px] text-zinc-400 uppercase font-bold block">Cronograma Asignado en Contrato</span>
+            <span class="font-medium text-zinc-800">${formatDate(req.startDate)} → ${formatDate(req.endDate)}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-zinc-400 uppercase font-bold block">Fecha Efectiva de Retorno</span>
+            <span class="font-bold text-xs ${isOnTime ? 'text-emerald-700' : 'text-rose-600'}">${formatDate(returnDate)}</span>
+            <span class="inline-block mt-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full ${isOnTime ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+              ${isOnTime ? 'Retorno en Fecha Asignada' : 'Retorno Posterior a Plazo'}
+            </span>
+          </div>
+        </div>
+
+        <!-- Escrow Guarantee Settlement Table -->
+        <div class="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl space-y-2 text-xs text-emerald-950">
+          <div class="flex items-center justify-between font-bold border-b border-emerald-200/60 pb-1.5">
+            <span>Liquidación de Depósito en Custodia</span>
+            <span class="font-mono text-emerald-800">${formatCurrency(depositTotal)} COP</span>
+          </div>
+          <div class="space-y-1 text-[11px] text-emerald-900">
+            <div class="flex items-center justify-between">
+              <span>Depósito inicial en custodia:</span>
+              <span class="font-mono font-medium">${formatCurrency(depositTotal)}</span>
+            </div>
+            ${isDamaged ? `
+              <div class="flex items-center justify-between text-amber-900 font-medium">
+                <span>Deducción técnica por avería / reparaciones:</span>
+                <span class="font-mono">-${formatCurrency(deduction)}</span>
+              </div>
+            ` : ''}
+            <div class="flex items-center justify-between font-bold text-xs pt-1 border-t border-emerald-200/60 text-emerald-950">
+              <span>Monto total liberado y desembolsado al cliente:</span>
+              <span class="font-mono text-emerald-700">${formatCurrency(netRefund)} COP</span>
+            </div>
+          </div>
+          <p class="text-[10px] text-emerald-800/80 pt-0.5">
+            Estado de la maquinaria: <strong>${isDamaged ? 'Enviada a mantenimiento técnico de taller' : '100% Conforme - Reintegrada a inventario disponible'}</strong>.
+          </p>
+        </div>
+
+        <!-- Observations -->
+        <div class="text-[11px] text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+          <strong>Dictamen técnico:</strong> ${inspectionData.notes || 'Recepción técnica completada a satisfacción conforme a contrato.'}
+        </div>
+
+        <!-- Signatures -->
+        <div class="grid grid-cols-2 gap-6 pt-5 text-center text-xs">
+          <div class="border-t border-zinc-300 pt-2">
+            <span class="font-bold text-zinc-800 block">${company}</span>
+            <span class="text-[10px] text-zinc-400 block">Técnico de Recepción en Bodega</span>
+          </div>
+          <div class="border-t border-zinc-300 pt-2">
+            <span class="font-bold text-zinc-800 block">${clientName}</span>
+            <span class="text-[10px] text-zinc-400 block">Responsable de Entrega / Transporte</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    content.querySelector('#btn-close-prov-return-receipt')?.addEventListener('click', () => modal.close());
+    content.querySelector('#btn-print-prov-return-receipt')?.addEventListener('click', () => window.print());
+
+    modal.open({
+      title: '',
+      content: content,
+      maxWidth: 'max-w-xl',
+      hideHeader: true
+    });
+  }
+
+  function openCompletedReturnReceipt(req) {
+    const firstItem = req?.items?.[0];
+    const tool = firstItem ? toolsList.find(t => t.id === firstItem.toolId) : null;
+    const client = clientsList.find(c => c.id === req.clientId);
+    openProviderReturnReceiptModal({
+      req,
+      tool,
+      client,
+      inspectionData: {
+        returnDate: req.updatedAt || req.endDate || new Date().toISOString().split('T')[0],
+        horometer: 'Verificado conforme',
+        isDamaged: false,
+        deduction: 0,
+        notes: 'Devolución técnica e inspección en bodega completada conforme a contrato en fecha asignada.'
+      }
     });
   }
 
@@ -2412,7 +3229,7 @@ export async function renderProviderDashboard() {
             <!-- Step 1: PENDING -->
             <div class="flex items-start gap-3 relative">
               <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isPending ? 'bg-orange-600 text-white shadow-xs' : 'bg-emerald-600 text-white'}">
-                ${isPending ? '1' : renderIcon('Check', 'w-3.5 h-3.5')}
+                ${isPending ? renderIcon('Clock', 'w-3.5 h-3.5') : renderIcon('Check', 'w-3.5 h-3.5')}
               </div>
               <div class="min-w-0 pt-0.5">
                 <span class="font-semibold text-zinc-900 text-xs block">1. Solicitud y Validación de Reserva</span>
@@ -2423,7 +3240,7 @@ export async function renderProviderDashboard() {
             <!-- Step 2: CONFIRMED -->
             <div class="flex items-start gap-3 relative">
               <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isConfirmed ? 'bg-blue-600 text-white shadow-xs' : (isInProgress || isCompleted ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-400 border border-zinc-200')}">
-                ${isInProgress || isCompleted ? renderIcon('Check', 'w-3.5 h-3.5') : '2'}
+                ${isInProgress || isCompleted ? renderIcon('Check', 'w-3.5 h-3.5') : renderIcon('Truck', 'w-3.5 h-3.5')}
               </div>
               <div class="min-w-0 pt-0.5">
                 <span class="font-semibold text-zinc-900 text-xs block">2. Preparación y Despacho en Bodega</span>
@@ -2434,7 +3251,7 @@ export async function renderProviderDashboard() {
             <!-- Step 3: IN_PROGRESS -->
             <div class="flex items-start gap-3 relative">
               <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isInProgress ? 'bg-emerald-600 text-white shadow-xs animate-pulse' : (isCompleted ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-400 border border-zinc-200')}">
-                ${isCompleted ? renderIcon('Check', 'w-3.5 h-3.5') : '3'}
+                ${isCompleted ? renderIcon('Check', 'w-3.5 h-3.5') : renderIcon('HardHat', 'w-3.5 h-3.5')}
               </div>
               <div class="min-w-0 pt-0.5">
                 <span class="font-semibold text-zinc-900 text-xs block">3. Entrega en Obra y Faena Activa</span>
@@ -2445,7 +3262,7 @@ export async function renderProviderDashboard() {
             <!-- Step 4: COMPLETED -->
             <div class="flex items-start gap-3 relative">
               <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isCompleted ? 'bg-emerald-600 text-white shadow-xs' : 'bg-zinc-100 text-zinc-400 border border-zinc-200'}">
-                ${isCompleted ? renderIcon('Check', 'w-3.5 h-3.5') : '4'}
+                ${isCompleted ? renderIcon('CheckCircle2', 'w-3.5 h-3.5') : renderIcon('ClipboardCheck', 'w-3.5 h-3.5')}
               </div>
               <div class="min-w-0 pt-0.5">
                 <span class="font-semibold text-zinc-900 text-xs block">4. Retorno a Bodega e Inspección Técnica</span>
@@ -2458,15 +3275,15 @@ export async function renderProviderDashboard() {
         <!-- Shipment Address & Contact Info -->
         <div class="p-3 bg-zinc-50 border border-zinc-200/80 rounded-xl space-y-1.5 text-xs text-zinc-600">
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Destino de entrega en obra:</span>
+            <span class="text-zinc-500 flex items-center gap-1.5">${renderIcon('MapPin', 'w-3.5 h-3.5 text-orange-600 flex-shrink-0')} Destino de entrega en obra:</span>
             <span class="font-medium text-zinc-900">${req.deliveryAddress || client?.address || 'Calle 134 # 19-45, Bogotá D.C.'}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Contacto / Residente en faena:</span>
+            <span class="text-zinc-500 flex items-center gap-1.5">${renderIcon('User', 'w-3.5 h-3.5 text-zinc-400 flex-shrink-0')} Contacto / Residente en faena:</span>
             <span class="font-medium text-zinc-900">${client?.fullName || 'Carlos Gómez'} (${req.contactPhone || client?.phone || '+57 300 123 4567'})</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Vigencia contractual:</span>
+            <span class="text-zinc-500 flex items-center gap-1.5">${renderIcon('Calendar', 'w-3.5 h-3.5 text-zinc-400 flex-shrink-0')} Vigencia contractual:</span>
             <span class="font-medium text-zinc-900">${formatDate(req.startDate)} → ${formatDate(req.endDate)} (${req.totalDays || 1} días)</span>
           </div>
         </div>
@@ -2605,11 +3422,11 @@ export async function renderProviderDashboard() {
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-medium text-zinc-800 mb-1">Tarifa Diaria ($ COP) *</label>
-            <input type="number" id="tf-daily-price" required min="1000" step="1000" class="input-field text-xs font-medium text-zinc-900 tabular-nums font-mono" value="${initial.dailyPrice || 85000}" />
+            <input type="number" id="tf-daily-price" required min="1000" max="50000000" step="1000" class="input-field text-xs font-medium text-zinc-900 tabular-nums font-mono" value="${initial.dailyPrice || 85000}" />
           </div>
           <div>
             <label class="block font-medium text-zinc-800 mb-1">Valor Reposición ($ COP) *</label>
-            <input type="number" id="tf-replacement" required min="10000" step="10000" class="input-field text-xs font-medium text-zinc-700 tabular-nums font-mono" value="${initial.replacementValue || 3000000}" />
+            <input type="number" id="tf-replacement" required min="10000" max="1000000000" step="10000" class="input-field text-xs font-medium text-zinc-700 tabular-nums font-mono" value="${initial.replacementValue || 3000000}" />
           </div>
         </div>
 
@@ -2839,9 +3656,10 @@ export async function renderProviderDashboard() {
     const updatePriceCalculations = () => {
       const p = parseFloat(priceInput.value) || 0;
       estWeekly.textContent = formatCurrency(p * 7);
-      estDep.textContent = formatCurrency(p * 35);
+      const calculatedDep = Math.min(1000000000, p * 35);
+      estDep.textContent = formatCurrency(calculatedDep);
       if (!replInput.value || replInput.value === '3000000') {
-        replInput.value = p * 35;
+        replInput.value = calculatedDep;
       }
     };
     priceInput.addEventListener('input', updatePriceCalculations);
@@ -2851,6 +3669,11 @@ export async function renderProviderDashboard() {
 
     if (isEdit) {
       content.querySelector('#btn-duplicate-unit')?.addEventListener('click', async () => {
+        if (!providerId) {
+          showToast('Debes tener un perfil comercial activo para duplicar unidades.', 'error');
+          return;
+        }
+
         const dupBtn = content.querySelector('#btn-duplicate-unit');
         dupBtn.disabled = true;
         dupBtn.innerHTML = `<span class="inline-flex items-center gap-1">${renderIcon('Loader2', 'w-3 h-3 animate-spin')} Creando...</span>`;
@@ -2861,7 +3684,7 @@ export async function renderProviderDashboard() {
         const nextSn = baseSn.includes('-U') ? baseSn.replace(/-U\d+$/, `-U${nextUnitNum}`) : `${baseSn}-U${nextUnitNum}`;
 
         const duplicatePayload = {
-          providerId: providerId || 'd0000000-0000-0000-0000-000000000001',
+          providerId,
           categoryId: existingTool.categoryId || existingTool.category?.id || categoriesList[0]?.id,
           name: existingTool.name,
           brand: existingTool.brand,
@@ -2902,6 +3725,15 @@ export async function renderProviderDashboard() {
       const originalText = submitBtn.innerHTML;
       submitBtn.disabled = true;
       submitBtn.innerHTML = `<span class="inline-flex items-center gap-2">${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin')} Procesando...</span>`;
+
+      if (!providerId) {
+        showToast('No tienes un perfil comercial de proveedor configurado. Por favor diligencia los datos de tu empresa.', 'warning');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        modal.close();
+        openCompanyProfileModal();
+        return;
+      }
 
       const name = content.querySelector('#tf-name').value.trim();
       const categoryId = content.querySelector('#tf-category').value;
@@ -2950,17 +3782,17 @@ export async function renderProviderDashboard() {
         return;
       }
 
-      // Validation 3: Pricing integrity
-      if (isNaN(dailyPrice) || dailyPrice < 1000) {
-        showToast('La tarifa diaria debe ser de al menos $1.000 COP.', 'warning');
+      // Validation 3: Pricing integrity and maximum bounds
+      if (isNaN(dailyPrice) || dailyPrice < 1000 || dailyPrice > 50000000) {
+        showToast('La tarifa diaria debe ser entre $1.000 y $50.000.000 COP.', 'warning');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
         content.querySelector('#tf-daily-price')?.focus();
         return;
       }
 
-      if (isNaN(replacementValue) || replacementValue < dailyPrice) {
-        showToast('El valor de reposición debe ser mayor o igual a la tarifa diaria.', 'warning');
+      if (isNaN(replacementValue) || replacementValue < dailyPrice || replacementValue > 1000000000) {
+        showToast('El valor de reposición debe ser mayor a la tarifa diaria y no exceder $1.000.000.000 COP.', 'warning');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
         content.querySelector('#tf-replacement')?.focus();
@@ -2982,7 +3814,7 @@ export async function renderProviderDashboard() {
       }
 
       const payload = {
-        providerId: providerId || 'd0000000-0000-0000-0000-000000000001',
+        providerId,
         categoryId,
         name,
         brand,

@@ -131,21 +131,27 @@ export function openCrmOverviewCard({
 
             <!-- Popover Dropdown (Responsive & Unclipped) -->
             <div id="card-popover-menu" class="${isMenuOpen ? 'block' : 'hidden'} absolute right-0 top-full mt-1.5 w-60 sm:w-64 max-w-[calc(100vw-3rem)] bg-white rounded-xl border border-zinc-200/90 shadow-2xl py-1 z-50 text-xs animate-scale-in max-h-60 overflow-y-auto overscroll-contain">
-              ${actionsList.map((act, idx) => `
-                ${act.divider ? `<hr class="my-1 border-zinc-100" />` : ''}
-                <button 
-                  class="btn-popover-item w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                    act.danger ? 'text-rose-600 hover:bg-rose-50' : 'text-zinc-700 hover:bg-zinc-50'
-                  }"
-                  data-index="${idx}"
-                >
-                  <span class="inline-flex items-center gap-2 min-w-0">
-                    ${renderIcon(act.icon || 'ChevronRight', `w-3.5 h-3.5 flex-shrink-0 ${act.danger ? 'text-rose-500' : 'text-zinc-400'}`)}
-                    <span class="font-medium truncate leading-tight">${act.label}</span>
-                  </span>
-                  ${act.hasSubmenu ? renderIcon('ChevronRight', 'w-3 h-3 text-zinc-300 flex-shrink-0') : ''}
-                </button>
-              `).join('')}
+              ${actionsList.map((act, idx) => {
+                if (!act || (act.divider && !act.label)) {
+                  return `<hr class="my-1 border-zinc-100" />`;
+                }
+                if (!act.label) return '';
+                return `
+                  ${act.divider ? `<hr class="my-1 border-zinc-100" />` : ''}
+                  <button 
+                    class="btn-popover-item w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                      act.danger ? 'text-rose-600 hover:bg-rose-50' : 'text-zinc-700 hover:bg-zinc-50'
+                    }"
+                    data-index="${idx}"
+                  >
+                    <span class="inline-flex items-center gap-2 min-w-0">
+                      ${renderIcon(act.icon || 'ChevronRight', `w-3.5 h-3.5 flex-shrink-0 ${act.danger ? 'text-rose-500' : 'text-zinc-400'}`)}
+                      <span class="font-medium truncate leading-tight">${act.label}</span>
+                    </span>
+                    ${act.hasSubmenu ? renderIcon('ChevronRight', 'w-3 h-3 text-zinc-300 flex-shrink-0') : ''}
+                  </button>
+                `;
+              }).join('')}
             </div>
           </div>
         </div>

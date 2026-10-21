@@ -241,5 +241,18 @@ public class ToolUseCase {
         if (dailyPrice == null || dailyPrice.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("La tarifa diaria debe ser mayor a cero.");
         }
+        java.math.BigDecimal maxPrice = new java.math.BigDecimal("999999999.99");
+        if (dailyPrice.compareTo(maxPrice) > 0) {
+            throw new IllegalArgumentException("La tarifa diaria no puede exceder $999.999.999 COP.");
+        }
+        if (replacementValue != null) {
+            if (replacementValue.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("El valor de reposición debe ser mayor a cero.");
+            }
+            java.math.BigDecimal maxReplacement = new java.math.BigDecimal("9999999999.99");
+            if (replacementValue.compareTo(maxReplacement) > 0) {
+                throw new IllegalArgumentException("El valor de reposición no puede exceder $9.999.999.999 COP.");
+            }
+        }
     }
 }

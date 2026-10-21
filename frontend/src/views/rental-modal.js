@@ -6,15 +6,23 @@ import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon, renderToolRentMark } from '../utils/icons.js';
 import { openAuthModal } from '../components/auth-modal.js';
 import { notificationsStore } from '../utils/notifications-store.js';
-import { createDateRangeCalendar } from '../components/date-range-calendar.js';
+import { createDateRangeCalendar, parseIsoDate, toIsoDate, getLocalToday } from '../components/date-range-calendar.js';
+import { getToolPrimaryImage } from '../utils/tool-images.js';
+import { 
+  COLOMBIA_LOCATIONS, 
+  DEFAULT_DEPARTMENT, 
+  DEFAULT_CITY, 
+  getCitiesForDepartment, 
+  getSearchContext, 
+  saveSearchContext 
+} from '../utils/colombia-locations.js';
 
 // Real high-definition equipment photography
 import scaffold1 from '../assets/scaffold-1-full.jpg';
 
 export async function openRentalModal(tool, options = {}) {
-  if (!auth.isAuthenticated()) {
-    showToast('Debes iniciar sesión para realizar un alquiler', 'warning');
-    openAuthModal('login');
+  if (auth.isProvider() && !auth.isAdmin()) {
+    showToast('Las cuentas de proveedor no pueden alquilar herramientas en la plataforma.', 'warning');
     return;
   }
 
@@ -181,7 +189,7 @@ export async function openRentalModal(tool, options = {}) {
           });
 
           if (isStartBooked) {
-            let candidate = new Date(today);
+            let candidate = getLocalToday();
             candidate.setDate(candidate.getDate() + 1);
             for (let i = 0; i < 60; i++) {
               const testTime = candidate.getTime();
@@ -217,10 +225,7 @@ export async function openRentalModal(tool, options = {}) {
   }
 
   function renderView() {
-    const isScaffold = (tool.name || '').toLowerCase().includes('andamio') || 
-                       (tool.name || '').toLowerCase().includes('scaffold') || 
-                       (tool.categoryName || '').toLowerCase().includes('elevaci');
-    const primaryImg = isScaffold ? scaffold1 : (tool.images?.find(img => img.isPrimary)?.imageUrl || tool.images?.[0]?.imageUrl || scaffold1);
+    const primaryImg = getToolPrimaryImage(tool);
     const { days, subtotal, tax, deposit, total, dailyPrice } = calculateCosts();
 
     const providerName = (tool.provider?.companyName && !/^[.\s-]+$/.test(tool.provider.companyName)) 
@@ -516,6 +521,8 @@ export async function openRentalModal(tool, options = {}) {
         selectedToolIds, 
         availableStock, 
         totalStock, 
+        deliveryDepartment: options.deliveryDepartment,
+        deliveryCity: options.deliveryCity,
         ...costs 
       });
     });
@@ -539,8 +546,13 @@ export async function openCheckoutModal(tool, rentalData) {
   content.className = 'p-6 space-y-5 bg-white text-slate-800';
 
   let currentMethod = 'CREDIT_CARD';
-  const user = auth.getUser();
-  const defaultDeliveryAddress = rentalData.deliveryAddress || [user?.profile?.address, user?.profile?.city].filter(Boolean).join(', ') || 'Calle 134 # 19-45, Bogotá D.C.';
+  let pendingRental = null;
+  let user = auth.getUser();
+  const savedCtx = getSearchContext();
+  const initDept = rentalData.deliveryDepartment || savedCtx.department || DEFAULT_DEPARTMENT;
+  const initCity = rentalData.deliveryCity || savedCtx.city || DEFAULT_CITY;
+  const initCities = getCitiesForDepartment(initDept);
+  const defaultDeliveryAddress = rentalData.deliveryAddress || user?.profile?.address || 'Calle 134 # 19-45, Obra Torre Norte';
   const defaultContactPhone = rentalData.contactPhone || (user?.profile?.phone ? user.profile.phone.replace(/\D/g, '').slice(0, 10) : '3001234567');
 
   function renderPaymentFields(method) {
@@ -667,7 +679,7 @@ export async function openCheckoutModal(tool, rentalData) {
   function bindPaymentFieldSanitizers(root) {
     if (!root) return;
 
-    // 1. Número de Tarjeta: Únicamente dígitos numéricos, espaciado cada 4 caracteres
+    // 1. Número de Tarjeta
     const numInp = root.querySelector('#checkout-card-number');
     if (numInp) {
       numInp.addEventListener('input', (e) => {
@@ -682,21 +694,20 @@ export async function openCheckoutModal(tool, rentalData) {
       });
     }
 
-    // 2. Vencimiento MM/AA: Bloqueo de meses > 12 y formato automático
+    // 2. Vencimiento MM/AA
     const expInp = root.querySelector('#checkout-card-expiry');
     if (expInp) {
       expInp.addEventListener('input', (e) => {
         let val = e.target.value.replace(/\D/g, '').slice(0, 4);
 
         if (val.length === 1) {
-          // Si el usuario escribe 2 a 9, se antepone 0 automáticamente (ej. 05)
           if (Number(val) > 1) {
             val = '0' + val;
           }
         } else if (val.length >= 2) {
           let m = parseInt(val.slice(0, 2), 10);
           if (m === 0) m = 1;
-          if (m > 12) m = 12; // Bloquea meses inexistentes como 15 o 99
+          if (m > 12) m = 12;
           val = String(m).padStart(2, '0') + val.slice(2);
         }
 
@@ -713,7 +724,7 @@ export async function openCheckoutModal(tool, rentalData) {
       });
     }
 
-    // 3. CVC/CVV: Únicamente dígitos numéricos, máximo 4
+    // 3. CVC/CVV
     const cvvInp = root.querySelector('#checkout-card-cvv');
     if (cvvInp) {
       cvvInp.addEventListener('input', (e) => {
@@ -728,8 +739,11 @@ export async function openCheckoutModal(tool, rentalData) {
     }
   }
 
+  const isAlreadyAuth = auth.isAuthenticated() && Boolean(user);
+
   content.innerHTML = `
     <div class="space-y-4">
+      <!-- Resumen de Alquiler y Días -->
       <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -752,31 +766,130 @@ export async function openCheckoutModal(tool, rentalData) {
         </div>
       </div>
 
-      <!-- Delivery and Contact Information (Dirección de obra y contacto para el contrato oficial) -->
+      <!-- Identificación del Cliente (Con cuenta activa vs Cliente Nuevo / Invitado) -->
+      ${isAlreadyAuth ? `
+        <div class="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900 shadow-2xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <div>
+              <span>Titular de la reserva: <strong>${user.nombre || user.username}</strong></span>
+              <span class="text-emerald-700 font-mono text-[11px] block sm:inline sm:ml-1">(${user.email || ''})</span>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold text-emerald-800 bg-white/90 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+            Cuenta Verificada
+          </span>
+        </div>
+      ` : `
+        <div class="p-3.5 bg-orange-50/60 border border-orange-200/90 rounded-xl space-y-3">
+          <div class="flex items-center justify-between pb-1.5 border-b border-orange-200/60">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-[10px] font-bold">1</span>
+              <span class="text-xs font-bold text-slate-800">Identificación para el Contrato Oficial</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs">
+              <button type="button" id="tab-checkout-new" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#ea580c] border border-orange-300 shadow-2xs cursor-pointer">
+                Cliente Nuevo
+              </button>
+              <button type="button" id="tab-checkout-login" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer">
+                Ya tengo cuenta
+              </button>
+            </div>
+          </div>
+
+          <!-- Subformulario Cliente Nuevo (Registro Express) -->
+          <div id="checkout-view-new" class="space-y-2.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nombre y Apellidos *</label>
+                <input type="text" id="checkout-guest-name" maxlength="60" required placeholder="ej. Carlos Gómez" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Cédula de Ciudadanía *</label>
+                <input type="text" id="checkout-guest-doc" maxlength="10" inputmode="numeric" required placeholder="6 a 10 dígitos (ej. 1020304050)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Correo Electrónico (Factura DIAN) *</label>
+                <input type="email" id="checkout-guest-email" maxlength="60" required placeholder="ej. carlos.gomez@empresa.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Contraseña de Acceso *</label>
+                <input type="password" id="checkout-guest-password" minlength="6" required placeholder="Mínimo 6 caracteres" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Subformulario Iniciar Sesión Rápido -->
+          <div id="checkout-view-login" class="hidden space-y-2.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Usuario o Correo *</label>
+                <input type="text" id="checkout-login-user" placeholder="ej. carlos.gomez@empresa.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Contraseña *</label>
+                <input type="password" id="checkout-login-pass" placeholder="••••••••" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" />
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" id="btn-checkout-inline-login" class="btn-primary !py-2 !px-4 text-xs font-semibold cursor-pointer">
+                Ingresar y Autocompletar
+              </button>
+              <span id="checkout-login-msg" class="text-[11px] text-slate-500"></span>
+            </div>
+          </div>
+        </div>
+      `}
+
+      <!-- Datos de Entrega y Operación en Faena -->
       <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
         <div class="flex items-center justify-between">
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            ${renderIcon('MapPin', 'w-3.5 h-3.5 text-[#ea580c]')} Datos de Entrega y Operación en Faena
+            ${renderIcon('MapPin', 'w-3.5 h-3.5 text-[#ea580c]')} Ubicación de Obra y Despacho
           </label>
           <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-medium">
             Garantía & Sustitución en Obra
           </span>
         </div>
+
+        <!-- Cascada Departamento y Ciudad/Municipio de entrega -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección de Entrega en Obra *</label>
+            <label for="checkout-dept" class="block text-[11px] font-semibold text-slate-700 mb-1">Departamento de Entrega *</label>
+            <select id="checkout-dept" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#ea580c] cursor-pointer">
+              ${COLOMBIA_LOCATIONS.map(loc => `
+                <option value="${loc.department}" ${loc.department === initDept ? 'selected' : ''}>${loc.department}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div>
+            <label for="checkout-city" class="block text-[11px] font-semibold text-slate-700 mb-1">Ciudad / Municipio de Entrega *</label>
+            <select id="checkout-city" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#ea580c] cursor-pointer">
+              ${initCities.map(c => `
+                <option value="${c}" ${c === initCity ? 'selected' : ''}>${c}</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Dirección exacta en obra y teléfono de contacto -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label for="checkout-delivery-address" class="block text-[11px] font-semibold text-slate-700 mb-1">Dirección Exacta en Obra / Frente *</label>
             <input 
               type="text" 
               id="checkout-delivery-address" 
               required 
-              maxlength="100" 
+              maxlength="120" 
               class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#ea580c]" 
               value="${defaultDeliveryAddress}" 
-              placeholder="ej. Calle 134 # 19-45, Obra Torre Norte" 
+              placeholder="ej. Carrera 7 # 12-45, Obra Torre 2, Portería Principal" 
             />
           </div>
           <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono Encargado en Obra *</label>
+            <label for="checkout-contact-phone" class="block text-[11px] font-semibold text-slate-700 mb-1">Teléfono Encargado en Obra *</label>
             <input 
               type="tel" 
               id="checkout-contact-phone" 
@@ -821,11 +934,91 @@ export async function openCheckoutModal(tool, rentalData) {
 
       <div id="checkout-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg"></div>
 
-      <button id="btn-confirm-payment" class="btn-primary w-full !py-2.5 text-xs font-semibold shadow-sm">
+      <button id="btn-confirm-payment" class="btn-primary w-full !py-2.5 text-xs font-semibold shadow-sm cursor-pointer">
         ${renderIcon('Lock', 'w-4 h-4')} Confirmar y Pagar ${formatCurrency(rentalData.total)}
       </button>
     </div>
   `;
+
+  // Inline login / tab toggles for unauthenticated visitors
+  if (!isAlreadyAuth) {
+    const tabNew = content.querySelector('#tab-checkout-new');
+    const tabLogin = content.querySelector('#tab-checkout-login');
+    const viewNew = content.querySelector('#checkout-view-new');
+    const viewLogin = content.querySelector('#checkout-view-login');
+
+    tabNew?.addEventListener('click', () => {
+      tabNew.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#ea580c] border border-orange-300 shadow-2xs cursor-pointer';
+      tabLogin.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer';
+      viewNew?.classList.remove('hidden');
+      viewLogin?.classList.add('hidden');
+    });
+
+    tabLogin?.addEventListener('click', () => {
+      tabLogin.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#ea580c] border border-orange-300 shadow-2xs cursor-pointer';
+      tabNew.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer';
+      viewLogin?.classList.remove('hidden');
+      viewNew?.classList.add('hidden');
+    });
+
+    content.querySelector('#btn-checkout-inline-login')?.addEventListener('click', async () => {
+      const userInput = content.querySelector('#checkout-login-user');
+      const passInput = content.querySelector('#checkout-login-pass');
+      const msg = content.querySelector('#checkout-login-msg');
+
+      const u = userInput?.value.trim();
+      const p = passInput?.value;
+      if (!u || !p) {
+        if (msg) {
+          msg.textContent = 'Ingresa usuario y contraseña';
+          msg.className = 'text-[11px] text-rose-600 font-semibold';
+        }
+        return;
+      }
+
+      try {
+        if (msg) {
+          msg.textContent = 'Verificando acceso...';
+          msg.className = 'text-[11px] text-[#ea580c] font-semibold';
+        }
+        await auth.login(u, p);
+        showToast('¡Sesión verificada exitosamente!', 'success');
+        openCheckoutModal(tool, { 
+          ...rentalData, 
+          deliveryDepartment: content.querySelector('#checkout-dept')?.value,
+          deliveryCity: content.querySelector('#checkout-city')?.value,
+          deliveryAddress: content.querySelector('#checkout-delivery-address')?.value 
+        });
+      } catch (err) {
+        if (msg) {
+          msg.textContent = err.message || 'Usuario o contraseña incorrectos';
+          msg.className = 'text-[11px] text-rose-600 font-semibold';
+        }
+      }
+    });
+  }
+
+  // Cascading Department -> City selector for checkout delivery
+  const checkoutDeptSelect = content.querySelector('#checkout-dept');
+  const checkoutCitySelect = content.querySelector('#checkout-city');
+  if (checkoutDeptSelect && checkoutCitySelect) {
+    checkoutDeptSelect.addEventListener('change', () => {
+      const selectedDept = checkoutDeptSelect.value;
+      const cities = getCitiesForDepartment(selectedDept);
+      checkoutCitySelect.innerHTML = cities.map(c => `<option value="${c}">${c}</option>`).join('');
+      saveSearchContext({
+        department: selectedDept,
+        city: cities[0] || ''
+      });
+    });
+
+    checkoutCitySelect.addEventListener('change', () => {
+      saveSearchContext({
+        department: checkoutDeptSelect.value,
+        city: checkoutCitySelect.value
+      });
+    });
+  }
 
   // Handle payment method toggling
   const fieldsContainer = content.querySelector('#payment-fields-container');
@@ -859,8 +1052,9 @@ export async function openCheckoutModal(tool, rentalData) {
     const btn = content.querySelector('#btn-confirm-payment');
     const errBox = content.querySelector('#checkout-error');
     errBox.classList.add('hidden');
+    const originalBtnText = btn.innerHTML;
 
-    // Validación estricta para Tarjeta de Crédito (solo números, mes 01-12, año >= 2026, CVV 3-4 dígitos)
+    // Validación estricta para Tarjeta de Crédito
     if (currentMethod === 'CREDIT_CARD') {
       const numInp = content.querySelector('#checkout-card-number');
       const expInp = content.querySelector('#checkout-card-expiry');
@@ -937,12 +1131,17 @@ export async function openCheckoutModal(tool, rentalData) {
     }
 
     // Validación de datos de entrega en obra y teléfono de contacto
+    const deptInp = content.querySelector('#checkout-dept');
+    const cityInp = content.querySelector('#checkout-city');
     const addrInp = content.querySelector('#checkout-delivery-address');
     const phoneInp = content.querySelector('#checkout-contact-phone');
 
-    const addressVal = (addrInp?.value || '').trim();
-    if (!addressVal || addressVal.length < 5) {
-      errBox.textContent = 'Por favor ingresa la dirección completa de entrega en obra (mínimo 5 caracteres).';
+    const deptVal = (deptInp?.value || '').trim() || initDept;
+    const cityVal = (cityInp?.value || '').trim() || initCity;
+    const addressExact = (addrInp?.value || '').trim();
+
+    if (!addressExact || addressExact.length < 5) {
+      errBox.textContent = 'Por favor ingresa la dirección exacta de entrega en obra (mínimo 5 caracteres).';
       errBox.classList.remove('hidden');
       addrInp?.focus();
       return;
@@ -956,17 +1155,102 @@ export async function openCheckoutModal(tool, rentalData) {
       return;
     }
 
+    // Consolidated full address: exact address + city + department
+    let addressVal = addressExact;
+    if (!addressVal.toLowerCase().includes(cityVal.toLowerCase())) {
+      addressVal = `${addressVal}, ${cityVal}`;
+    }
+    if (!addressVal.toLowerCase().includes(deptVal.toLowerCase()) && deptVal !== cityVal) {
+      addressVal = `${addressVal}, ${deptVal}`;
+    }
+
+    // Save selected location to persistent search context
+    saveSearchContext({
+      department: deptVal,
+      city: cityVal
+    });
+
+    // Registro Express si el usuario no tiene cuenta previa
+    let activeUser = auth.getUser();
+    if (!auth.isAuthenticated() || !activeUser) {
+      const viewNew = content.querySelector('#checkout-view-new');
+      const isNewTabVisible = viewNew && !viewNew.classList.contains('hidden');
+      if (!isNewTabVisible) {
+        errBox.textContent = 'Por favor inicia sesión con tu usuario y contraseña, o cambia a la pestaña "Cliente Nuevo".';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      const guestName = (content.querySelector('#checkout-guest-name')?.value || '').trim();
+      const guestDoc = (content.querySelector('#checkout-guest-doc')?.value || '').trim();
+      const guestEmail = (content.querySelector('#checkout-guest-email')?.value || '').trim();
+      const guestPass = (content.querySelector('#checkout-guest-password')?.value || '');
+
+      if (!guestName || guestName.length < 3) {
+        errBox.textContent = 'Por favor ingresa tu nombre y apellido completos (mínimo 3 letras).';
+        errBox.classList.remove('hidden');
+        content.querySelector('#checkout-guest-name')?.focus();
+        return;
+      }
+      if (!/^\d{6,10}$/.test(guestDoc)) {
+        errBox.textContent = 'El documento de identidad debe contener entre 6 y 10 dígitos numéricos.';
+        errBox.classList.remove('hidden');
+        content.querySelector('#checkout-guest-doc')?.focus();
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+        errBox.textContent = 'Por favor ingresa un correo electrónico válido para formalizar tu factura DIAN.';
+        errBox.classList.remove('hidden');
+        content.querySelector('#checkout-guest-email')?.focus();
+        return;
+      }
+      if (!guestPass || guestPass.length < 6) {
+        errBox.textContent = 'La contraseña debe tener mínimo 6 caracteres para proteger tu cuenta de cliente.';
+        errBox.classList.remove('hidden');
+        content.querySelector('#checkout-guest-password')?.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `${renderIcon('Loader2', 'w-4 h-4 animate-spin inline mr-1.5')} Creando cuenta y registrando contrato...`;
+
+      const baseUser = guestEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').slice(0, 15) || 'cliente';
+      const cleanUsername = `${baseUser}${Math.floor(100 + Math.random() * 900)}`;
+
+      try {
+        await auth.register({
+          username: cleanUsername,
+          email: guestEmail,
+          password: guestPass,
+          fullName: guestName,
+          documentNumber: guestDoc,
+          documentType: 'CC',
+          phone: phoneDigits,
+          address: addressVal,
+          city: cityVal,
+          roles: ['ROLE_CLIENTE']
+        });
+        activeUser = auth.getUser();
+      } catch (regErr) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+        errBox.textContent = regErr.message || 'No fue posible registrar la cuenta. Si ya estás registrado, selecciona "Ya tengo cuenta".';
+        errBox.classList.remove('hidden');
+        return;
+      }
+    }
+
     btn.disabled = true;
     btn.innerHTML = `${renderIcon('Loader2', 'w-4 h-4 animate-spin inline mr-1.5')} Procesando pago seguro...`;
 
     try {
-      const user = auth.getUser();
+      const userToUse = activeUser || auth.getUser();
       const method = currentMethod;
 
       // 1. Create Rental in Backend only if not already created
       if (!pendingRental) {
         const rentalPayload = {
-          clientId: user.profile?.id || user.id,
+          clientId: userToUse.profile?.id || userToUse.id,
           startDate: rentalData.startDate,
           endDate: rentalData.endDate,
           toolIds: (rentalData.selectedToolIds && rentalData.selectedToolIds.length > 0) ? rentalData.selectedToolIds : [tool.id],
@@ -996,7 +1280,7 @@ export async function openCheckoutModal(tool, rentalData) {
 
       const paymentResult = await api.post('/billing/payments', paymentPayload);
 
-      // Trigger Notification in Notification Center and Toast (differentiated from rental confirmation)
+      // Trigger Notification in Notification Center and Toast
       const shortCode = pendingRental.rentalCode 
         ? pendingRental.rentalCode.replace('RNT-', 'FAC-')
         : `FAC-${String(pendingRental.id).slice(0, 6).toUpperCase()}`;
@@ -1207,7 +1491,23 @@ export async function openRentalInvoiceModal(rentalId, targetRental = null, sele
 /**
  * Step 4: Clean Official Invoice Viewer matching `img/Minimal ToolRent Rental Invoice Viewer.png`
  */
-export function openInvoiceViewer(invoice) {
+export function openInvoiceViewer(rawInvoice) {
+  const invoice = rawInvoice || {};
+  const provider = invoice.provider || {};
+  const client = invoice.client || {};
+  const subtotal = invoice.subtotal || Math.round((invoice.total || 150000) / 1.19);
+  const tax = invoice.tax !== undefined ? invoice.tax : ((invoice.total || 150000) - subtotal);
+  const total = invoice.total || (subtotal + tax);
+
+  const items = (Array.isArray(invoice.items) && invoice.items.length > 0)
+    ? invoice.items
+    : [{
+        name: invoice.tool?.name || 'Equipo Industrial Certificado',
+        days: invoice.rentalPeriod?.days || 1,
+        dailyPrice: invoice.dailyRate || Math.round(subtotal / (invoice.rentalPeriod?.days || 1)),
+        subtotal: subtotal
+      }];
+
   const content = document.createElement('div');
   content.className = 'bg-[#f1f5f9] p-4 sm:p-8 min-h-screen';
 
@@ -1216,14 +1516,14 @@ export function openInvoiceViewer(invoice) {
       
       <!-- Top Action Bar -->
       <div class="flex items-center justify-between">
-        <button id="invoice-btn-back" class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+        <button id="invoice-btn-back" class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer">
           ${renderIcon('ArrowLeft', 'w-4 h-4')} Volver
         </button>
         <div class="flex items-center gap-2">
-          <button id="invoice-btn-download" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+          <button id="invoice-btn-download" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
             ${renderIcon('Download', 'w-3.5 h-3.5')} Descargar PDF
           </button>
-          <button id="invoice-btn-print" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+          <button id="invoice-btn-print" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
             ${renderIcon('Printer', 'w-3.5 h-3.5')} Imprimir
           </button>
         </div>
@@ -1273,11 +1573,11 @@ export function openInvoiceViewer(invoice) {
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Arrendador (Proveedor)</span>
               <span class="text-[10px] font-bold text-[#ea580c] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">Dueño del Equipo</span>
             </div>
-            <div class="font-bold text-slate-900 text-sm">${invoice.provider.name}</div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">NIT / RUT:</span> <strong class="font-mono text-slate-800">${invoice.provider.taxId}</strong></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Sede:</span> <span>${invoice.provider.address}</span></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${invoice.provider.phone}</span></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${invoice.provider.email}</span></div>
+            <div class="font-bold text-slate-900 text-sm">${provider.name || 'Proveedor Autorizado ToolRent'}</div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">NIT / RUT:</span> <strong class="font-mono text-slate-800">${provider.taxId || '900.123.456-1'}</strong></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Sede:</span> <span>${provider.address || 'Bogotá D.C.'}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${provider.phone || '+57 310 111 2233'}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${provider.email || 'contacto@proveedor.com'}</span></div>
           </div>
 
           <!-- Datos del cliente -->
@@ -1286,11 +1586,11 @@ export function openInvoiceViewer(invoice) {
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Arrendatario (Cliente)</span>
               <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">Arrendatario en Faena</span>
             </div>
-            <div class="font-bold text-slate-900 text-sm">${invoice.client.name}</div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Identificación:</span> <strong class="font-mono text-slate-800">${invoice.client.taxId}</strong></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Destino de Obra:</span> <span>${invoice.client.address}</span></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${invoice.client.phone}</span></div>
-            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${invoice.client.email}</span></div>
+            <div class="font-bold text-slate-900 text-sm">${client.name || 'Cliente Arrendatario'}</div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Identificación:</span> <strong class="font-mono text-slate-800">${client.taxId || 'CC 1018234567'}</strong></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Destino de Obra:</span> <span>${client.address || 'Dirección de Entrega en Obra'}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Teléfono:</span> <span>${client.phone || '+57 300 123 4567'}</span></div>
+            <div class="flex justify-between text-slate-600"><span class="text-slate-400">Notificación:</span> <span class="font-mono text-[11px]">${client.email || 'cliente@constructora.com'}</span></div>
           </div>
         </div>
 
@@ -1307,16 +1607,16 @@ export function openInvoiceViewer(invoice) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700">
-              ${invoice.items.map((it, idx) => `
+              ${items.map((it, idx) => `
                 <tr>
                   <td class="py-3.5 px-3.5 text-center text-slate-400 font-mono text-[11px]">${String(idx + 1).padStart(2, '0')}</td>
                   <td class="py-3.5 px-4">
                     <div class="font-bold text-slate-900 text-xs">${it.name}</div>
                     <div class="text-[10px] text-slate-400 mt-0.5">Maquinaria pesada certificada · Cobertura técnica en obra</div>
                   </td>
-                  <td class="py-3.5 px-4 text-center font-medium">${it.days} días</td>
-                  <td class="py-3.5 px-4 text-right font-mono">${formatCurrency(it.dailyPrice)}</td>
-                  <td class="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">${formatCurrency(it.subtotal)}</td>
+                  <td class="py-3.5 px-4 text-center font-medium">${it.days || 1} días</td>
+                  <td class="py-3.5 px-4 text-right font-mono">${formatCurrency(it.dailyPrice || 0)}</td>
+                  <td class="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">${formatCurrency(it.subtotal || 0)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1331,9 +1631,9 @@ export function openInvoiceViewer(invoice) {
               <span>Comprobante de Pago y Garantía</span>
               <span class="text-emerald-700 font-medium text-[11px]">✔ Conciliado</span>
             </div>
-            <div class="flex justify-between"><span class="text-slate-400">Método de Pago:</span> <strong class="text-slate-800">${invoice.paymentMethod}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Entidad / Red:</span> <strong class="text-slate-800">${invoice.bank}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Ref. Transacción:</span> <span class="font-mono text-slate-800 font-semibold">${invoice.reference}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Método de Pago:</span> <strong class="text-slate-800">${invoice.paymentMethod || 'Transferencia electrónica bancaria'}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Entidad / Red:</span> <strong class="text-slate-800">${invoice.bank || 'Bancolombia S.A.'}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Ref. Transacción:</span> <span class="font-mono text-slate-800 font-semibold">${invoice.reference || 'TR-REF-PAY-01'}</span></div>
             <div class="flex justify-between"><span class="text-slate-400">Custodia Garantía:</span> <span class="text-emerald-700 font-medium">Custodiado por ToolRent Escrow</span></div>
             <p class="text-[10px] text-slate-400 pt-1 leading-relaxed border-t border-slate-200/70 mt-2">
               El depósito de garantía se reembolsa a la cuenta de origen tras el cierre del acta de entrega en faena.
@@ -1344,15 +1644,15 @@ export function openInvoiceViewer(invoice) {
           <div class="sm:col-span-5 p-4 bg-white border border-slate-200 rounded-xl space-y-2 text-xs shadow-2xs">
             <div class="flex justify-between text-slate-600">
               <span>Subtotal Arrendamiento:</span>
-              <strong class="text-slate-800 font-mono">${formatCurrency(invoice.subtotal)}</strong>
+              <strong class="text-slate-800 font-mono">${formatCurrency(subtotal)}</strong>
             </div>
             <div class="flex justify-between text-slate-600">
               <span>IVA Legal 19% (Servicios):</span>
-              <strong class="text-slate-800 font-mono">${formatCurrency(invoice.tax)}</strong>
+              <strong class="text-slate-800 font-mono">${formatCurrency(tax)}</strong>
             </div>
             <div class="pt-2 border-t-2 border-slate-900 flex justify-between items-baseline">
               <span class="text-xs font-black text-slate-900 uppercase tracking-tight">TOTAL FACTURADO:</span>
-              <span class="text-lg font-black text-[#ea580c] font-mono">${formatCurrency(invoice.total)}</span>
+              <span class="text-lg font-black text-[#ea580c] font-mono">${formatCurrency(total)}</span>
             </div>
             <div class="text-[10px] text-slate-400 text-right">Pesos Colombianos (COP) · IVA Incluido</div>
           </div>

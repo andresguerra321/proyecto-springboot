@@ -191,7 +191,19 @@ export function renderNavbar(activeRoute = 'catalog') {
   lastNavbarIsAuth = currentIsAuth;
   lastNavbarRoles = currentRoles;
 
-  const userInitials = user?.username ? user.username.substring(0, 2).toUpperCase() : 'US';
+  let realName = user?.nombre || user?.profile?.fullName || user?.profile?.companyName || user?.fullName;
+  if (!realName && user?.username) {
+    const cleanUser = user.username.replace(/^(cliente|proveedor|admin)_/i, '');
+    realName = cleanUser.split(/[_.\s]+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+  if (!realName) realName = 'Usuario';
+  
+  // Calculate initials from realName
+  const nameParts = (realName || '').trim().split(/\s+/);
+  const userInitials = nameParts.length >= 2 
+    ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+    : (realName ? realName.substring(0, 2).toUpperCase() : 'US');
+
   const roleTitle = isAdmin ? 'Administrador' : (isProvider ? 'Proveedor' : 'Cliente');
   
   const roleBadgeHtml = isAdmin 
@@ -210,7 +222,7 @@ export function renderNavbar(activeRoute = 'catalog') {
           
           <!-- 1. Left: Logo & Brand Mark -->
           <a href="#/" class="flex items-center gap-2.5 sm:gap-3 group select-none flex-shrink-0" title="ToolRent - Inicio">
-            ${renderToolRentMark('w-8 h-8 sm:w-9 sm:h-9 transition-transform duration-200 group-hover:scale-105', '#FF5A1F')}
+            ${renderToolRentMark('w-8 h-8 sm:w-9 sm:h-9 transition-transform duration-200 group-hover:scale-105', '#c2410c')}
             <span class="text-xl sm:text-2xl font-black font-display tracking-tight text-slate-900 leading-none">
               ToolRent
             </span>
@@ -223,7 +235,7 @@ export function renderNavbar(activeRoute = 'catalog') {
               <!-- Magic UI Sliding Active Pill Background -->
               <div 
                 id="nav-active-pill" 
-                class="absolute bg-[#ea580c] rounded-full shadow-xs pointer-events-none transition-[transform,width,opacity] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                class="absolute bg-[#c2410c] rounded-full shadow-xs pointer-events-none transition-[transform,width,opacity] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" 
                 style="top: 4px; bottom: 4px; left: 0px; width: 0px; opacity: 0; transform: translate3d(0, 0, 0);"
               ></div>
 
@@ -236,13 +248,13 @@ export function renderNavbar(activeRoute = 'catalog') {
                 Inicio
               </a>
 
-              <!-- Sobre Nosotros -->
+              <!-- Sobre nosotros -->
               <a 
                 href="#/about" 
                 data-route="about" 
                 class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors select-none cursor-pointer whitespace-nowrap flex-shrink-0"
               >
-                <span class="hidden xl:inline">Sobre </span>Nosotros
+                Sobre nosotros
               </a>
 
               ${!(isAuth && isProvider && !isAdmin) ? `
@@ -256,7 +268,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 </a>
               ` : ''}
 
-              ${isAuth && (isProvider || isAdmin) ? `
+              ${isAuth && isProvider && !isAdmin ? `
                 <!-- Panel Proveedor -->
                 <a 
                   href="#/provider" 
@@ -281,14 +293,14 @@ export function renderNavbar(activeRoute = 'catalog') {
               ` : ''}
 
               ${isAuth && isClient && !isAdmin ? `
-                <!-- Mis Alquileres -->
+                <!-- Mis alquileres -->
                 <a 
                   href="#/client" 
                   data-route="client" 
                   class="nav-item relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 select-none cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   ${renderIcon('ClipboardList', 'w-3.5 h-3.5 text-slate-400')}
-                  <span>Mis Alquileres</span>
+                  <span>Mis alquileres</span>
                 </a>
               ` : ''}
 
@@ -297,12 +309,12 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <button 
                   id="btn-guest-provider-cta" 
                   type="button" 
-                  class="group relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#ea580c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap flex-shrink-0"
+                  class="group relative z-10 px-2.5 sm:px-3 lg:px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#c2410c] hover:bg-white/90 rounded-full transition-all flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap flex-shrink-0"
                   title="Publica y monetiza tus herramientas en ToolRent"
                 >
-                  ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#ea580c] transition-colors')}
+                  ${renderIcon('Building2', 'w-3.5 h-3.5 text-slate-400 group-hover:text-[#c2410c] transition-colors')}
                   <span>¿Tienes equipos?</span>
-                  <span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Aliados</span>
+                  <span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-100 text-[#c2410c]">Aliados</span>
                 </button>
               ` : ''}
             </nav>
@@ -322,7 +334,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                 ${renderIcon('Bell', 'w-4 h-4')}
                 <span 
                   id="navbar-unread-badge" 
-                  class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#FF5A1F] text-white text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}"
+                  class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#c2410c] text-white text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}"
                 >
                   ${unreadCount}
                 </span>
@@ -338,16 +350,16 @@ export function renderNavbar(activeRoute = 'catalog') {
                 <button 
                   id="btn-user-menu-toggle" 
                   type="button" 
-                  class="flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-full hover:bg-slate-100/80 border border-slate-200/90 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/20 select-none shadow-xs"
+                  class="flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-full hover:bg-slate-100/80 border border-slate-200/90 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#c2410c]/20 select-none shadow-xs"
                   aria-expanded="false"
                   aria-haspopup="true"
                   aria-label="Menú de usuario"
                 >
-                  <div class="w-8 h-8 rounded-full ${isAdmin ? 'bg-gradient-to-tr from-amber-600 to-amber-500' : (isProvider ? 'bg-gradient-to-tr from-blue-600 to-cyan-500' : 'bg-gradient-to-tr from-[#FF5A1F] to-orange-400')} text-white flex items-center justify-center text-xs font-bold font-display shadow-xs flex-shrink-0">
+                  <div class="w-8 h-8 rounded-full ${isAdmin ? 'bg-gradient-to-tr from-amber-700 to-amber-600' : (isProvider ? 'bg-gradient-to-tr from-blue-700 to-cyan-600' : 'bg-[#c2410c]')} text-white flex items-center justify-center text-xs font-bold font-display shadow-xs flex-shrink-0">
                     ${userInitials}
                   </div>
-                  <div class="hidden xl:block text-left text-xs">
-                    <div class="font-bold text-slate-900 leading-tight truncate max-w-[100px]">${user?.username}</div>
+                  <div class="hidden lg:block text-left text-xs">
+                    <div class="font-bold text-slate-900 leading-tight truncate max-w-[120px]" title="${realName}">${realName}</div>
                     <div class="text-[10px] text-slate-500 font-medium leading-none mt-0.5">
                       ${roleTitle}
                     </div>
@@ -365,11 +377,11 @@ export function renderNavbar(activeRoute = 'catalog') {
                 >
                   <!-- User Info Card Header -->
                   <div class="p-4 bg-slate-50/90 border-b border-slate-100 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full ${isAdmin ? 'bg-amber-600' : (isProvider ? 'bg-blue-600' : 'bg-[#FF5A1F]')} text-white flex items-center justify-center text-sm font-bold font-display shadow-xs flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full ${isAdmin ? 'bg-amber-700' : (isProvider ? 'bg-blue-700' : 'bg-[#c2410c]')} text-white flex items-center justify-center text-sm font-bold font-display shadow-xs flex-shrink-0">
                       ${userInitials}
                     </div>
                     <div class="min-w-0 flex-1">
-                      <div class="font-bold text-slate-900 text-sm truncate font-display">${user?.username}</div>
+                      <div class="font-bold text-slate-900 text-sm truncate font-display" title="${realName}">${realName}</div>
                       <div class="text-[11px] text-slate-500 truncate">${user?.email || 'Usuario registrado'}</div>
                       <div class="mt-1">
                         ${roleBadgeHtml}
@@ -382,26 +394,26 @@ export function renderNavbar(activeRoute = 'catalog') {
                     <a href="#/catalog" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
                       <div class="flex items-center gap-2.5">
                         ${renderIcon('Store', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
-                        <span>Explorar Catálogo</span>
+                        <span>Explorar catálogo</span>
                       </div>
                       <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                     </a>
 
-                    ${isClient || isAdmin ? `
+                    ${isClient && !isAdmin ? `
                       <a href="#/client" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
                         <div class="flex items-center gap-2.5">
                           ${renderIcon('ClipboardList', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
-                          <span>Mis Alquileres y Facturas</span>
+                          <span>Mis alquileres y facturas</span>
                         </div>
                         <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
                     ` : ''}
 
-                    ${isProvider || isAdmin ? `
+                    ${isProvider && !isAdmin ? `
                       <a href="#/provider" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
                         <div class="flex items-center gap-2.5">
                           ${renderIcon('Building2', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
-                          <span>Panel de Proveedor</span>
+                          <span>Panel de proveedor</span>
                         </div>
                         <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
@@ -411,7 +423,7 @@ export function renderNavbar(activeRoute = 'catalog') {
                       <a href="#/admin" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
                         <div class="flex items-center gap-2.5">
                           ${renderIcon('ShieldCheck', 'w-4 h-4 text-zinc-400 group-hover/item:text-zinc-700')}
-                          <span>Consola de Administración</span>
+                          <span>Consola de administración</span>
                         </div>
                         <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
@@ -426,14 +438,14 @@ export function renderNavbar(activeRoute = 'catalog') {
                       class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer text-left"
                     >
                       ${renderIcon('LogOut', 'w-4 h-4 text-rose-500')}
-                      <span>Cerrar Sesión</span>
+                      <span>Cerrar sesión</span>
                     </button>
                   </div>
                 </div>
               </div>
             ` : `
               <!-- Guest Iniciar Sesión Button -->
-              <button id="btn-nav-login" class="inline-flex items-center justify-center px-3.5 sm:px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#e04e18] shadow-sm hover:shadow transition-all duration-150 active:scale-95 cursor-pointer flex-shrink-0">
+              <button id="btn-nav-login" class="inline-flex items-center justify-center px-3.5 sm:px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#c2410c] hover:bg-[#9a3412] shadow-sm hover:shadow transition-all duration-150 active:scale-95 cursor-pointer flex-shrink-0">
                 Iniciar sesión
               </button>
             `}
@@ -457,13 +469,13 @@ export function renderNavbar(activeRoute = 'catalog') {
 
         <a href="#/about" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
           ${renderIcon('Info', 'w-4 h-4')}
-          <span>Sobre Nosotros</span>
+          <span>Sobre nosotros</span>
         </a>
 
         ${!(isAuth && isProvider && !isAdmin) ? `
           <a href="#/catalog" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('Store', 'w-4 h-4')}
-            <span>Catálogo de Equipos</span>
+            <span>Catálogo de equipos</span>
           </a>
         ` : ''}
 
@@ -473,21 +485,21 @@ export function renderNavbar(activeRoute = 'catalog') {
               ${renderIcon('Building2', 'w-4 h-4 text-slate-500')}
               <span>¿Tienes equipos? Publica aquí</span>
             </span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-[#ea580c]">Aliados</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-[#c2410c]">Aliados</span>
           </button>
         ` : ''}
 
         ${isAuth && isClient && !isAdmin ? `
           <a href="#/client" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('ClipboardList', 'w-4 h-4')}
-            <span>Mis Alquileres</span>
+            <span>Mis alquileres</span>
           </a>
         ` : ''}
 
         ${isAuth && isProvider && !isAdmin ? `
           <a href="#/provider" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             ${renderIcon('Building2', 'w-4 h-4')}
-            <span>Panel de Proveedor</span>
+            <span>Panel de proveedor</span>
           </a>
         ` : ''}
 
@@ -495,16 +507,9 @@ export function renderNavbar(activeRoute = 'catalog') {
           <a href="#/admin" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
             <span class="flex items-center gap-3">
               ${renderIcon('ShieldCheck', 'w-4 h-4 text-slate-500')}
-              <span>Consola Administración</span>
+              <span>Consola administración</span>
             </span>
-            <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-orange-700">Admin</span>
-          </a>
-          <a href="#/provider" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">
-            <span class="flex items-center gap-3">
-              ${renderIcon('Building2', 'w-4 h-4 text-slate-500')}
-              <span>Panel Proveedor</span>
-            </span>
-            <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-blue-100 text-blue-700">Ops</span>
+            <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-[#c2410c]">Admin</span>
           </a>
         ` : ''}
 
@@ -514,7 +519,7 @@ export function renderNavbar(activeRoute = 'catalog') {
             ${renderIcon('Bell', 'w-4 h-4 text-slate-500')}
             <span>Notificaciones</span>
           </span>
-          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FF5A1F] text-white ${unreadCount > 0 ? '' : 'hidden'}">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#c2410c] text-white ${unreadCount > 0 ? '' : 'hidden'}">
             ${unreadCount}
           </span>
         </button>
@@ -574,11 +579,6 @@ export function renderNavbar(activeRoute = 'catalog') {
           <span class="tab-label leading-tight">Admin</span>
           <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
         </a>
-        <a href="#/provider" data-bottom-route="provider" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
-          ${renderIcon('Building2', 'w-5 h-5 mb-0.5 text-slate-400')}
-          <span class="tab-label leading-tight">Proveedor</span>
-          <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
-        </a>
         <a href="#/catalog" data-bottom-route="catalog" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
           ${renderIcon('Store', 'w-5 h-5 mb-0.5 text-slate-400')}
           <span class="tab-label leading-tight">Catálogo</span>
@@ -589,6 +589,13 @@ export function renderNavbar(activeRoute = 'catalog') {
           <span class="tab-label leading-tight">Nosotros</span>
           <span class="bottom-active-dot hidden w-1.5 h-1.5 rounded-full bg-[#ea580c] mt-0.5"></span>
         </a>
+        <button id="bottom-btn-notifs" type="button" class="bottom-tab-item relative flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
+          ${renderIcon('Bell', 'w-5 h-5 mb-0.5 text-slate-400')}
+          <span class="tab-label leading-tight">Avisos</span>
+          <span id="bottom-unread-badge" class="absolute top-1 right-3 min-w-[15px] h-3.5 px-1 rounded-full bg-[#FF5A1F] text-white text-[8px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs ${unreadCount > 0 ? '' : 'hidden'}">
+            ${unreadCount}
+          </span>
+        </button>
       ` : isProvider ? `
         <a href="#/provider" data-bottom-route="provider" class="bottom-tab-item flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-[11px] font-semibold text-slate-500 transition-all cursor-pointer active:scale-95 touch-target">
           ${renderIcon('Wrench', 'w-5 h-5 mb-0.5 text-slate-400')}

@@ -68,8 +68,8 @@ public class Rental {
     }
 
     public void complete() {
-        if (this.status != RentalStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Solo se pueden completar reservas en estado IN_PROGRESS");
+        if (this.status != RentalStatus.IN_PROGRESS && this.status != RentalStatus.CONFIRMED) {
+            throw new IllegalStateException("Solo se pueden completar reservas en estado IN_PROGRESS o CONFIRMED");
         }
         this.status = RentalStatus.COMPLETED;
     }

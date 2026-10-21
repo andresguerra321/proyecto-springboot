@@ -304,10 +304,8 @@ export function createSingleDateCalendar({
               const isBooked = isDateBooked(cellDate);
               if (isBooked) {
                 isDisabled = true;
-                titleText = 'Equipo reservado por otro usuario (no disponible)';
-                cellStyle = isSelected
-                  ? 'bg-rose-50 text-rose-600 font-bold border border-rose-300 line-through cursor-not-allowed'
-                  : 'text-slate-300 bg-slate-50/70 line-through opacity-50 cursor-not-allowed pointer-events-none';
+                titleText = '🔴 Fecha reservada por otro usuario (No disponible)';
+                cellStyle = 'bg-rose-100 text-rose-800 font-bold border border-rose-300 rounded-lg cursor-not-allowed';
               } else if (isSelected) {
                 cellStyle = 'bg-[#ea580c] text-white font-bold rounded-lg shadow-xs z-10';
               } else if (isDisabled) {
@@ -336,8 +334,10 @@ export function createSingleDateCalendar({
                 cellStyle = 'text-slate-300 opacity-30 cursor-not-allowed pointer-events-none line-through';
               } else if (isBooked || crossesIntoBooked) {
                 isDisabled = true;
-                titleText = 'Fecha no disponible (equipo ya reservado por otro usuario)';
-                cellStyle = 'text-slate-300 bg-slate-50/70 line-through opacity-50 cursor-not-allowed pointer-events-none';
+                titleText = isBooked 
+                  ? '🔴 Fecha reservada por otro usuario (No disponible)' 
+                  : '🔴 No puedes seleccionar un período que cruce fechas reservadas';
+                cellStyle = 'bg-rose-100 text-rose-800 font-bold border border-rose-300 rounded-lg cursor-not-allowed';
               } else if (isSelected) {
                 cellStyle = 'bg-[#ea580c] text-white font-bold rounded-lg shadow-xs z-10';
               } else if (isInRange) {
@@ -372,7 +372,7 @@ export function createSingleDateCalendar({
           <div class="flex items-center gap-2.5 flex-wrap">
             <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#ea580c]"></span> Seleccionada</span>
             <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full border border-slate-300 bg-white"></span> Disponible</span>
-            <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-300 opacity-60"></span> Ocupada</span>
+            <span class="inline-flex items-center gap-1 text-rose-700 font-bold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 border border-rose-600"></span> 🔴 Reservada</span>
           </div>
           <span class="text-slate-600 font-semibold font-mono">
             ${currentDays} ${currentDays === 1 ? 'día facturable' : 'días facturables'}

@@ -6,48 +6,14 @@ import { renderIcon } from '../utils/icons.js';
 import { openRentalModal } from './rental-modal.js';
 import { openAuthModal } from '../components/auth-modal.js';
 import error404Img from '../assets/error-404.png';
-import { createTwoBlockDatePicker } from '../components/date-range-calendar.js';
-
-// Real high-definition equipment photography for scaffolding & heavy equipment
-import scaffold1 from '../assets/scaffold-1-full.jpg';
-import scaffold2 from '../assets/scaffold-2-joint.jpg';
-import scaffold3 from '../assets/scaffold-3-platform.jpg';
-import scaffold4 from '../assets/scaffold-4-base.jpg';
-
-/**
- * Resolves curated real multi-angle photographs for the equipment,
- * replacing provisional blueprints and debug graphics with high-resolution photos.
- */
-function getCuratedToolImages(tool) {
-  const name = (tool.name || '').toLowerCase();
-  const cat = (tool.categoryName || tool.category?.name || '').toLowerCase();
-
-  // 1. Certified Scaffolding / Andamio Multidireccional
-  if (name.includes('andamio') || name.includes('scaffold') || cat.includes('elevaci') || name.includes('layher')) {
-    return [
-      { imageUrl: scaffold1, caption: 'Torre de andamio multidireccional 6m montada en obra' },
-      { imageUrl: scaffold2, caption: 'Unión roseta Ringlock de 8 vías con pasador de cuña autoblocante' },
-      { imageUrl: scaffold3, caption: 'Plataforma de trabajo antideslizante con trampilla de paso interior' },
-      { imageUrl: scaffold4, caption: 'Husillo nivelador regulable de base con placa de reparto' },
-    ];
-  }
-
-  // 2. If tool already has multiple valid images from backend, use them
-  if (tool.images && tool.images.length > 0 && tool.images[0]?.imageUrl) {
-    return tool.images.map((img, i) => ({
-      imageUrl: img.imageUrl,
-      caption: img.caption || `${tool.name} - Vista ${i + 1}`
-    }));
-  }
-
-  // 3. Clean fallback
-  const mainImg = tool.imageUrl || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1000&auto=format&fit=crop&q=80';
-  return [
-    { imageUrl: mainImg, caption: `${tool.name} - Vista principal` },
-    { imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1000&auto=format&fit=crop&q=80', caption: 'Inspección técnica y calibración en faena' },
-    { imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', caption: 'Pruebas de seguridad operativa' },
-  ];
-}
+import { getLocalToday, toIsoDate, parseIsoDate, formatFriendlyDate } from '../components/date-range-calendar.js';
+import { getCuratedToolImages } from '../utils/tool-images.js';
+import { 
+  getSearchContext, 
+  saveSearchContext, 
+  DEFAULT_DEPARTMENT, 
+  DEFAULT_CITY 
+} from '../utils/colombia-locations.js';
 
 /**
  * Curated accurate specifications matching the equipment type
@@ -198,11 +164,23 @@ export async function renderProductPageView(toolId) {
     return Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // Las fechas NO se asumen automáticamente. El usuario debe seleccionarlas y confirmarlas explícitamente en esta pantalla.
-  let startDate = null;
-  let endDate = null;
-  let daysCount = 0;
+  // Leer fechas y ubicación si vienen en la URL hash o en el contexto guardado
+  const currentHash = window.location.hash || '';
+  const hashSearchParams = new URLSearchParams(currentHash.includes('?') ? currentHash.split('?')[1] : '');
+  const savedCtx = getSearchContext();
+  const urlStart = hashSearchParams.get('start') || hashSearchParams.get('from') || savedCtx.startDate;
+  const urlEnd = hashSearchParams.get('end') || hashSearchParams.get('to') || savedCtx.endDate;
+  const deliveryDepartment = hashSearchParams.get('dept') || savedCtx.department || DEFAULT_DEPARTMENT;
+  const deliveryCity = hashSearchParams.get('city') || savedCtx.city || DEFAULT_CITY;
+
+  let startDate = urlStart || null;
+  let endDate = urlEnd || null;
+  let daysCount = (startDate && endDate) ? calculateDays(startDate, endDate) : 0;
   let selectedQuantity = 1;
+
+  if (startDate && endDate) {
+    saveSearchContext({ startDate, endDate, department: deliveryDepartment, city: deliveryCity });
+  }
 
   let tool = null;
   try {
@@ -224,9 +202,10 @@ export async function renderProductPageView(toolId) {
         }
       }
 
-      // Consultar disponibilidad base de flota y rangos ocupados sin forzar fechas ficticias
+      // Consultar disponibilidad base de flota y rangos ocupados respetando las fechas iniciales
       try {
-        const avail = await api.get(`/tools/${toolId}/availability`);
+        const queryParams = (startDate && endDate) ? { from: startDate, to: endDate } : {};
+        const avail = await api.get(`/tools/${toolId}/availability`, queryParams);
         tool.availability = avail;
         tool.totalStock = avail?.totalStock ?? 1;
         tool.availableStock = avail?.availableStock ?? (avail?.isAvailable ? 1 : 0);
@@ -302,11 +281,44 @@ export async function renderProductPageView(toolId) {
 
   function render() {
     const dailyPrice = tool.dailyPrice || 40000;
-    const totalAmount = dailyPrice * daysCount * selectedQuantity;
+    const unitDeposit = Math.round((tool.replacementValue || 2800000) * 0.10);
+    const hasPreselectedDates = Boolean(startDate && endDate && daysCount > 0);
+    const totalAmount = dailyPrice * (hasPreselectedDates ? daysCount : 1) * selectedQuantity;
     const hasStock = (tool.availableStock > 0);
     const specsList = getCuratedToolSpecs(tool);
     const highlights = getCuratedToolHighlights(tool);
     const verifiedCert = getVerifiedCertification(tool);
+
+    const today = getLocalToday();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const bookedRanges = tool.bookedDateRanges || [];
+
+    const isDateBooked = (d) => {
+      if (!bookedRanges.length) return false;
+      const time = d.getTime();
+      return bookedRanges.some(r => {
+        const bs = parseIsoDate(r.startDate || r.start);
+        const be = parseIsoDate(r.endDate || r.end);
+        if (!bs || !be) return false;
+        return time >= bs.getTime() && time <= be.getTime();
+      });
+    };
+
+    let firstAvailableDate = new Date(tomorrow);
+    for (let i = 0; i < 90; i++) {
+      if (!isDateBooked(firstAvailableDate)) {
+        break;
+      }
+      firstAvailableDate.setDate(firstAvailableDate.getDate() + 1);
+    }
+
+    const isoFirstAvailable = toIsoDate(firstAvailableDate);
+
+    let defaultEndDate = new Date(firstAvailableDate);
+    defaultEndDate.setDate(defaultEndDate.getDate() + 3);
+    const isoDefaultEnd = toIsoDate(defaultEndDate);
 
     const providerName = (tool.provider?.companyName && !/^[.\s-]+$/.test(tool.provider.companyName)) 
       ? tool.provider.companyName 
@@ -379,9 +391,9 @@ export async function renderProductPageView(toolId) {
                   <span>4.9 / 5.0</span>
                   <span class="text-slate-400 font-normal">(18 obras)</span>
                 </div>
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold shadow-2xs">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-50 border border-orange-200/90 text-orange-950 text-xs font-semibold shadow-2xs" title="Frente de obra / Ciudad de entrega solicitada">
                   ${renderIcon('MapPin', 'w-3.5 h-3.5 text-orange-600')}
-                  <span>${providerCity}</span>
+                  <span>${deliveryCity}</span>
                 </div>
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-2xs">
                   ${renderIcon('Zap', 'w-3.5 h-3.5 text-emerald-600')}
@@ -605,57 +617,89 @@ export async function renderProductPageView(toolId) {
                   </div>
                 </div>
 
-                <!-- 2. Date Range Selector -->
-                <div class="space-y-2">
+                <!-- 2. Fechas y Período Disponible (De primerazo) -->
+                <div class="space-y-2.5">
                   <div class="flex items-center justify-between">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Período de Alquiler
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      ${renderIcon('CalendarCheck', 'w-3.5 h-3.5 text-[#FF5A1F]')} Fechas Disponibles
                     </label>
-                    <span class="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/80" id="product-days-counter">
-                      ${daysCount} ${daysCount === 1 ? 'día' : 'días'}
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                      hasStock 
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200/90' 
+                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                    }">
+                      <span class="w-1.5 h-1.5 rounded-full ${hasStock ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}"></span>
+                      ${hasStock ? 'Entrega Inmediata' : 'Sin Stock Actual'}
                     </span>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-2 relative">
-                    <!-- Bloque 1: Fecha Entrega -->
-                    <button type="button" id="product-box-start" class="text-left bg-slate-50 hover:bg-orange-50/40 rounded-2xl p-3 border border-slate-200/90 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all cursor-pointer group flex flex-col justify-center">
-                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-600">
-                        Entrega
-                      </span>
-                      <div class="flex items-center justify-between gap-1 mt-1">
-                        <span id="display-start-date" class="text-xs sm:text-sm font-semibold text-slate-800 group-hover:text-orange-700 tabular-nums truncate">
-                          ${formatDate(startDate)}
-                        </span>
-                        <span class="text-slate-400 group-hover:text-orange-600 flex-shrink-0">
-                          ${renderIcon('Calendar', 'w-4 h-4')}
-                        </span>
-                      </div>
-                    </button>
-
-                    <!-- Bloque 2: Fecha Devolución -->
-                    <button type="button" id="product-box-end" class="text-left bg-slate-50 hover:bg-orange-50/40 rounded-2xl p-3 border border-slate-200/90 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all cursor-pointer group flex flex-col justify-center">
-                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-600">
-                        Devolución
-                      </span>
-                      <div class="flex items-center justify-between gap-1 mt-1">
-                        <span id="display-end-date" class="text-xs sm:text-sm font-semibold text-slate-800 group-hover:text-orange-700 tabular-nums truncate">
-                          ${formatDate(endDate)}
-                        </span>
-                        <span class="text-slate-400 group-hover:text-orange-600 flex-shrink-0">
-                          ${renderIcon('Clock', 'w-4 h-4')}
+                  ${hasPreselectedDates ? `
+                    <!-- Período preseleccionado desde el buscador -->
+                    <div id="product-dates-card" class="bg-gradient-to-br from-orange-50/60 to-white rounded-2xl p-4 border border-orange-200/90 shadow-2xs cursor-pointer hover:border-orange-400 transition-all group">
+                      <div class="flex items-center justify-between gap-2">
+                        <div>
+                          <span class="block text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                            Período de alquiler seleccionado
+                          </span>
+                          <div class="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-orange-950 font-display mt-0.5">
+                            ${formatFriendlyDate(startDate)} &rarr; ${formatFriendlyDate(endDate)}
+                          </div>
+                        </div>
+                        <span class="text-xs font-mono font-bold text-orange-600 bg-white px-2.5 py-1 rounded-xl border border-orange-200 shadow-2xs shrink-0">
+                          ${daysCount} ${daysCount === 1 ? 'día' : 'días'}
                         </span>
                       </div>
-                    </button>
-
-                    <!-- Popovers para calendarios flotantes -->
-                    <div id="product-popover-start" class="hidden absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-3.5 w-full sm:w-[320px] max-w-[calc(100vw-2rem)]">
-                      <div id="product-calendar-start-mount"></div>
+                      <div class="mt-2.5 pt-2 border-t border-orange-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span class="flex items-center gap-1 font-medium text-slate-700">
+                          ${renderIcon('MapPin', 'w-3 h-3 text-orange-600 shrink-0')}
+                          <span>Obra: <strong>${deliveryCity}</strong></span>
+                        </span>
+                        <span class="text-orange-600 font-bold group-hover:underline flex items-center gap-1">
+                          Ajustar en el calendario &rarr;
+                        </span>
+                      </div>
                     </div>
+                  ` : `
+                    <!-- Fechas disponibles presentadas de primerazo -->
+                    <div id="product-dates-card" class="bg-gradient-to-br from-slate-50 via-white to-orange-50/20 rounded-2xl p-4 border border-slate-200/90 hover:border-orange-300 transition-all cursor-pointer group shadow-2xs">
+                      <div class="flex items-start gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-[#FF5A1F] text-[#FF5A1F] group-hover:text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5 transition-colors">
+                          ${renderIcon('Calendar', 'w-5 h-5')}
+                        </div>
+                        <div class="space-y-1 min-w-0 flex-1">
+                          <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-600 transition-colors">
+                            Disponibilidad del equipo
+                          </span>
+                          <div class="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-orange-950 font-display leading-snug">
+                            ${hasStock ? `Disponible a partir de: ${formatFriendlyDate(isoFirstAvailable)}` : 'Sin fechas disponibles actualmente'}
+                          </div>
+                          <p class="text-xs text-slate-500 leading-relaxed">
+                            ${hasStock 
+                              ? 'Listo para despacho en bodega con entrega express en obra en 24h a 48h.' 
+                              : 'Este equipo se encuentra en obra actualmente. Puedes consultar otras fechas en el calendario.'}
+                          </p>
+                        </div>
+                      </div>
 
-                    <div id="product-popover-end" class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-3.5 w-full sm:w-[330px] max-w-[calc(100vw-2rem)]">
-                      <div id="product-calendar-end-mount"></div>
+                      <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span class="flex items-center gap-1.5 font-medium">
+                          ${renderIcon('Clock', 'w-3.5 h-3.5 text-slate-400')} Contratos de 1 a 30 días
+                        </span>
+                        <span class="text-orange-600 font-bold group-hover:underline flex items-center gap-1">
+                          Seleccionar fechas &rarr;
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  `}
+
+                  ${bookedRanges.length > 0 ? `
+                    <div class="p-2.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-800 flex items-start gap-2 leading-relaxed">
+                      ${renderIcon('AlertCircle', 'w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5')}
+                      <span>
+                        <strong>Nota de disponibilidad:</strong> Este equipo tiene reservas previas para algunas fechas que se mostrarán deshabilitadas en el calendario.
+                      </span>
+                    </div>
+                  ` : ''}
                 </div>
 
                 <!-- Quantity Selector (Permite seleccionar 1, 2 o más unidades según disponibilidad) -->
@@ -693,18 +737,32 @@ export async function renderProductPageView(toolId) {
                 </div>
 
                 <!-- 3. Clean Total Calculation -->
-                <div class="pt-3 border-t border-slate-100 space-y-1.5" id="product-cost-box">
-                  <div class="flex items-center justify-between text-xs text-slate-500">
-                    <span id="product-cost-formula">${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}</span>
-                    <span class="font-mono text-slate-700" id="product-cost-subtotal">${formatCurrency(totalAmount)}</span>
-                  </div>
-                  <div class="flex items-baseline justify-between pt-1">
-                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Total a pagar:</span>
-                    <span class="font-display font-extrabold text-2xl text-slate-900 tracking-tight" id="product-cost-total">${formatCurrency(totalAmount)}</span>
-                  </div>
-                  <p class="text-[10px] text-slate-400">
-                    IVA incluido. Depósito en custodia reintegrable al 100% al finalizar el contrato.
-                  </p>
+                <div class="pt-3 border-t border-slate-100 space-y-2" id="product-cost-box">
+                  ${hasPreselectedDates ? `
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                      <span id="product-cost-formula">${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}</span>
+                      <span class="font-mono text-slate-700" id="product-cost-subtotal">${formatCurrency(totalAmount)}</span>
+                    </div>
+                    <div class="flex items-baseline justify-between pt-1">
+                      <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Total estimado:</span>
+                      <span class="font-display font-extrabold text-2xl text-slate-900 tracking-tight" id="product-cost-total">${formatCurrency(totalAmount)}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">
+                      IVA incluido. Depósito en custodia reintegrable al 100% al finalizar el contrato.
+                    </p>
+                  ` : `
+                    <div class="flex items-center justify-between text-xs text-slate-600">
+                      <span class="font-medium">Tarifa base por día:</span>
+                      <span class="font-mono font-bold text-slate-900 text-sm">${formatCurrency(dailyPrice)} / día</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                      <span>Depósito en garantía (10% reembolsable):</span>
+                      <span class="font-mono text-emerald-700 font-semibold" id="product-deposit-val">${formatCurrency(unitDeposit * selectedQuantity)}</span>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl text-[11px] text-slate-500 border border-slate-200/60 leading-snug">
+                      💡 El costo total exacto e IVA (19%) se calcularán según los días que elijas en el calendario al hacer clic en el botón naranja.
+                    </div>
+                  `}
                 </div>
 
                 <!-- 4. Primary Action Button (Single, prominent, zero duplicates) -->
@@ -715,17 +773,19 @@ export async function renderProductPageView(toolId) {
                     </button>
                     <p class="text-[10px] text-slate-400 text-center leading-tight mt-1.5">Como proveedor no puedes alquilar equipos. Administra tu maquinaria desde el panel.</p>
                   ` : !hasStock ? `
-                    <button id="btn-add-to-rental" disabled class="w-full !py-3.5 text-xs font-semibold flex items-center justify-center gap-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-2xl cursor-not-allowed select-none">
-                      ${renderIcon('CalendarX', 'w-4 h-4')} No disponible para estas fechas
-                    </button>
-                  ` : !auth.isAuthenticated() ? `
                     <button id="btn-add-to-rental" class="btn-primary w-full !py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md rounded-2xl cursor-pointer transition-all">
-                      ${renderIcon('LogIn', 'w-4 h-4')} Iniciar sesión para alquilar
+                      ${renderIcon('Calendar', 'w-4 h-4')} Ver fechas libres en el calendario
                     </button>
+                    <p class="text-[10px] text-slate-400 text-center leading-tight mt-1.5">Consulta las próximas fechas disponibles para reservar este equipo</p>
                   ` : `
                     <button id="btn-add-to-rental" class="btn-primary w-full !py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md rounded-2xl cursor-pointer transition-all">
                       ${renderIcon('CalendarCheck', 'w-4 h-4')} Alquilar este equipo
                     </button>
+                    <p class="text-[10px] text-slate-400 text-center leading-tight mt-1.5">
+                      ${hasPreselectedDates 
+                        ? 'Confirmar reserva y continuar con la entrega' 
+                        : 'Haz clic para seleccionar tus fechas a partir del período disponible'}
+                    </p>
                   `}
                 </div>
 
@@ -815,7 +875,9 @@ export async function renderProductPageView(toolId) {
               <span class="text-[10px] text-slate-500">/ día</span>
             </div>
             <div class="text-[10px] text-slate-400 truncate" id="mobile-cost-sub">
-              ${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(totalAmount)}
+              ${hasPreselectedDates 
+                ? `${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(totalAmount)}`
+                : `Disponible a partir de mañana · Despacho 24h`}
             </div>
           </div>
 
@@ -876,14 +938,21 @@ export async function renderProductPageView(toolId) {
       const costFormula = container.querySelector('#product-cost-formula');
       const costSubtotal = container.querySelector('#product-cost-subtotal');
       const costTotal = container.querySelector('#product-cost-total');
+      const depositVal = container.querySelector('#product-deposit-val');
       const mobileCostSub = container.querySelector('#mobile-cost-sub');
-      const total = dailyPrice * daysCount * selectedQuantity;
 
       if (qtyDisplay) qtyDisplay.textContent = selectedQuantity;
-      if (costFormula) costFormula.textContent = `${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}`;
-      if (costSubtotal) costSubtotal.textContent = formatCurrency(total);
-      if (costTotal) costTotal.textContent = formatCurrency(total);
-      if (mobileCostSub) mobileCostSub.textContent = `${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(total)}`;
+      if (depositVal) depositVal.textContent = formatCurrency(unitDeposit * selectedQuantity);
+
+      if (hasPreselectedDates) {
+        const total = dailyPrice * daysCount * selectedQuantity;
+        if (costFormula) costFormula.textContent = `${daysCount} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}`;
+        if (costSubtotal) costSubtotal.textContent = formatCurrency(total);
+        if (costTotal) costTotal.textContent = formatCurrency(total);
+        if (mobileCostSub) mobileCostSub.textContent = `${daysCount} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(total)}`;
+      } else {
+        if (mobileCostSub) mobileCostSub.textContent = `Disponible a partir de mañana · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'}`;
+      }
     };
 
     container.querySelector('#btn-product-qty-minus')?.addEventListener('click', () => {
@@ -903,197 +972,26 @@ export async function renderProductPageView(toolId) {
       }
     });
 
-    // 2. Calendar Two-Block Popover Mounting & Wiring
-    const popoverStart = container.querySelector('#product-popover-start');
-    const popoverEnd = container.querySelector('#product-popover-end');
-    const mountStart = container.querySelector('#product-calendar-start-mount');
-    const mountEnd = container.querySelector('#product-calendar-end-mount');
-
-    const productTwoBlockPicker = createTwoBlockDatePicker({
-      initialStartDate: startDate,
-      initialEndDate: endDate,
-      toolId,
-      bookedRanges: tool.bookedDateRanges || [],
-      onChange: async ({ startDate: newS, endDate: newE, days: newDays }) => {
-        startDate = newS;
-        endDate = newE;
-        daysCount = newDays;
-
-        const displayStart = container.querySelector('#display-start-date');
-        const displayEnd = container.querySelector('#display-end-date');
-        const daysCounter = container.querySelector('#product-days-counter');
-        const costFormula = container.querySelector('#product-cost-formula');
-        const costSubtotal = container.querySelector('#product-cost-subtotal');
-        const costTotal = container.querySelector('#product-cost-total');
-        const mobileCostSub = container.querySelector('#mobile-cost-sub');
-        const total = dailyPrice * newDays * selectedQuantity;
-
-        if (displayStart) displayStart.textContent = formatDate(newS);
-        if (displayEnd) displayEnd.textContent = formatDate(newE);
-        if (daysCounter) daysCounter.textContent = `${newDays} ${newDays === 1 ? 'día' : 'días'}`;
-        if (costFormula) costFormula.textContent = `${newDays} días ${selectedQuantity > 1 ? `× ${selectedQuantity} unids.` : ''} × ${formatCurrency(dailyPrice)}`;
-        if (costSubtotal) costSubtotal.textContent = formatCurrency(total);
-        if (costTotal) costTotal.textContent = formatCurrency(total);
-        if (mobileCostSub) mobileCostSub.textContent = `${newDays} días · ${selectedQuantity} ${selectedQuantity === 1 ? 'unidad' : 'unidades'} · Total ${formatCurrency(total)}`;
-
-        // Real-time backend query for selected dates
-        try {
-          const avail = await api.get(`/tools/${toolId}/availability`, { from: newS, to: newE });
-          tool.totalStock = avail?.totalStock ?? tool.totalStock;
-          tool.availableStock = avail?.availableStock ?? (avail?.isAvailable ? 1 : 0);
-          tool.reservedStock = avail?.reservedStock ?? 0;
-          tool.isAvailable = avail?.isAvailable ?? (tool.availableStock > 0);
-          tool.bookedDateRanges = avail?.bookedDateRanges || [];
-          
-          productTwoBlockPicker.setBookedRanges(tool.bookedDateRanges);
-          updateAvailabilityUI();
-        } catch (err) {
-          console.error('Error re-evaluating tool availability', err);
-        }
-      }
-    });
-
-    if (mountStart) mountStart.appendChild(productTwoBlockPicker.getStartElement());
-    if (mountEnd) mountEnd.appendChild(productTwoBlockPicker.getEndElement());
-
-    productTwoBlockPicker.onOpenStart(() => {
-      popoverStart?.classList.remove('hidden');
-      popoverEnd?.classList.add('hidden');
-    });
-    productTwoBlockPicker.onCloseStart(() => {
-      popoverStart?.classList.add('hidden');
-    });
-
-    productTwoBlockPicker.onOpenEnd(() => {
-      popoverEnd?.classList.remove('hidden');
-      popoverStart?.classList.add('hidden');
-    });
-    productTwoBlockPicker.onCloseEnd(() => {
-      popoverEnd?.classList.add('hidden');
-    });
-
-    container.querySelector('#product-box-start')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (productTwoBlockPicker.isStartOpen()) {
-        productTwoBlockPicker.closeStart();
-      } else {
-        productTwoBlockPicker.openStart();
-      }
-    });
-
-    container.querySelector('#product-box-end')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (productTwoBlockPicker.isEndOpen()) {
-        productTwoBlockPicker.closeEnd();
-      } else {
-        productTwoBlockPicker.openEnd();
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      const isInsideStart = popoverStart?.contains(e.target) || container.querySelector('#product-box-start')?.contains(e.target);
-      const isInsideEnd = popoverEnd?.contains(e.target) || container.querySelector('#product-box-end')?.contains(e.target);
-      if (!isInsideStart && !isInsideEnd) {
-        productTwoBlockPicker.closeAll();
-      }
-    });
-
-    function updateAvailabilityUI() {
-      const stockStatusBox = container.querySelector('#product-stock-status');
-      const unavailBanner = container.querySelector('#product-unavailability-banner');
-      const btnContainer = container.querySelector('#product-btn-action-container');
-      const hasStockNow = (tool.availableStock > 0);
-
-      // Clamp selected quantity to available stock
-      selectedQuantity = Math.max(1, Math.min(selectedQuantity, tool.availableStock || 1));
-      const qtyDisplay = container.querySelector('#product-qty-display');
-      const maxLabel = container.querySelector('#product-qty-max-label');
-      if (qtyDisplay) qtyDisplay.textContent = selectedQuantity;
-      if (maxLabel) maxLabel.textContent = `Máx. ${tool.availableStock} disponibles`;
-
-      // 1. Single unified stock indicator pill
-      if (stockStatusBox) {
-        stockStatusBox.innerHTML = hasStockNow ? `
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs select-none">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Disponible (${tool.availableStock} de ${tool.totalStock} ${tool.totalStock === 1 ? 'unidad' : 'unidades'})</span>
-          </div>
-        ` : `
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs select-none">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span>Sin disponibilidad</span>
-          </div>
-        `;
-      }
-
-      // 2. Banner only shown when out of stock
-      if (unavailBanner) {
-        if (!hasStockNow) {
-          unavailBanner.classList.remove('hidden');
-        } else {
-          unavailBanner.classList.add('hidden');
-        }
-      }
-
-      // 3. Primary action button state
-      if (btnContainer) {
-        btnContainer.innerHTML = (auth.isAuthenticated() && auth.isProvider() && !auth.isAdmin()) ? `
-          <button id="btn-add-to-rental" disabled class="w-full !py-3.5 text-xs font-semibold flex items-center justify-center gap-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-2xl cursor-not-allowed select-none">
-            ${renderIcon('Ban', 'w-4 h-4')} No disponible para cuentas de proveedor
-          </button>
-          <p class="text-[10px] text-slate-400 text-center leading-tight mt-1.5">Como proveedor no puedes alquilar equipos. Administra tu maquinaria desde el panel.</p>
-        ` : !hasStockNow ? `
-          <button id="btn-add-to-rental" disabled class="w-full !py-3.5 text-xs font-semibold flex items-center justify-center gap-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-2xl cursor-not-allowed select-none">
-            ${renderIcon('CalendarX', 'w-4 h-4')} No disponible para estas fechas
-          </button>
-        ` : !auth.isAuthenticated() ? `
-          <button id="btn-add-to-rental" class="btn-primary w-full !py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md rounded-2xl cursor-pointer transition-all">
-            ${renderIcon('LogIn', 'w-4 h-4')} Iniciar sesión para alquilar
-          </button>
-        ` : `
-          <button id="btn-add-to-rental" class="btn-primary w-full !py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md rounded-2xl cursor-pointer transition-all">
-            ${renderIcon('CalendarCheck', 'w-4 h-4')} Alquilar este equipo
-          </button>
-        `;
-
-        btnContainer.querySelector('#btn-add-to-rental')?.addEventListener('click', handleRentalClick);
-      }
-    }
-
-    // Rental action handler
+    // Rental action handler - opens rental modal where user picks exact dates from the available period
     const handleRentalClick = () => {
-      if (!auth.isAuthenticated()) {
-        showToast('Debes iniciar sesión para realizar un alquiler', 'warning');
-        openAuthModal('login');
-        return;
-      }
       if (auth.isProvider() && !auth.isAdmin()) {
         showToast('Los proveedores no pueden realizar reservas en la plataforma.', 'warning');
         return;
       }
-      if (tool.availableStock <= 0) {
-        showToast('Esta herramienta se encuentra alquilada por otros usuarios para este período.', 'error');
-        return;
-      }
 
       openRentalModal(tool, {
-        initialStartDate: startDate,
-        initialEndDate: endDate,
-        initialQuantity: selectedQuantity
+        initialStartDate: startDate || isoFirstAvailable,
+        initialEndDate: endDate || isoDefaultEnd,
+        initialQuantity: selectedQuantity,
+        deliveryDepartment: deliveryDepartment,
+        deliveryCity: deliveryCity
       });
     };
 
+    // Wire clicks to open rental modal
     container.querySelector('#btn-add-to-rental')?.addEventListener('click', handleRentalClick);
-    
-    // Mobile quick rent button handler
-    container.querySelector('#btn-mobile-quick-rent')?.addEventListener('click', () => {
-      if (!hasStock) {
-        container.querySelector('#booking-card-main')?.scrollIntoView({ behavior: 'smooth' });
-        productTwoBlockPicker.openStart();
-      } else {
-        handleRentalClick();
-      }
-    });
+    container.querySelector('#product-dates-card')?.addEventListener('click', handleRentalClick);
+    container.querySelector('#btn-mobile-quick-rent')?.addEventListener('click', handleRentalClick);
   }
 
   render();

@@ -4,6 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* ToolRent Color Tokens - WCAG AA Compliant */
+  --color-brand-primary: #C2410C;       /* Darkened accessible orange (>4.5:1 on white) */
+  --color-brand-primary-hover: #9A3412; /* Darker hover state */
+  --color-brand-accent: #EA580C;        /* Signature vibrant orange */
+  --color-brand-light: #FFF7ED;         /* 50 tint */
+  --color-brand-border: #FED7AA;        /* 200 tint */
+
+  /* Neutral Surface & Text Tokens */
+  --color-neutral-bg: #F8FAFC;          /* Clean section/page background */
+  --color-neutral-card: #FFFFFF;
+  --color-neutral-text-primary: #0B2239;/* Deep architectural navy for headings */
+  --color-neutral-text-body: #334155;   /* Slate 700 body text */
+  --color-neutral-text-muted: #475569;  /* Slate 600 secondary text (min 13px, AA) */
+  --color-neutral-border: #E2E8F0;      /* Slate 200 border */
+  --color-neutral-border-subtle: #F1F5F9;
+
+  /* Semantic State Tokens */
+  --color-success: #059669;
+  --color-success-bg: #ECFDF5;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+}
+
 @layer base {
   html, body {
     overflow-x: hidden !important;
@@ -14,11 +38,11 @@
   }
 
   body {
-    @apply bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-toolrent-500 selection:text-white min-h-screen flex flex-col;
+    @apply bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-orange-500/20 selection:text-orange-950 min-h-screen flex flex-col;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight text-slate-900;
+    @apply font-display tracking-tight text-[#0B2239];
   }
 }
 
@@ -196,7 +220,7 @@ input:-webkit-autofill:active {
   /* ToolRent Buttons (Ergonomía táctil con min-h-[44px]) */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs
-           bg-[#FF5A1F] hover:bg-[#ea580c] text-white shadow-xs hover:shadow-md hover:shadow-orange-500/20
+           bg-[#c2410c] hover:bg-[#9a3412] text-white shadow-xs hover:shadow-md hover:shadow-orange-600/20
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:opacity-50 disabled:pointer-events-none;
   }
 
@@ -208,7 +232,7 @@ input:-webkit-autofill:active {
 
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] rounded-xl font-semibold text-xs
-           border border-[#FF5A1F] text-[#FF5A1F] hover:bg-orange-50/70
+           border border-[#c2410c] text-[#c2410c] hover:bg-orange-50/70
            active:scale-[0.975] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)];
   }
 

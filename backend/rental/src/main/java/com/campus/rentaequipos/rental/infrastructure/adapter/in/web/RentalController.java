@@ -214,11 +214,17 @@ public class RentalController {
     }
 
     @PatchMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
-    @Operation(summary = "Start a rental (Handover)", description = "Registra la entrega (CONFIRMED -> IN_PROGRESS). Solo proveedor dueño de los equipos.")
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN', 'CLIENTE')")
+    @Operation(summary = "Start a rental (Handover / Reception)", description = "Registra la entrega o recepción en obra (CONFIRMED -> IN_PROGRESS). Proveedor o Cliente dueño.")
     public ResponseEntity<RentalResponse> startRental(@PathVariable UUID id,
                                                       @AuthenticationPrincipal UserDetails userDetails) {
-        guard.assertProviderOwnsRental(id, userDetails);
+        if (!guard.isAdmin(userDetails)) {
+            boolean isClientOwner = guard.isClientOwnerOfRental(id, userDetails);
+            boolean isProvider = guard.isProviderOfRental(id, userDetails);
+            if (!isClientOwner && !isProvider) {
+                throw new AccessDeniedException("Acceso denegado: no tiene permisos para confirmar la entrega o recepción de este alquiler");
+            }
+        }
         RentalResponse response = rentalUseCase.startRental(id);
         try {
             UUID targetUserId = jdbcTemplate.query(
@@ -241,11 +247,17 @@ public class RentalController {
     }
 
     @PatchMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
-    @Operation(summary = "Complete a rental (Return)", description = "Registra la devolución (IN_PROGRESS -> COMPLETED). Solo proveedor dueño de los equipos.")
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN', 'CLIENTE')")
+    @Operation(summary = "Complete a rental (Return)", description = "Registra la devolución (IN_PROGRESS -> COMPLETED). Cliente dueño, proveedor de los equipos o ADMIN.")
     public ResponseEntity<RentalResponse> completeRental(@PathVariable UUID id,
                                                          @AuthenticationPrincipal UserDetails userDetails) {
-        guard.assertProviderOwnsRental(id, userDetails);
+        if (!guard.isAdmin(userDetails)) {
+            boolean isClientOwner = guard.isClientOwnerOfRental(id, userDetails);
+            boolean isProvider = guard.isProviderOfRental(id, userDetails);
+            if (!isClientOwner && !isProvider) {
+                throw new AccessDeniedException("Acceso denegado: no tiene permisos para devolver o completar este alquiler");
+            }
+        }
         RentalResponse response = rentalUseCase.completeRental(id);
         try {
             UUID targetUserId = jdbcTemplate.query(
@@ -256,8 +268,8 @@ public class RentalController {
             if (targetUserId != null) {
                 eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
                         targetUserId,
-                        "¡Devolución e Inspección Finalizada!",
-                        "El equipo de tu reserva (" + response.rentalCode() + ") ha sido recibido en bodega e inspeccionado satisfactoriamente.",
+                        "¡Devolución Procesada con Éxito!",
+                        "El equipo de tu reserva (" + response.rentalCode() + ") ha sido recibido y registrado conforme. El depósito de garantía entra en fase de liberación.",
                         "SUCCESS",
                         "RENTAL",
                         "#/client"

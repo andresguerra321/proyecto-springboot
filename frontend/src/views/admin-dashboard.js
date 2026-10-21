@@ -309,27 +309,32 @@ export async function renderAdminDashboard() {
 
     <!-- Right Drawer: Nuevo Usuario -->
     <div id="drawer-new-user" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-      <div class="absolute inset-0 bg-zinc-900/20 backdrop-blur-sm transition-opacity" id="drawer-new-user-backdrop"></div>
-      <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
-          <div class="p-6 overflow-y-auto space-y-5 flex-1">
-            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
-              <div class="flex items-center gap-2">
-                <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center">
-                  ${renderIcon('UserPlus', 'w-4 h-4')}
-                </div>
-                <h3 class="text-sm font-semibold text-zinc-900">Registrar Nuevo Usuario</h3>
+      <div class="absolute inset-0 bg-zinc-900/30 backdrop-blur-xs transition-opacity" id="drawer-new-user-backdrop"></div>
+      <div class="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full max-h-screen">
+          <!-- Drawer Header (Sticky Top) -->
+          <div class="p-5 border-b border-zinc-100 flex items-center justify-between flex-shrink-0 bg-white">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center">
+                ${renderIcon('UserPlus', 'w-4 h-4')}
               </div>
-              <button id="btn-close-new-user-drawer" class="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg cursor-pointer">
-                ${renderIcon('X', 'w-4 h-4')}
-              </button>
-            </div>
-
-            <form id="form-new-user" class="space-y-4 text-xs">
               <div>
-                <label class="block font-medium text-zinc-700 mb-1">Nombre de Usuario *</label>
-                <input type="text" id="nu-name" required maxlength="60" placeholder="Ej: constructor_norte" class="input-field text-xs font-mono" />
-                <p class="text-[10px] text-zinc-400 mt-0.5">Identificador único de acceso</p>
+                <h3 class="text-sm font-semibold text-zinc-900">Registrar Nuevo Usuario</h3>
+                <p class="text-[10px] text-zinc-400">Creación inmediata con validación en PostgreSQL</p>
+              </div>
+            </div>
+            <button id="btn-close-new-user-drawer" class="text-zinc-400 hover:text-zinc-600 p-1.5 rounded-lg cursor-pointer">
+              ${renderIcon('X', 'w-4 h-4')}
+            </button>
+          </div>
+
+          <!-- Drawer Body (Scrollable Independently) -->
+          <div class="p-5 overflow-y-auto space-y-4 flex-1">
+            <form id="form-new-user" class="space-y-3.5 text-xs">
+              <div>
+                <label class="block font-medium text-zinc-700 mb-1">Nombre de Usuario * (3 a 30 caracteres)</label>
+                <input type="text" id="nu-name" required minlength="3" maxlength="30" placeholder="ej. cliente_obra_2026" class="input-field text-xs font-mono" />
+                <p class="text-[10px] text-zinc-400 mt-0.5">Solo letras, números, puntos y guiones sin espacios.</p>
               </div>
 
               <div>
@@ -338,15 +343,15 @@ export async function renderAdminDashboard() {
               </div>
 
               <div>
-                <label class="block font-medium text-zinc-700 mb-1">Contraseña Inicial *</label>
+                <label class="block font-medium text-zinc-700 mb-1">Contraseña Inicial * (mínimo 8 caracteres)</label>
                 <input type="password" id="nu-password" required minlength="8" placeholder="Password123*" class="input-field text-xs font-mono" />
               </div>
 
               <div>
-                <label class="block font-medium text-zinc-700 mb-2">Rol del Usuario *</label>
-                <div class="grid grid-cols-2 gap-3" id="role-selector-cards">
-                  <label class="relative border border-[#EA580C] bg-orange-50/30 rounded-xl p-3 cursor-pointer flex flex-col justify-between transition-all" id="card-role-cliente">
-                    <div class="flex items-center justify-between mb-2">
+                <label class="block font-medium text-zinc-700 mb-1.5">Rol en Plataforma *</label>
+                <div class="grid grid-cols-2 gap-2.5" id="role-selector-cards">
+                  <label class="relative border-2 border-[#EA580C] bg-orange-50/40 rounded-xl p-2.5 cursor-pointer flex flex-col justify-between transition-all" id="card-role-cliente">
+                    <div class="flex items-center justify-between mb-1.5">
                       <div class="w-6 h-6 rounded-md bg-orange-100 text-[#EA580C] flex items-center justify-center">
                         ${renderIcon('User', 'w-3.5 h-3.5')}
                       </div>
@@ -358,8 +363,8 @@ export async function renderAdminDashboard() {
                     </div>
                   </label>
 
-                  <label class="relative border border-zinc-200 bg-white rounded-xl p-3 cursor-pointer flex flex-col justify-between hover:border-zinc-300 transition-all" id="card-role-proveedor">
-                    <div class="flex items-center justify-between mb-2">
+                  <label class="relative border border-zinc-200 bg-white rounded-xl p-2.5 cursor-pointer flex flex-col justify-between hover:border-zinc-300 transition-all" id="card-role-proveedor">
+                    <div class="flex items-center justify-between mb-1.5">
                       <div class="w-6 h-6 rounded-md bg-zinc-100 text-zinc-600 flex items-center justify-center">
                         ${renderIcon('Truck', 'w-3.5 h-3.5')}
                       </div>
@@ -372,15 +377,48 @@ export async function renderAdminDashboard() {
                   </label>
                 </div>
               </div>
+
+              <!-- Profile Details -->
+              <div class="pt-3 border-t border-zinc-100 space-y-3">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 block tracking-wider font-display">Perfil y Contacto Oficial</span>
+                
+                <div>
+                  <label id="nu-label-name" class="block font-medium text-zinc-700 mb-1">Nombre Completo * (mínimo 3 caracteres)</label>
+                  <input type="text" id="nu-fullname" required minlength="3" maxlength="60" placeholder="ej. Carlos Mendoza" class="input-field text-xs" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label id="nu-label-doc" class="block font-medium text-zinc-700 mb-1">Cédula / Documento *</label>
+                    <input type="text" id="nu-doc" required minlength="5" maxlength="20" placeholder="ej. 1018234567" class="input-field text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Teléfono Móvil * (10 dígitos)</label>
+                    <input type="tel" id="nu-phone" required maxlength="10" placeholder="3101234567" class="input-field text-xs font-mono" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Ciudad *</label>
+                    <input type="text" id="nu-city" required minlength="3" maxlength="40" value="Bogotá" class="input-field text-xs" />
+                  </div>
+                  <div>
+                    <label class="block font-medium text-zinc-700 mb-1">Dirección Principal *</label>
+                    <input type="text" id="nu-address" required minlength="5" maxlength="80" value="Calle 100 # 15-20" class="input-field text-xs" />
+                  </div>
+                </div>
+              </div>
             </form>
           </div>
 
-          <div class="p-5 border-t border-zinc-100 bg-zinc-50/50 flex gap-2">
-            <button type="button" id="btn-cancel-new-user-drawer" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer">
+          <!-- Drawer Footer (Sticky Bottom) -->
+          <div class="p-4 border-t border-zinc-100 bg-zinc-50/95 backdrop-blur-xs flex gap-2 flex-shrink-0 sticky bottom-0 z-10">
+            <button type="button" id="btn-cancel-new-user-drawer" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer">
               Cancelar
             </button>
-            <button type="submit" form="form-new-user" class="flex-1 bg-[#EA580C] hover:bg-[#ea580c]/90 text-white py-2 rounded-xl text-xs font-medium shadow-xs transition-all cursor-pointer">
-              Guardar Usuario
+            <button type="submit" form="form-new-user" id="btn-submit-new-user" class="flex-1 bg-[#EA580C] hover:bg-[#ea580c]/90 text-white py-2.5 rounded-xl text-xs font-medium shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5">
+              <span>Guardar Usuario</span>
             </button>
           </div>
         </div>
@@ -389,31 +427,33 @@ export async function renderAdminDashboard() {
 
     <!-- Slide-over Drawer para Editar Usuario Existente -->
     <div id="drawer-edit-user" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-edit-title" role="dialog" aria-modal="true">
-      <div class="absolute inset-0 bg-zinc-900/20 backdrop-blur-sm transition-opacity" id="drawer-edit-user-backdrop"></div>
-      <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
-          <div class="p-6 overflow-y-auto space-y-5 flex-1">
-            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
-              <div class="flex items-center gap-2">
-                <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center">
-                  ${renderIcon('Edit3', 'w-4 h-4')}
-                </div>
-                <div>
-                  <h3 class="text-sm font-semibold text-zinc-900">Editar Información de Usuario</h3>
-                  <p class="text-[11px] text-zinc-500">Actualizar credenciales, rol y perfil comercial en PostgreSQL</p>
-                </div>
+      <div class="absolute inset-0 bg-zinc-900/30 backdrop-blur-xs transition-opacity" id="drawer-edit-user-backdrop"></div>
+      <div class="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full max-h-screen">
+          <!-- Drawer Header (Sticky Top) -->
+          <div class="p-5 border-b border-zinc-100 flex items-center justify-between flex-shrink-0 bg-white">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center">
+                ${renderIcon('Edit3', 'w-4 h-4')}
               </div>
-              <button id="btn-close-edit-user-drawer" type="button" class="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg cursor-pointer">
-                ${renderIcon('X', 'w-4 h-4')}
-              </button>
+              <div>
+                <h3 class="text-sm font-semibold text-zinc-900">Editar Información de Usuario</h3>
+                <p class="text-[10px] text-zinc-500">Actualizar credenciales, rol y perfil comercial</p>
+              </div>
             </div>
+            <button id="btn-close-edit-user-drawer" type="button" class="text-zinc-400 hover:text-zinc-600 p-1.5 rounded-lg cursor-pointer">
+              ${renderIcon('X', 'w-4 h-4')}
+            </button>
+          </div>
 
+          <!-- Drawer Body (Scrollable Independently) -->
+          <div class="p-5 overflow-y-auto space-y-4 flex-1">
             <!-- Resumen superior del usuario seleccionado -->
             <div id="eu-user-summary" class="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center gap-3">
               <!-- Rellenado dinámicamente -->
             </div>
 
-            <form id="form-edit-user" class="space-y-4 text-xs">
+            <form id="form-edit-user" class="space-y-3.5 text-xs">
               <input type="hidden" id="eu-id" />
               
               <!-- Correo Electrónico -->
@@ -499,11 +539,12 @@ export async function renderAdminDashboard() {
             </form>
           </div>
 
-          <div class="p-5 border-t border-zinc-100 bg-zinc-50/50 flex gap-2">
-            <button type="button" id="btn-cancel-edit-user-drawer" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer">
+          <!-- Drawer Footer (Sticky Bottom) -->
+          <div class="p-4 border-t border-zinc-100 bg-zinc-50/95 backdrop-blur-xs flex gap-2 flex-shrink-0 sticky bottom-0 z-10">
+            <button type="button" id="btn-cancel-edit-user-drawer" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer">
               Cancelar
             </button>
-            <button type="submit" form="form-edit-user" id="btn-submit-edit-user" class="flex-1 bg-[#EA580C] hover:bg-[#ea580c]/90 text-white py-2 rounded-xl text-xs font-medium shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5">
+            <button type="submit" form="form-edit-user" id="btn-submit-edit-user" class="flex-1 bg-[#EA580C] hover:bg-[#ea580c]/90 text-white py-2.5 rounded-xl text-xs font-medium shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5">
               <span>Guardar Cambios</span>
             </button>
           </div>
@@ -785,8 +826,24 @@ export async function renderAdminDashboard() {
     });
   }
 
+  // Debounce and lock set to prevent fast spamming of user status toggles
+  const togglingUserIds = new Set();
+
   // Toggle user enabled status
   async function toggleUserStatus(u) {
+    if (togglingUserIds.has(u.id)) {
+      showToast('Operación en proceso. Espera un momento antes de volver a cambiar el estado.', 'info');
+      return;
+    }
+    togglingUserIds.add(u.id);
+
+    // Disable all toggle buttons for this specific user
+    const toggleBtns = container.querySelectorAll(`.btn-user-toggle-quick[data-id="${u.id}"]`);
+    toggleBtns.forEach(btn => {
+      btn.disabled = true;
+      btn.classList.add('opacity-40', 'pointer-events-none');
+    });
+
     const newStatus = !u.active;
     try {
       await api.patch(`/users/${u.id}/status`, { enabled: newStatus });
@@ -797,6 +854,15 @@ export async function renderAdminDashboard() {
       u.active = newStatus;
       renderUsersTable();
       showToast(`Estado de "${u.name}" actualizado`, 'success');
+    } finally {
+      setTimeout(() => {
+        togglingUserIds.delete(u.id);
+        const refreshedBtns = container.querySelectorAll(`.btn-user-toggle-quick[data-id="${u.id}"]`);
+        refreshedBtns.forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove('opacity-40', 'pointer-events-none');
+        });
+      }, 1200);
     }
   }
 
@@ -907,20 +973,141 @@ export async function renderAdminDashboard() {
   container.querySelector('#btn-cancel-new-user-drawer')?.addEventListener('click', () => drawer?.classList.add('hidden'));
   container.querySelector('#drawer-new-user-backdrop')?.addEventListener('click', () => drawer?.classList.add('hidden'));
 
-  // Form submit new user
+  // Role toggle for new user
+  const cardRoleCliente = container.querySelector('#card-role-cliente');
+  const cardRoleProveedor = container.querySelector('#card-role-proveedor');
+  const nuLabelName = container.querySelector('#nu-label-name');
+  const nuLabelDoc = container.querySelector('#nu-label-doc');
+  const nuFullnameInput = container.querySelector('#nu-fullname');
+  const nuDocInput = container.querySelector('#nu-doc');
+  const nuPhoneInput = container.querySelector('#nu-phone');
+  const nuNameInput = container.querySelector('#nu-name');
+
+  // Input filter: Username (no spaces, only valid chars)
+  nuNameInput?.addEventListener('input', (e) => {
+    const clean = e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, '').slice(0, 30);
+    if (e.target.value !== clean) e.target.value = clean;
+  });
+
+  // Input filter: Phone (strictly digits, max 10)
+  nuPhoneInput?.addEventListener('input', (e) => {
+    const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
+    if (e.target.value !== clean) e.target.value = clean;
+  });
+
+  // Switch role styles & labels
+  container.querySelectorAll('input[name="nu-role"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const isProv = radio.value === 'Proveedor';
+      if (isProv) {
+        cardRoleProveedor?.classList.remove('border-zinc-200', 'bg-white');
+        cardRoleProveedor?.classList.add('border-2', 'border-[#EA580C]', 'bg-orange-50/40');
+        cardRoleCliente?.classList.remove('border-2', 'border-[#EA580C]', 'bg-orange-50/40');
+        cardRoleCliente?.classList.add('border', 'border-zinc-200', 'bg-white');
+
+        if (nuLabelName) nuLabelName.textContent = 'Razón Social / Empresa * (3 a 80 caracteres)';
+        if (nuLabelDoc) nuLabelDoc.textContent = 'NIT / RUT Comercial * (ej. 900123456-1)';
+        if (nuFullnameInput) nuFullnameInput.placeholder = 'ej. Ferretería y Equipos Central S.A.S.';
+        if (nuDocInput) nuDocInput.placeholder = 'ej. 900123456-1';
+      } else {
+        cardRoleCliente?.classList.remove('border-zinc-200', 'bg-white');
+        cardRoleCliente?.classList.add('border-2', 'border-[#EA580C]', 'bg-orange-50/40');
+        cardRoleProveedor?.classList.remove('border-2', 'border-[#EA580C]', 'bg-orange-50/40');
+        cardRoleProveedor?.classList.add('border', 'border-zinc-200', 'bg-white');
+
+        if (nuLabelName) nuLabelName.textContent = 'Nombre Completo * (mínimo 3 caracteres)';
+        if (nuLabelDoc) nuLabelDoc.textContent = 'Cédula / Documento * (ej. 1018234567)';
+        if (nuFullnameInput) nuFullnameInput.placeholder = 'ej. Carlos Mendoza';
+        if (nuDocInput) nuDocInput.placeholder = 'ej. 1018234567';
+      }
+    });
+  });
+
+  // Form submit new user with strict client-side validation
   container.querySelector('#form-new-user')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const submitBtn = container.querySelector('#btn-submit-new-user');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Guardar Usuario';
+
     const username = container.querySelector('#nu-name').value.trim();
     const email = container.querySelector('#nu-email').value.trim();
     const password = container.querySelector('#nu-password').value;
     const roleRadio = container.querySelector('input[name="nu-role"]:checked')?.value || 'Cliente';
+    const fullName = container.querySelector('#nu-fullname')?.value.trim();
+    const docNumber = container.querySelector('#nu-doc')?.value.trim();
+    const phone = container.querySelector('#nu-phone')?.value.trim();
+    const city = container.querySelector('#nu-city')?.value.trim();
+    const address = container.querySelector('#nu-address')?.value.trim();
+
+    // 1. Validate Username
+    if (!username || username.length < 3 || username.length > 30) {
+      showToast('El nombre de usuario debe tener entre 3 y 30 caracteres.', 'warning');
+      container.querySelector('#nu-name')?.focus();
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+      showToast('El nombre de usuario solo puede contener letras, números, puntos y guiones.', 'warning');
+      container.querySelector('#nu-name')?.focus();
+      return;
+    }
+
+    // 2. Validate Email
+    if (!email || !/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email)) {
+      showToast('Por favor ingresa un correo electrónico válido (ej. usuario@dominio.com).', 'warning');
+      container.querySelector('#nu-email')?.focus();
+      return;
+    }
+
+    // 3. Validate Password
+    if (!password || password.length < 8) {
+      showToast('La contraseña debe tener al menos 8 caracteres.', 'warning');
+      container.querySelector('#nu-password')?.focus();
+      return;
+    }
+
+    // 4. Validate FullName / CompanyName
+    if (!fullName || fullName.length < 3 || fullName.length > 80) {
+      showToast('El nombre o razón social debe tener entre 3 y 80 caracteres.', 'warning');
+      container.querySelector('#nu-fullname')?.focus();
+      return;
+    }
+
+    // 5. Validate Document / NIT
+    if (!docNumber || docNumber.length < 5 || docNumber.length > 20) {
+      showToast('El número de documento o NIT debe tener entre 5 y 20 caracteres.', 'warning');
+      container.querySelector('#nu-doc')?.focus();
+      return;
+    }
+
+    // 6. Validate Phone
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      showToast('El teléfono debe tener exactamente 10 dígitos numéricos (ej. 3101234567).', 'warning');
+      container.querySelector('#nu-phone')?.focus();
+      return;
+    }
 
     try {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="inline-flex items-center gap-2">${renderIcon('Loader2', 'w-3.5 h-3.5 animate-spin')} Guardando...</span>`;
+      }
+
+      const isProv = roleRadio === 'Proveedor';
+      const roleName = isProv ? 'ROLE_PROVEEDOR' : 'ROLE_CLIENTE';
+
       const resp = await api.post('/auth/register', {
         username,
         email,
         password,
-        role: roleRadio === 'Proveedor' ? 'PROVEEDOR' : 'CLIENTE'
+        roles: [roleName],
+        fullName: isProv ? null : fullName,
+        companyName: isProv ? fullName : null,
+        taxId: isProv ? docNumber : null,
+        documentType: isProv ? 'NIT' : 'CC',
+        documentNumber: isProv ? null : docNumber,
+        phone,
+        city: city || 'Bogotá',
+        address: address || 'Dirección de obra principal'
       });
 
       usersList.unshift({
@@ -936,9 +1123,15 @@ export async function renderAdminDashboard() {
 
       renderUsersTable();
       drawer?.classList.add('hidden');
-      showToast(`Usuario "${username}" registrado con éxito en PostgreSQL`, 'success');
+      e.target.reset();
+      showToast(`Usuario "${username}" registrado con perfil ${roleRadio} en PostgreSQL`, 'success');
     } catch (err) {
       showToast(err.message || 'Error al registrar usuario', 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
     }
   });
 

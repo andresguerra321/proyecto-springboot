@@ -5,6 +5,13 @@ import bannerWebImg from '../assets/banner-web.png';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { animateStaggerIn } from '../utils/animations.js';
+import { getToolPrimaryImage } from '../utils/tool-images.js';
+import { 
+  getSearchContext, 
+  saveSearchContext, 
+  DEFAULT_DEPARTMENT, 
+  DEFAULT_CITY 
+} from '../utils/colombia-locations.js';
 
 export async function renderCatalogView() {
   if (auth.isAuthenticated() && auth.isProvider() && !auth.isAdmin()) {
@@ -19,10 +26,22 @@ export async function renderCatalogView() {
   // Read search, category & date query parameters from URL hash (e.g. #/catalog?category=f000...&q=andamio)
   const hash = window.location.hash || '';
   const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+  const savedCtx = getSearchContext();
   const initialSearchParam = searchParams.get('q') || '';
-  const initialCategoryParam = searchParams.get('category') || searchParams.get('cat') || '';
-  let filterStart = searchParams.get('start') || searchParams.get('from') || '';
-  let filterEnd = searchParams.get('end') || searchParams.get('to') || '';
+  const initialCategoryParam = searchParams.get('category') || searchParams.get('cat') || savedCtx.categoryId || '';
+  let filterStart = searchParams.get('start') || searchParams.get('from') || savedCtx.startDate || '';
+  let filterEnd = searchParams.get('end') || searchParams.get('to') || savedCtx.endDate || '';
+  let filterDept = searchParams.get('dept') || savedCtx.department || DEFAULT_DEPARTMENT;
+  let filterCity = searchParams.get('city') || savedCtx.city || DEFAULT_CITY;
+
+  // Synchronize search context across tabs/refreshes
+  saveSearchContext({
+    startDate: filterStart,
+    endDate: filterEnd,
+    department: filterDept,
+    city: filterCity,
+    categoryId: initialCategoryParam || ''
+  });
 
   // Local state
   let selectedCategory = initialCategoryParam || 'cat-all';
@@ -410,9 +429,14 @@ export async function renderCatalogView() {
             <div id="catalog-active-dates-banner">
               ${filterStart && filterEnd ? `
                 <div class="p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-800 shadow-2xs">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="w-2.5 h-2.5 rounded-full bg-[#ea580c] animate-pulse shrink-0"></span>
-                    <span>Mostrando stock confirmado en base de datos para: <strong>${formatDate(filterStart)} al ${formatDate(filterEnd)}</strong></span>
+                    <span>Mostrando stock confirmado para: <strong>${formatDate(filterStart)} al ${formatDate(filterEnd)}</strong></span>
+                    ${filterCity ? `
+                      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/90 text-orange-900 border border-orange-200 font-semibold text-[11px] shadow-2xs">
+                        ${renderIcon('MapPin', 'w-3 h-3 text-orange-600')} ${filterCity} (${filterDept})
+                      </span>
+                    ` : ''}
                   </div>
                   <div class="flex items-center gap-3">
                     <span class="text-[11px] text-slate-500 hidden sm:inline">Límites: Hasta 1 año / 30d máx.</span>
@@ -526,6 +550,7 @@ export async function renderCatalogView() {
   const handleClearDates = () => {
     filterStart = '';
     filterEnd = '';
+    saveSearchContext({ startDate: '', endDate: '' });
     resetAvailabilityToBase();
     updateDatesUI();
     renderProductsGrid();
@@ -542,9 +567,14 @@ export async function renderCatalogView() {
     if (banner) {
       banner.innerHTML = filterStart && filterEnd ? `
         <div class="p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-800 shadow-2xs">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span class="w-2.5 h-2.5 rounded-full bg-[#ea580c] animate-pulse shrink-0"></span>
-            <span>Mostrando stock confirmado en base de datos para: <strong>${formatDate(filterStart)} al ${formatDate(filterEnd)}</strong></span>
+            <span>Mostrando stock confirmado para: <strong>${formatDate(filterStart)} al ${formatDate(filterEnd)}</strong></span>
+            ${filterCity ? `
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/90 text-orange-900 border border-orange-200 font-semibold text-[11px] shadow-2xs">
+                ${renderIcon('MapPin', 'w-3 h-3 text-orange-600')} ${filterCity} (${filterDept})
+              </span>
+            ` : ''}
           </div>
           <div class="flex items-center gap-3">
             <span class="text-[11px] text-slate-500 hidden sm:inline">Límites: Hasta 1 año / 30d máx.</span>
@@ -613,11 +643,7 @@ export async function renderCatalogView() {
             ? (tool.availableStock > 0)
             : ((tool.availableStock > 0) || tool.status === 'AVAILABLE');
 
-          const rawImg = tool.images?.[0]?.imageUrl || '';
-          const isDeadImg = !rawImg || rawImg.includes('photo-1541888946425-d0fbb186f5f8') || rawImg.includes('photo-1503387762-592deb58ef4e');
-          const primaryImg = isDeadImg
-            ? ((tool.name || '').toLowerCase().includes('andamio') ? '/images/scaffold-1.jpg' : 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800')
-            : rawImg;
+          const primaryImg = getToolPrimaryImage(tool);
 
           const statusBadge = isAvailable
             ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs select-none">
@@ -707,10 +733,13 @@ export async function renderCatalogView() {
     productsContainer.querySelectorAll('.btn-tool-details, .tool-card-trigger').forEach(el => {
       el.addEventListener('click', () => {
         const id = el.dataset.id;
-        const targetUrl = filterStart && filterEnd 
-          ? `#/product/${id}?start=${filterStart}&end=${filterEnd}` 
-          : `#/product/${id}`;
-        window.location.hash = targetUrl;
+        const p = new URLSearchParams();
+        if (filterStart) p.set('start', filterStart);
+        if (filterEnd) p.set('end', filterEnd);
+        if (filterDept) p.set('dept', filterDept);
+        if (filterCity) p.set('city', filterCity);
+        const qStr = p.toString();
+        window.location.hash = qStr ? `#/product/${id}?${qStr}` : `#/product/${id}`;
       });
     });
   }
@@ -912,6 +941,8 @@ export async function renderCatalogView() {
   document.addEventListener('keydown', onDocKeydownSort);
 
   renderSortDropdownItems();
+  updateCategoryButtonsUI();
+  updateDatesUI();
 
   // Initial render of product cards
   renderProductsGrid();

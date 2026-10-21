@@ -138,10 +138,27 @@ public class GlobalExceptionHandler {
         }
 
         if (exName.contains("DataIntegrityViolationException") || exName.contains("ConstraintViolationException")) {
-            // No exponer SQL interno al cliente
+            String rootMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+            Throwable rootCause = ex.getCause();
+            while (rootCause != null && rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+            if (rootCause != null && rootCause.getMessage() != null) {
+                rootMsg += " " + rootCause.getMessage().toLowerCase();
+            }
+
+            String friendlyMsg = "La operación viola una regla de integridad de datos (registro duplicado o referencia inexistente).";
+            if (rootMsg.contains("numeric field overflow") || rootMsg.contains("out of range") || rootMsg.contains("22003")) {
+                friendlyMsg = "Uno de los montos o valores numéricos ingresados excede el límite máximo permitido por el sistema (máximo $9.999.999.999 COP).";
+            } else if (rootMsg.contains("duplicate key") || rootMsg.contains("unique constraint") || rootMsg.contains("violates unique") || rootMsg.contains("23505")) {
+                friendlyMsg = "Ya existe un registro con ese identificador, correo, nombre o número de serie único.";
+            } else if (rootMsg.contains("foreign key") || rootMsg.contains("violates foreign key") || rootMsg.contains("23503")) {
+                friendlyMsg = "La entidad referenciada (proveedor, categoría o usuario) no existe o no tiene un perfil comercial válido.";
+            }
+
             ErrorResponse errorResponse = new ErrorResponse(
                     request.getRequestURI(),
-                    "La operación viola una regla de integridad de datos (registro duplicado o referencia inexistente).",
+                    friendlyMsg,
                     HttpStatus.CONFLICT.value(),
                     LocalDateTime.now()
             );

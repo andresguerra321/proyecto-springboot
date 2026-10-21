@@ -107,17 +107,27 @@ npm run preview
 | **Frontend Web SPA** | `5173` | `http://localhost:5173/` | Single Page Application reactiva conectada al backend |
 
 ### Cuentas y Credenciales de Prueba (Seed Data)
-La base de datos se inicializa automáticamente mediante Flyway (`V2__seed_data.sql`) con 42 usuarios de prueba. Todas las cuentas comparten la misma contraseña maestra:
+La base de datos se inicializa con **4 usuarios oficiales**, **5 herramientas activas del proveedor** y **0 alquileres** para realizar pruebas completas de extremo a extremo:
 
-> **Contraseña para todas las cuentas semilla:** `Password123*`
+> **Contraseña universal para todas las cuentas semilla:** `Password123*`
 
-| Rol | Usuario (`username`) | Correo Electrónico | Acceso / Panel Autorizado |
+| Rol | Usuario (`username`) | Correo Electrónico | Perfil / Panel Autorizado |
 | :--- | :--- | :--- | :--- |
-| **ADMIN** | `admin_principal` | `admin@rentaequipos.com` | `#/admin` (Analítica, usuarios, reporte de ingresos) |
-| **PROVEEDOR** | `prov_maquinaria_bog` | `contacto@maquinariabogota.com` | `#/provider` (Gestión de inventario, solicitudes, inspección de daños) |
-| **CLIENTE** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | `#/client` (Alquileres activos, checkout y facturas) |
+| **ADMIN** | `admin_principal` | `admin@rentaequipos.com` | `#/admin` (Analítica, usuarios, auditoría contable) |
+| **PROVEEDOR** | `prov_maquinaria_bog` | `contacto@maquinariabogota.com` | `#/provider` (Maquinaria y Equipos Bogotá S.A.S.) |
+| **CLIENTE 1** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | `#/client` (Carlos Alberto Gómez Peña) |
+| **CLIENTE 2** | `cliente_maria_rodriguez` | `maria.rodriguez@ingenieria.com` | `#/client` (María Camila Rodríguez León) |
 
-*(También puedes registrar nuevos clientes o proveedores desde el modal de registro en la interfaz web).*
+*(El modal de inicio de sesión incluye 4 botones de acceso rápido con autollenado instantáneo).*
+
+### 🐧 Despliegue en Linux Ubuntu (1 o 2 Comandos)
+Para desplegar la plataforma completa en **Ubuntu Linux**, ejecuta el script automatizado que instala Docker si hace falta y levanta los contenedores:
+```bash
+chmod +x deploy-ubuntu.sh && ./deploy-ubuntu.sh
+```
+Para ver la guía paso a paso completa con métodos manuales y nativos, consulta:
+👉 **[Guía Completa de Despliegue en Ubuntu Linux](docs/GUIA_DESPLIEGUE_UBUNTU.md)**
+
 
 ## Ejemplo de `application.yml` (Configuración Principal)
 El archivo principal está en `backend/bootstrap/src/main/resources/application.yml`:

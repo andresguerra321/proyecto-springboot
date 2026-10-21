@@ -47,4 +47,5 @@ skills-lock.json
 # Archive files
 *.zip
 
-
+# Scratch files
+scratch/

@@ -9,6 +9,8 @@ public interface UserRepository {
     Optional<User> findById(UUID id);
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
+    Optional<User> findByUsernameIgnoreCase(String username);
+    Optional<User> findByEmailIgnoreCase(String email);
     java.util.List<User> findAll();
     User save(User user);
     boolean existsByUsername(String username);

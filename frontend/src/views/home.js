@@ -3,7 +3,7 @@ import auth from '../auth/state.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { renderIcon } from '../utils/icons.js';
 import { openRentalModal, openRentalInvoiceModal } from './rental-modal.js';
-import { openWarrantyExchangeModal, openRefundRequestModal } from './client-dashboard.js';
+import { openWarrantyExchangeModal, openRefundRequestModal, openClientReturnModal } from './client-dashboard.js';
 import { createTwoBlockDatePicker, createDateRangeCalendar } from '../components/date-range-calendar.js';
 
 // Assets
@@ -520,6 +520,17 @@ export async function renderHomeView() {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  ${activeRental.status === 'IN_PROGRESS' || activeRental.status === 'CONFIRMED' ? `
+                    <button 
+                      id="btn-active-rental-return" 
+                      type="button" 
+                      class="flex-1 sm:flex-initial min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                      title="Devolver equipo en la fecha asignada"
+                    >
+                      ${renderIcon('RotateCcw', 'w-3 h-3 text-emerald-700')}
+                      <span>Devolver</span>
+                    </button>
+                  ` : ''}
                   <button 
                     id="btn-active-rental-invoice" 
                     type="button" 
@@ -899,6 +910,12 @@ export async function renderHomeView() {
   container.querySelector('#btn-active-rental-refund')?.addEventListener('click', () => {
     if (activeRental) {
       openRefundRequestModal(activeRental, activeTool, () => renderHomeView());
+    }
+  });
+
+  container.querySelector('#btn-active-rental-return')?.addEventListener('click', () => {
+    if (activeRental) {
+      openClientReturnModal(activeRental, activeTool, () => renderHomeView());
     }
   });
 
