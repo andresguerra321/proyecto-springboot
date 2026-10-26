@@ -15,8 +15,8 @@ Todas las cuentas usan la contraseña: **`Password123*`**
 | Rol | Usuario | Correo | ID Perfil (BD) |
 | :--- | :--- | :--- | :--- |
 | **PROVEEDOR** | `prov_maquinaria_bog` | `contacto@maquinariabogota.com` | `d0000000-0000-0000-0000-000000000001` |
-| **CLIENTE 1** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | `c1000000-0000-0000-0000-000000000001` |
-| **ADMIN** | `admin_principal` | `admin@rentaequipos.com` | N/A |
+| **CLIENTE 1** | `cliente_carlos_gomez` | `carlos.gomez@constructora.com` | `e0000000-0000-0000-0000-000000000001` |
+| **ADMIN** | `admin_principal` | `admin@rentaequipos.com` | `a0000000-0000-0000-0000-000000000001` |
 
 ### ⚡ Obtener Token JWT en Postman:
 `POST http://localhost:8085/api/v1/auth/login`
