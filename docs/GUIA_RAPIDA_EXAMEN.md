@@ -2,7 +2,9 @@
 
 Documento de referencia inmediata para presentar la prueba técnica de Spring Boot en Campus Lands. Contiene credenciales, endpoints exactos, ejemplos de JSON para Postman, consultas SQL de comprobación y reglas de negocio implementadas.
 
-> 💡 **¿Presentando el examen en Linux?** Consulta la **[Guía Maestra Paso a Paso para Linux y Postman](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/GUIA_PASO_A_PASO_EXAMEN_LINUX_POSTMAN.md)** con el procedimiento exacto para tomar las capturas requeridas, comandos de terminal Ubuntu y solución a problemas de entorno.
+> 💡 **Recursos clave para el examen:**  
+> - **[Guía Maestra Paso a Paso para Linux y Postman](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/GUIA_PASO_A_PASO_EXAMEN_LINUX_POSTMAN.md)**: Procedimiento exacto para capturas requeridas, comandos Ubuntu y solución de problemas.  
+> - **[Guía de Cambios Frecuentes: Roles de Usuario y Flyway](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/GUIA_ROLES_Y_MIGRACIONES.md)**: Cambio de rol ADMIN desde Swagger, manejo de migraciones Flyway (V7) y reglas de negocio de usuarios.
 
 ---
 
