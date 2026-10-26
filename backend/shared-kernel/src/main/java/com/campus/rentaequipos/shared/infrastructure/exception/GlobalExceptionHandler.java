@@ -49,7 +49,9 @@ public class GlobalExceptionHandler {
             BusinessRuleViolationException ex,
             HttpServletRequest request
     ) {
-        HttpStatus status = ex.getMessage().contains("Invalid credentials") ? HttpStatus.UNAUTHORIZED : HttpStatus.CONFLICT;
+        HttpStatus status = (ex.getMessage() != null && ex.getMessage().contains("Invalid credentials"))
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.BAD_REQUEST;
         ErrorResponse errorResponse = new ErrorResponse(
                 request.getRequestURI(),
                 ex.getMessage(),

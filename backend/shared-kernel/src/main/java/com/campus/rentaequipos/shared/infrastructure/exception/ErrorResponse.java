@@ -8,4 +8,7 @@ public record ErrorResponse(
         int statusCode,
         LocalDateTime timestamp
 ) {
+    public int getStatus() {
+        return statusCode;
+    }
 }
