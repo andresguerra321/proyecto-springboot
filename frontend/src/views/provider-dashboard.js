@@ -105,27 +105,22 @@ export async function renderProviderDashboard() {
   const isAdmin = auth.isAdmin();
   let isProvider = auth.isProvider();
 
-  // If user is Admin, they cannot operate as provider
+  let allProvidersList = [];
+  let providerProfile = user?.profile;
+
+  // Si el usuario es Administrador, tiene acceso total de supervisión sobre los proveedores
   if (isAdmin) {
-    container.innerHTML = `
-      <section class="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
-        <div class="crm-card p-10 max-w-lg mx-auto space-y-4">
-          <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center mx-auto shadow-2xs">
-            ${renderIcon('ShieldAlert', 'w-7 h-7')}
-          </div>
-          <h2 class="text-xl font-bold text-zinc-900 font-display">Acceso Restringido a Administradores</h2>
-          <p class="text-xs text-zinc-500 leading-relaxed">
-            Como <strong>Administrador General</strong>, gestionas el sistema centralmente desde la consola administrativa y no puedes operar como proveedor ni publicar herramientas en catálogo.
-          </p>
-          <div class="flex items-center justify-center gap-3 pt-2">
-            <a href="#/admin" class="btn-primary !py-2.5 !px-6 text-xs font-semibold flex items-center gap-2 shadow-sm">
-              ${renderIcon('ShieldCheck', 'w-4 h-4')} Ir a la Consola de Administración
-            </a>
-          </div>
-        </div>
-      </section>
-    `;
-    return;
+    try {
+      allProvidersList = await api.get('/providers').catch(() => []);
+      if (Array.isArray(allProvidersList) && allProvidersList.length > 0) {
+        const hashParams = new URLSearchParams((window.location.hash || '').split('?')[1] || '');
+        const requestedProviderId = hashParams.get('providerId');
+        providerProfile = allProvidersList.find(p => p.id === requestedProviderId) || allProvidersList[0];
+        isProvider = true;
+      }
+    } catch (e) {
+      console.warn('Error cargando lista de proveedores para administrador', e);
+    }
   }
 
   // Pre-hidratar perfil desde sessionStorage (toolrent_user_context) para evitar roundtrips innecesarios
@@ -139,10 +134,11 @@ export async function renderProviderDashboard() {
         email: storedContext.email,
         rol: storedContext.rol
       };
+      if (!providerProfile) providerProfile = user.profile;
     }
   }
 
-  if (!isProvider) {
+  if (!isProvider && !isAdmin) {
     try {
       const me = await api.get('/users/me');
       if (me.roles?.some(r => r.includes('PROVEEDOR'))) {
@@ -150,11 +146,12 @@ export async function renderProviderDashboard() {
         try { user.profile = await api.get('/providers/me'); } catch (e) {}
         localStorage.setItem('user', JSON.stringify(user));
         isProvider = true;
+        providerProfile = user.profile;
       }
     } catch (e) {}
   }
 
-  if (!isProvider) {
+  if (!isProvider && !isAdmin) {
     container.innerHTML = `
       <section class="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
         <div class="crm-card p-10 max-w-lg mx-auto space-y-4">
@@ -177,8 +174,7 @@ export async function renderProviderDashboard() {
   }
 
   // 3. Resolve Provider Profile
-  let providerProfile = user?.profile;
-  if (!providerProfile?.id && isProvider) {
+  if (!providerProfile?.id && isProvider && !isAdmin) {
     try {
       providerProfile = await api.get('/providers/me');
       user.profile = providerProfile;
@@ -188,7 +184,7 @@ export async function renderProviderDashboard() {
     }
   }
 
-  const providerId = providerProfile?.id || null;
+  let providerId = providerProfile?.id || null;
 
   // State variables
   const getInitialTabFromHash = () => {
@@ -239,12 +235,13 @@ export async function renderProviderDashboard() {
   // Fetch data
   async function loadData() {
     try {
+      const activePid = providerProfile?.id || providerId || null;
       const promises = [
-        providerId ? api.get('/tools', { providerId }).catch(() => []) : api.get('/tools').catch(() => []),
-        providerId ? api.get(`/rentals/provider/${providerId}`).catch(() => []) : (isAdmin ? api.get('/rentals').catch(() => []) : Promise.resolve([])),
+        activePid ? api.get('/tools', { providerId: activePid }).catch(() => []) : api.get('/tools').catch(() => []),
+        activePid ? api.get(`/rentals/provider/${activePid}`).catch(() => []) : (isAdmin ? api.get('/rentals').catch(() => []) : Promise.resolve([])),
         api.get('/tools/categories').catch(() => []),
         api.get('/clients').catch(() => []),
-        providerId ? api.get(`/rentals/claims/provider/${providerId}`).catch(() => []) : Promise.resolve([])
+        activePid ? api.get(`/rentals/claims/provider/${activePid}`).catch(() => []) : Promise.resolve([])
       ];
 
       const [fetchedTools, fetchedRequests, fetchedCats, fetchedClients, fetchedClaims] = await Promise.all(promises);
@@ -349,6 +346,34 @@ export async function renderProviderDashboard() {
       <div class="min-h-screen crm-panel-bg text-zinc-800 pb-20 select-none">
         <div class="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           
+          ${isAdmin ? `
+            <!-- Banner de Supervisión para Administrador -->
+            <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-2xs">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                  ${renderIcon('ShieldCheck', 'w-5 h-5')}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-amber-950 uppercase tracking-wide">Modo Administrador</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-200/80 text-amber-900 font-semibold">Supervisión Total</span>
+                  </div>
+                  <p class="text-[11px] text-amber-800">Tienes control total para autorizar, rechazar y gestionar alquileres de cualquier proveedor en la plataforma.</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 w-full md:w-auto">
+                <label for="admin-select-provider-switch" class="text-xs text-amber-900 font-semibold whitespace-nowrap">Proveedor:</label>
+                <select id="admin-select-provider-switch" class="bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-zinc-900 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer shadow-2xs w-full md:w-auto">
+                  ${allProvidersList.map(p => `
+                    <option value="${p.id}" ${p.id === providerProfile?.id ? 'selected' : ''}>
+                      ${p.companyName || p.id} (${p.city || 'Colombia'})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- 1. Minimalist CRM Brand Header (Linear / Attio style) -->
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-3.5">
@@ -525,6 +550,20 @@ export async function renderProviderDashboard() {
     `;
 
     // Attach global toolbar handlers
+    container.querySelector('#admin-select-provider-switch')?.addEventListener('change', async (e) => {
+      const selectedId = e.target.value;
+      const found = allProvidersList.find(p => p.id === selectedId);
+      if (found) {
+        providerProfile = found;
+        providerId = found.id;
+        const currentTab = activeTab;
+        window.history.replaceState(null, '', `#/provider?providerId=${selectedId}&tab=${currentTab}`);
+        showToast(`Supervisando a: ${found.companyName}`, 'info');
+        await loadData();
+        render();
+      }
+    });
+
     container.querySelector('#btn-open-new-tool')?.addEventListener('click', () => openNewToolModal());
     container.querySelector('#btn-sync-data')?.addEventListener('click', async () => {
       showToast('Sincronizando datos con el servidor...', 'info');
@@ -2247,33 +2286,41 @@ export async function renderProviderDashboard() {
 
   async function confirmRentalRequest(reqId) {
     try {
-      await api.patch(`/rentals/${reqId}/confirm`);
+      try {
+        await api.post(`/reservas/${reqId}/aprobar`);
+      } catch (errApi) {
+        await api.patch(`/rentals/${reqId}/confirm`);
+      }
       const req = requestsList.find(r => r.id === reqId);
       if (req) req.status = 'CONFIRMED';
       notificationsStore.add({
         category: 'RENTAL',
         type: 'success',
-        title: 'Solicitud Confirmada',
-        message: `Alquiler #${reqId.slice(0, 8)} confirmado. Listo para entrega en obra.`,
+        title: 'Solicitud Confirmada / Aprobada',
+        message: `Alquiler #${reqId.slice(0, 8)} aprobado. Listo para entrega en obra.`,
         link: '#/provider'
       });
       updateKpis();
       renderTabContent();
-      showToast('Solicitud de alquiler confirmada con éxito', 'success');
+      showToast('Solicitud de alquiler aprobada con éxito', 'success');
     } catch (err) {
-      showToast(err.message || 'Error al confirmar la solicitud', 'error');
+      showToast(err.message || 'Error al aprobar la solicitud', 'error');
     }
   }
 
   async function rejectRentalRequest(reqId) {
     if (!confirm('¿Deseas rechazar esta solicitud de alquiler?')) return;
     try {
-      await api.patch(`/rentals/${reqId}/cancel`);
+      try {
+        await api.post(`/reservas/${reqId}/rechazar`);
+      } catch (errApi) {
+        await api.patch(`/rentals/${reqId}/cancel`);
+      }
       const req = requestsList.find(r => r.id === reqId);
-      if (req) req.status = 'CANCELLED';
+      if (req) req.status = 'REJECTED';
       updateKpis();
       renderTabContent();
-      showToast('Solicitud rechazada', 'info');
+      showToast('Solicitud rechazada correctamente', 'info');
     } catch (err) {
       showToast(err.message || 'Error al rechazar solicitud', 'error');
     }

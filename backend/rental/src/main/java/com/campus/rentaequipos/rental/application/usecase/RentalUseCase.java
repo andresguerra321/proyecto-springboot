@@ -3,7 +3,9 @@ package com.campus.rentaequipos.rental.application.usecase;
 import com.campus.rentaequipos.catalog.domain.model.Tool;
 import com.campus.rentaequipos.catalog.domain.model.ToolStatus;
 import com.campus.rentaequipos.catalog.domain.repository.ToolRepository;
+import com.campus.rentaequipos.rental.application.dto.LateFeeResponse;
 import com.campus.rentaequipos.rental.application.dto.RentalRequest;
+import com.campus.rentaequipos.shared.domain.exception.HerramientaNoDisponibleException;
 import com.campus.rentaequipos.rental.application.dto.RentalResponse;
 import com.campus.rentaequipos.rental.domain.model.Rental;
 import com.campus.rentaequipos.rental.domain.model.RentalItem;
@@ -14,17 +16,35 @@ import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationExce
 import com.campus.rentaequipos.shared.domain.exception.EntityNotFoundException;
 import com.campus.rentaequipos.shared.domain.valueobject.DateRange;
 import com.campus.rentaequipos.shared.domain.valueobject.Money;
+import com.campus.rentaequipos.rental.application.dto.ProviderRentalSummaryResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class RentalUseCase {
+
+    /** Máximo de reservas activas (PENDING/CONFIRMED/IN_PROGRESS) por cliente. */
+    public static final int MAX_ACTIVE_RENTALS_PER_CLIENT = 3;
+    /** Factor de recargo por mora sobre la tarifa diaria. */
+    public static final BigDecimal LATE_PENALTY_FACTOR = new BigDecimal("1.5");
+
+    /** Descuento escalonado por duración: 7-14 días = 10%, 15+ días = 20%. */
+    public static BigDecimal durationDiscountFactor(int totalDays) {
+        if (totalDays >= 15) return new BigDecimal("0.80");
+        if (totalDays >= 7) return new BigDecimal("0.90");
+        return BigDecimal.ONE;
+    }
+
+    private static boolean isActive(RentalStatus s) {
+        return s == RentalStatus.PENDING || s == RentalStatus.CONFIRMED || s == RentalStatus.IN_PROGRESS;
+    }
 
     private final RentalRepository rentalRepository;
     private final ToolRepository toolRepository;
@@ -49,7 +69,14 @@ public class RentalUseCase {
         if (request.startDate().isAfter(maxBookingHorizon) || request.endDate().isAfter(maxBookingHorizon)) {
             throw new BusinessRuleViolationException("No es posible realizar reservas con más de 1 año de anticipación (máximo 365 días a partir de hoy).");
         }
-        
+
+        long activeForClient = rentalRepository.findByClientId(request.clientId()).stream()
+                .filter(r -> isActive(r.getStatus()))
+                .count();
+        if (activeForClient >= MAX_ACTIVE_RENTALS_PER_CLIENT) {
+            throw new BusinessRuleViolationException("El cliente ha alcanzado el límite de " + MAX_ACTIVE_RENTALS_PER_CLIENT + " alquileres activos simultáneos.");
+        }
+
         List<Rental> allRentals = rentalRepository.findAll();
         List<Tool> tools = new ArrayList<>();
         for (UUID toolId : request.toolIds()) {
@@ -78,7 +105,7 @@ public class RentalUseCase {
 
         for (Tool tool : tools) {
             Money dailyPrice = tool.getDailyPrice();
-            Money itemTotal = dailyPrice.multiply(totalDays);
+            Money itemTotal = dailyPrice.multiply(totalDays).multiply(durationDiscountFactor(totalDays));
             
             subtotal = subtotal.add(itemTotal);
             deposit = deposit.add(tool.getReplacementValue().multiply(new BigDecimal("0.1")));
@@ -122,6 +149,36 @@ public class RentalUseCase {
                 .collect(Collectors.toList());
     }
 
+    /** Filtro opcional por estado, rango de fechas y/o proveedor. */
+    @Transactional(readOnly = true)
+    public List<RentalResponse> searchRentals(String status, java.time.LocalDate from, java.time.LocalDate to, UUID providerId) {
+        RentalStatus st = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                st = RentalStatus.valueOf(status.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BusinessRuleViolationException("Estado inválido: " + status);
+            }
+        }
+        final RentalStatus filterStatus = st;
+        final java.util.Set<UUID> providerToolIds = (providerId != null)
+                ? toolRepository.findByProviderId(providerId).stream().map(Tool::getId).collect(Collectors.toSet())
+                : null;
+
+        return rentalRepository.findAll().stream()
+                .filter(r -> filterStatus == null || r.getStatus() == filterStatus)
+                .filter(r -> from == null || !r.getDateRange().getEndDate().isBefore(from))
+                .filter(r -> to == null || !r.getDateRange().getStartDate().isAfter(to))
+                .filter(r -> providerToolIds == null || r.getItems().stream().anyMatch(i -> providerToolIds.contains(i.getToolId())))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RentalResponse> searchRentals(String status, java.time.LocalDate from, java.time.LocalDate to) {
+        return searchRentals(status, from, to, null);
+    }
+
     @Transactional(readOnly = true)
     public List<RentalResponse> getClientRentals(UUID clientId) {
         return rentalRepository.findByClientId(clientId).stream()
@@ -131,6 +188,11 @@ public class RentalUseCase {
 
     @Transactional(readOnly = true)
     public List<RentalResponse> getProviderRentals(UUID providerId) {
+        return getProviderRentals(providerId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RentalResponse> getProviderRentals(UUID providerId, String status) {
         java.util.Set<UUID> providerToolIds = toolRepository.findByProviderId(providerId).stream()
                 .map(Tool::getId)
                 .collect(Collectors.toSet());
@@ -139,11 +201,35 @@ public class RentalUseCase {
             return java.util.Collections.emptyList();
         }
 
+        RentalStatus st = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                st = RentalStatus.valueOf(status.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BusinessRuleViolationException("Estado inválido: " + status);
+            }
+        }
+        final RentalStatus filterStatus = st;
+
         return rentalRepository.findAll().stream()
+                .filter(r -> filterStatus == null || r.getStatus() == filterStatus)
                 .filter(rental -> rental.getItems().stream()
                         .anyMatch(item -> providerToolIds.contains(item.getToolId())))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ProviderRentalSummaryResponse getProviderSummary(UUID providerId) {
+        List<RentalResponse> rentals = getProviderRentals(providerId, null);
+        long total = rentals.size();
+        Map<String, Long> countByStatus = rentals.stream()
+                .collect(Collectors.groupingBy(RentalResponse::status, Collectors.counting()));
+        BigDecimal totalCompletedIncome = rentals.stream()
+                .filter(r -> "COMPLETED".equalsIgnoreCase(r.status()))
+                .map(RentalResponse::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new ProviderRentalSummaryResponse(providerId, total, countByStatus, totalCompletedIncome);
     }
 
     @Transactional(readOnly = true)
@@ -339,20 +425,157 @@ public class RentalUseCase {
         return mapToResponse(rental);
     }
 
+    // ===================== EXAMEN: APROBAR / RECHAZAR =====================
+
     @Transactional
-    public RentalResponse confirmRental(UUID id) {
+    public RentalResponse aprobarReserva(UUID idReserva) {
+        Rental rental = rentalRepository.findById(idReserva)
+                .orElseThrow(() -> new EntityNotFoundException("Rental", idReserva));
+
+        if (rental.getStatus() != RentalStatus.PENDING) {
+            throw new BusinessRuleViolationException("Solo se pueden aprobar reservas PENDIENTES (estado actual: " + rental.getStatus() + ").");
+        }
+
+        // La herramienta debe seguir disponible: operativa y sin otra reserva APROBADA/EN CURSO que se cruce.
+        List<Rental> others = rentalRepository.findAll().stream()
+                .filter(r -> !r.getId().equals(rental.getId()))
+                .filter(r -> r.getStatus() == RentalStatus.CONFIRMED || r.getStatus() == RentalStatus.IN_PROGRESS)
+                .collect(Collectors.toList());
+
+        for (RentalItem item : rental.getItems()) {
+            Tool tool = toolRepository.findById(item.getToolId())
+                    .orElseThrow(() -> new EntityNotFoundException("Tool", item.getToolId()));
+            if (tool.getStatus() == ToolStatus.MAINTENANCE || tool.getStatus() == ToolStatus.RETIRED) {
+                throw new HerramientaNoDisponibleException(tool.getName(), "está fuera de servicio (" + tool.getStatus() + ")");
+            }
+            boolean overlap = others.stream()
+                    .filter(r -> r.getItems().stream().anyMatch(i -> i.getToolId().equals(item.getToolId())))
+                    .anyMatch(r -> r.getDateRange().overlaps(rental.getDateRange()));
+            if (overlap) {
+                throw new HerramientaNoDisponibleException(tool.getName(), "ya tiene otra reserva aprobada en esas fechas");
+            }
+        }
+
+        rental.confirm();
+        return mapToResponse(rentalRepository.save(rental));
+    }
+
+    @Transactional
+    public RentalResponse rechazarReserva(UUID idReserva) {
+        Rental rental = rentalRepository.findById(idReserva)
+                .orElseThrow(() -> new EntityNotFoundException("Rental", idReserva));
+
+        if (rental.getStatus() != RentalStatus.PENDING) {
+            throw new BusinessRuleViolationException("Solo se pueden rechazar reservas PENDIENTES (estado actual: " + rental.getStatus() + ").");
+        }
+        rental.reject();
+        for (RentalItem item : rental.getItems()) {
+            toolRepository.findById(item.getToolId()).ifPresent(tool -> {
+                if (tool.getStatus() == ToolStatus.RENTED) {
+                    tool.updateStatus(ToolStatus.AVAILABLE);
+                    toolRepository.save(tool);
+                }
+            });
+        }
+        return mapToResponse(rentalRepository.save(rental));
+    }
+
+    // ===================== EXTENSIÓN DE ALQUILER =====================
+
+    @Transactional
+    public RentalResponse extendRental(UUID id, java.time.LocalDate newEndDate) {
+        if (newEndDate == null) {
+            throw new BusinessRuleViolationException("Debe indicar la nueva fecha fin (newEndDate).");
+        }
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
-        rental.confirm();
-        Rental saved = rentalRepository.save(rental);
-        return mapToResponse(saved);
+
+        if (rental.getStatus() != RentalStatus.CONFIRMED && rental.getStatus() != RentalStatus.IN_PROGRESS) {
+            throw new BusinessRuleViolationException("Solo se pueden extender reservas CONFIRMED o IN_PROGRESS.");
+        }
+        java.time.LocalDate currentEnd = rental.getDateRange().getEndDate();
+        if (!newEndDate.isAfter(currentEnd)) {
+            throw new BusinessRuleViolationException("La nueva fecha fin debe ser posterior a " + currentEnd + ".");
+        }
+
+        DateRange newRange = new DateRange(rental.getDateRange().getStartDate(), newEndDate);
+        int newDays = (int) newRange.getDays();
+        if (newDays > 30) {
+            throw new BusinessRuleViolationException("La duración total no puede superar 30 días (solicitado: " + newDays + ").");
+        }
+
+        // Solo el tramo adicional debe estar libre en otras reservas activas.
+        DateRange extraRange = new DateRange(currentEnd.plusDays(1), newEndDate);
+        List<Rental> others = rentalRepository.findAll().stream()
+                .filter(r -> !r.getId().equals(rental.getId()))
+                .filter(r -> isActive(r.getStatus()))
+                .collect(Collectors.toList());
+        for (RentalItem item : rental.getItems()) {
+            boolean overlap = others.stream()
+                    .filter(r -> r.getItems().stream().anyMatch(i -> i.getToolId().equals(item.getToolId())))
+                    .anyMatch(r -> r.getDateRange().overlaps(extraRange));
+            if (overlap) {
+                String name = toolRepository.findById(item.getToolId()).map(Tool::getName).orElse(item.getToolId().toString());
+                throw new HerramientaNoDisponibleException(name, "tiene otra reserva entre " + extraRange.getStartDate() + " y " + newEndDate);
+            }
+        }
+
+        Money newSubtotal = Money.ZERO;
+        BigDecimal factor = durationDiscountFactor(newDays);
+        for (RentalItem item : rental.getItems()) {
+            Money itemTotal = item.getDailyPrice().multiply(newDays).multiply(factor);
+            item.updateTotalPrice(itemTotal);
+            newSubtotal = newSubtotal.add(itemTotal);
+        }
+
+        rental.extend(newRange, newDays, newSubtotal);
+        return mapToResponse(rentalRepository.save(rental));
+    }
+
+    // ===================== RECARGO POR MORA =====================
+
+    @Transactional(readOnly = true)
+    public LateFeeResponse calculateLateFee(UUID id) {
+        Rental rental = rentalRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Rental", id));
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate end = rental.getDateRange().getEndDate();
+        long daysOverdue = Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(end, today));
+        if (rental.getStatus() != RentalStatus.IN_PROGRESS) {
+            daysOverdue = 0; // solo hay mora si el equipo sigue en poder del cliente
+        }
+        Money dailySum = rental.getItems().stream()
+                .map(RentalItem::getDailyPrice)
+                .reduce(Money.ZERO, Money::add);
+        Money fee = dailySum.multiply(daysOverdue).multiply(LATE_PENALTY_FACTOR);
+        return new LateFeeResponse(rental.getId(), rental.getRentalCode(), end, today,
+                daysOverdue, dailySum.getAmount(), LATE_PENALTY_FACTOR, fee.getAmount());
+    }
+
+    @Transactional
+    public RentalResponse confirmRental(UUID id) {
+        return aprobarReserva(id);
     }
 
     @Transactional
     public RentalResponse cancelRental(UUID id) {
+        return cancelRental(id, false);
+    }
+
+    @Transactional
+    public RentalResponse cancelRental(UUID id, boolean isClientCaller) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
-        rental.cancel();
+
+        try {
+            if (isClientCaller) {
+                rental.cancelByClient(java.time.LocalDateTime.now());
+            } else {
+                rental.cancel();
+            }
+        } catch (IllegalStateException e) {
+            throw new BusinessRuleViolationException(e.getMessage());
+        }
 
         for (RentalItem item : rental.getItems()) {
             toolRepository.findById(item.getToolId()).ifPresent(tool -> {
@@ -388,7 +611,19 @@ public class RentalUseCase {
     public RentalResponse completeRental(UUID id) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
-        rental.complete();
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate endDate = rental.getDateRange().getEndDate();
+        if (today.isAfter(endDate)) {
+            long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(endDate, today);
+            Money dailySum = rental.getItems().stream()
+                    .map(RentalItem::getDailyPrice)
+                    .reduce(Money.ZERO, Money::add);
+            Money lateFee = dailySum.multiply(daysOverdue).multiply(LATE_PENALTY_FACTOR);
+            rental.complete(lateFee);
+        } else {
+            rental.complete();
+        }
 
         for (RentalItem item : rental.getItems()) {
             toolRepository.findById(item.getToolId()).ifPresent(tool -> {

@@ -44,7 +44,7 @@ class ToolUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        toolUseCase = new ToolUseCase(toolRepository, categoryRepository);
+        toolUseCase = new ToolUseCase(toolRepository, categoryRepository, providerId -> true);
         categoryId = UUID.randomUUID();
         toolId = UUID.randomUUID();
 

@@ -60,6 +60,18 @@ public class Rental {
         this.status = RentalStatus.CANCELLED;
     }
 
+    /** Cancelación por parte del cliente: exige al menos 24 horas de anticipación a la fecha de inicio. */
+    public void cancelByClient(java.time.LocalDateTime cancellationTime) {
+        if (this.status == RentalStatus.COMPLETED || this.status == RentalStatus.IN_PROGRESS) {
+            throw new IllegalStateException("No se pueden cancelar reservas en curso o completadas");
+        }
+        java.time.LocalDateTime cutoff = this.dateRange.getStartDate().atStartOfDay().minusHours(24);
+        if (cancellationTime != null && cancellationTime.isAfter(cutoff)) {
+            throw new IllegalStateException("El cliente solo puede cancelar con más de 24 horas de anticipación a la fecha de inicio (" + this.dateRange.getStartDate() + ")");
+        }
+        this.status = RentalStatus.CANCELLED;
+    }
+
     public void start() {
         if (this.status != RentalStatus.CONFIRMED) {
             throw new IllegalStateException("Solo se pueden iniciar reservas en estado CONFIRMED");
@@ -68,10 +80,39 @@ public class Rental {
     }
 
     public void complete() {
+        complete(Money.ZERO);
+    }
+
+    public void complete(Money lateFee) {
         if (this.status != RentalStatus.IN_PROGRESS && this.status != RentalStatus.CONFIRMED) {
             throw new IllegalStateException("Solo se pueden completar reservas en estado IN_PROGRESS o CONFIRMED");
         }
         this.status = RentalStatus.COMPLETED;
+        if (lateFee != null && lateFee.isGreaterThan(Money.ZERO)) {
+            this.totalAmount = this.totalAmount.add(lateFee);
+        }
+    }
+
+    /** Rechazo por parte del proveedor: solo válido para reservas PENDIENTES. */
+    public void reject() {
+        if (this.status != RentalStatus.PENDING) {
+            throw new IllegalStateException("Solo se pueden rechazar reservas en estado PENDING (actual: " + this.status + ")");
+        }
+        this.status = RentalStatus.REJECTED;
+    }
+
+    /** Extiende la fecha fin recalculando días, subtotal y total. */
+    public void extend(DateRange newRange, int newTotalDays, Money newSubtotal) {
+        if (this.status != RentalStatus.CONFIRMED && this.status != RentalStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Solo se pueden extender reservas CONFIRMED o IN_PROGRESS (actual: " + this.status + ")");
+        }
+        if (!newRange.getEndDate().isAfter(this.dateRange.getEndDate())) {
+            throw new IllegalArgumentException("La nueva fecha fin debe ser posterior a la actual (" + this.dateRange.getEndDate() + ")");
+        }
+        this.dateRange = newRange;
+        this.totalDays = newTotalDays;
+        this.subtotal = newSubtotal;
+        this.totalAmount = newSubtotal.add(this.deposit);
     }
 
     // Getters

@@ -56,6 +56,13 @@ public class ToolController {
         return ResponseEntity.ok(toolUseCase.getToolById(id));
     }
 
+    @GetMapping("/{id}/similar")
+    @Operation(summary = "Herramientas similares", description = "Misma categoría, disponibles, ordenadas por cercanía de precio diario")
+    public ResponseEntity<List<ToolResponse>> getSimilarTools(@PathVariable UUID id,
+                                                              @RequestParam(defaultValue = "4") int limit) {
+        return ResponseEntity.ok(toolUseCase.getSimilarTools(id, limit));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('PROVEEDOR') or hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")

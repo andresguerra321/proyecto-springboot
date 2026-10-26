@@ -129,4 +129,57 @@ public class ReportingRepositoryAdapter implements ReportingRepository {
                 rs.getLong("active_rentals")
         ), providerId, providerId, providerId, providerId, providerId, providerId);
     }
+
+    @Override
+    public List<com.campus.rentaequipos.reporting.domain.model.OverdueRentalReport> getOverdueRentals() {
+        String query = """
+                SELECT r.id, r.rental_code, c.full_name, c.phone, r.end_date,
+                       COALESCE((SELECT SUM(ri.daily_price) FROM rental_items ri WHERE ri.rental_id = r.id), 0) AS daily_sum
+                FROM rentals r
+                JOIN client_profiles c ON c.id = r.client_id
+                WHERE r.status = 'IN_PROGRESS' AND r.end_date < CURRENT_DATE
+                ORDER BY r.end_date ASC
+                """;
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.math.BigDecimal factor = new java.math.BigDecimal("1.5");
+        return jdbcTemplate.query(query, (rs, rowNum) -> {
+            java.time.LocalDate end = rs.getDate("end_date").toLocalDate();
+            int days = (int) java.time.temporal.ChronoUnit.DAYS.between(end, today);
+            java.math.BigDecimal penalty = rs.getBigDecimal("daily_sum")
+                    .multiply(java.math.BigDecimal.valueOf(days))
+                    .multiply(factor)
+                    .setScale(2, java.math.RoundingMode.HALF_UP);
+            return new com.campus.rentaequipos.reporting.domain.model.OverdueRentalReport(
+                    UUID.fromString(rs.getString("id")),
+                    rs.getString("rental_code"),
+                    rs.getString("full_name"),
+                    rs.getString("phone"),
+                    end,
+                    days,
+                    penalty);
+        });
+    }
+
+    @Override
+    public List<com.campus.rentaequipos.reporting.domain.model.DamageSummaryReport> getDamageSummaryByCategory() {
+        String query = """
+                SELECT cat.name AS category_name,
+                       COUNT(d.id) AS total_damages,
+                       SUM(CASE WHEN d.severity = 'TOTAL_LOSS' THEN 1 ELSE 0 END) AS total_loss_count,
+                       COALESCE(SUM(d.repair_cost), 0) AS total_repair_cost,
+                       COALESCE(SUM(CASE WHEN d.is_charged_to_client THEN d.repair_cost ELSE 0 END), 0) AS charged_to_clients
+                FROM damage_reports d
+                JOIN tools t ON t.id = d.tool_id
+                JOIN categories cat ON cat.id = t.category_id
+                GROUP BY cat.name
+                ORDER BY total_repair_cost DESC
+                """;
+        return jdbcTemplate.query(query, (rs, rowNum) -> new com.campus.rentaequipos.reporting.domain.model.DamageSummaryReport(
+                rs.getString("category_name"),
+                rs.getLong("total_damages"),
+                rs.getLong("total_loss_count"),
+                rs.getBigDecimal("total_repair_cost"),
+                rs.getBigDecimal("charged_to_clients")
+        ));
+    }
 }

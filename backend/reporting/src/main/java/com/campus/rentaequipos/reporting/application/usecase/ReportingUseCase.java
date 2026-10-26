@@ -36,4 +36,12 @@ public class ReportingUseCase {
     public com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport getProviderDashboardReport(java.util.UUID providerId) {
         return reportingRepository.getProviderDashboardReport(providerId);
     }
+
+    public List<com.campus.rentaequipos.reporting.domain.model.OverdueRentalReport> getOverdueRentals() {
+        return reportingRepository.getOverdueRentals();
+    }
+
+    public List<com.campus.rentaequipos.reporting.domain.model.DamageSummaryReport> getDamageSummaryByCategory() {
+        return reportingRepository.getDamageSummaryByCategory();
+    }
 }

@@ -57,4 +57,18 @@ public class ReportingController {
             @PathVariable java.util.UUID providerId) {
         return ResponseEntity.ok(reportingUseCase.getProviderDashboardReport(providerId));
     }
+
+    @GetMapping("/overdue")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Alquileres vencidos", description = "Alquileres IN_PROGRESS con fecha fin pasada, días de mora y recargo estimado (×1.5)")
+    public ResponseEntity<List<com.campus.rentaequipos.reporting.domain.model.OverdueRentalReport>> getOverdueRentals() {
+        return ResponseEntity.ok(reportingUseCase.getOverdueRentals());
+    }
+
+    @GetMapping("/damages-summary")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Siniestralidad por categoría", description = "Número de daños, pérdidas totales y costos de reparación agrupados por categoría")
+    public ResponseEntity<List<com.campus.rentaequipos.reporting.domain.model.DamageSummaryReport>> getDamageSummary() {
+        return ResponseEntity.ok(reportingUseCase.getDamageSummaryByCategory());
+    }
 }

@@ -67,15 +67,16 @@ public class InspectionUseCase {
                 rentalRepository.save(rental);
             }
         } else if ("RETURN".equalsIgnoreCase(request.inspectionType())) {
-            if (!"DAMAGED".equalsIgnoreCase(request.status())) {
-                rental.complete();
-                rentalRepository.save(rental);
-                for (RentalItem item : rental.getItems()) {
-                    toolRepository.findById(item.getToolId()).ifPresent(tool -> {
-                        tool.updateStatus(ToolStatus.AVAILABLE);
-                        toolRepository.save(tool);
-                    });
-                }
+            rental.complete();
+            rentalRepository.save(rental);
+            ToolStatus nextToolStatus = "DAMAGED".equalsIgnoreCase(request.status()) 
+                    ? ToolStatus.MAINTENANCE 
+                    : ToolStatus.AVAILABLE;
+            for (RentalItem item : rental.getItems()) {
+                toolRepository.findById(item.getToolId()).ifPresent(tool -> {
+                    tool.updateStatus(nextToolStatus);
+                    toolRepository.save(tool);
+                });
             }
         }
 

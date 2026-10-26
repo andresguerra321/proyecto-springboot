@@ -427,6 +427,20 @@ export function renderNavbar(activeRoute = 'catalog') {
                         </div>
                         <span class="user-nav-dot hidden w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                       </a>
+                      <a href="#/admin?tab=rentals" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                        <div class="flex items-center gap-2.5">
+                          ${renderIcon('ClipboardList', 'w-4 h-4 text-orange-500')}
+                          <span class="font-semibold text-zinc-800">Alquileres de Proveedores</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded-full text-[9px] bg-orange-100 text-orange-800 font-bold">Admin</span>
+                      </a>
+                      <a href="#/provider?tab=requests" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent transition-all duration-150 group/item">
+                        <div class="flex items-center gap-2.5">
+                          ${renderIcon('Building2', 'w-4 h-4 text-purple-500')}
+                          <span>Operaciones de Proveedor</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-100 text-purple-800 font-bold">Supervisión</span>
+                      </a>
                     ` : ''}
                   </div>
 

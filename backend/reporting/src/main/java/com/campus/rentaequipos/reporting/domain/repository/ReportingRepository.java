@@ -13,4 +13,6 @@ public interface ReportingRepository {
     List<FrequentClientReport> getFrequentClients(int limit);
     ToolAvailabilityReport getToolAvailabilityReport();
     com.campus.rentaequipos.reporting.domain.model.ProviderDashboardReport getProviderDashboardReport(java.util.UUID providerId);
+    List<com.campus.rentaequipos.reporting.domain.model.OverdueRentalReport> getOverdueRentals();
+    List<com.campus.rentaequipos.reporting.domain.model.DamageSummaryReport> getDamageSummaryByCategory();
 }

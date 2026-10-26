@@ -25,10 +25,28 @@ public class ToolUseCase {
 
     private final ToolRepository toolRepository;
     private final CategoryRepository categoryRepository;
+    private final com.campus.rentaequipos.catalog.domain.repository.ProviderVerificationPort providerVerificationPort;
 
-    public ToolUseCase(ToolRepository toolRepository, CategoryRepository categoryRepository) {
+    public ToolUseCase(ToolRepository toolRepository, CategoryRepository categoryRepository,
+                       com.campus.rentaequipos.catalog.domain.repository.ProviderVerificationPort providerVerificationPort) {
         this.toolRepository = toolRepository;
         this.categoryRepository = categoryRepository;
+        this.providerVerificationPort = providerVerificationPort;
+    }
+
+    /** Herramientas de la misma categoría, disponibles, ordenadas por cercanía de precio diario. */
+    @Transactional(readOnly = true)
+    public List<ToolResponse> getSimilarTools(UUID id, int limit) {
+        Tool base = toolRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tool", id));
+        java.math.BigDecimal basePrice = base.getDailyPrice().getAmount();
+        return toolRepository.findByCategoryId(base.getCategory().getId()).stream()
+                .filter(t -> !t.getId().equals(base.getId()))
+                .filter(t -> t.getStatus() == ToolStatus.AVAILABLE)
+                .sorted(java.util.Comparator.comparing(t -> t.getDailyPrice().getAmount().subtract(basePrice).abs()))
+                .limit(Math.max(1, limit))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -148,6 +166,11 @@ public class ToolUseCase {
     @Transactional
     public ToolResponse registerTool(ToolRequest request) {
         validateToolDetails(request.name(), request.description(), request.dailyPrice(), request.replacementValue());
+
+        if (request.providerId() == null || !providerVerificationPort.isProviderVerified(request.providerId())) {
+            throw new com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException(
+                    "El proveedor aún no ha sido verificado por un administrador. No puede publicar herramientas.");
+        }
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category", request.categoryId()));

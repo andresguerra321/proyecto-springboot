@@ -23,7 +23,7 @@ public class ProviderOwnershipGuard {
 
     public boolean isAdmin(UserDetails user) {
         return user != null && user.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ADMIN".equals(a.getAuthority()));
     }
 
     /** Devuelve provider_profiles.id del usuario autenticado, o null si no tiene perfil de proveedor. */

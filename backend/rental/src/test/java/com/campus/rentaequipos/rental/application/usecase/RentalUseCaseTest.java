@@ -7,6 +7,7 @@ import com.campus.rentaequipos.catalog.domain.repository.ToolRepository;
 import com.campus.rentaequipos.rental.application.dto.RentalRequest;
 import com.campus.rentaequipos.rental.application.dto.RentalResponse;
 import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException;
+import com.campus.rentaequipos.shared.domain.exception.HerramientaNoDisponibleException;
 import com.campus.rentaequipos.rental.domain.model.Rental;
 import com.campus.rentaequipos.rental.domain.model.RentalItem;
 import com.campus.rentaequipos.rental.domain.model.RentalItemStatus;
@@ -129,6 +130,8 @@ class RentalUseCaseTest {
     @DisplayName("Debe confirmar una reserva en estado PENDING")
     void shouldConfirmPendingRental() {
         when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
         when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
 
         RentalResponse response = rentalUseCase.confirmRental(rentalId);
@@ -182,5 +185,160 @@ class RentalUseCaseTest {
         assertNotNull(rentals);
         assertEquals(1, rentals.size());
         assertEquals("RNT-TEST123", rentals.get(0).rentalCode());
+    }
+
+    @Test
+    @DisplayName("Debe aprobar exitosamente una reserva PENDING verificando disponibilidad de herramienta")
+    void shouldAprobarReservaSuccessfully() {
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+
+        RentalResponse response = rentalUseCase.aprobarReserva(rentalId);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.CONFIRMED.name(), response.status());
+        verify(rentalRepository).save(any(Rental.class));
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepción al aprobar si la herramienta entra en mantenimiento")
+    void shouldThrowWhenAprobarReservaAndToolInMaintenance() {
+        Tool maintenanceTool = new Tool(
+                toolId,
+                UUID.randomUUID(),
+                new Category(UUID.randomUUID(), "Corte", "Corte"),
+                "Sierra",
+                "Makita",
+                "M1",
+                "SN-1",
+                "Desc",
+                Money.of(20.0),
+                Money.of(100.0),
+                ToolStatus.MAINTENANCE,
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(maintenanceTool));
+
+        assertThrows(HerramientaNoDisponibleException.class, () -> rentalUseCase.aprobarReserva(rentalId));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar exitosamente una reserva PENDING cambiando estado a REJECTED")
+    void shouldRechazarReservaSuccessfully() {
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+
+        RentalResponse response = rentalUseCase.rechazarReserva(rentalId);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.REJECTED.name(), response.status());
+        verify(rentalRepository).save(any(Rental.class));
+    }
+
+    @Test
+    @DisplayName("Debe permitir filtrar alquileres por proveedor con searchRentals")
+    void shouldFilterRentalsByProvider() {
+        UUID providerId = UUID.randomUUID();
+        when(toolRepository.findByProviderId(providerId)).thenReturn(List.of(testTool));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental));
+
+        List<RentalResponse> rentals = rentalUseCase.searchRentals("PENDING", null, null, providerId);
+
+        assertNotNull(rentals);
+        assertEquals(1, rentals.size());
+    }
+
+    @Test
+    @DisplayName("Debe rechazar cancelacion de cliente si falta menos de 24h para inicio")
+    void shouldThrowWhenClientCancelsLessThan24hBeforeStart() {
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+
+        assertThrows(BusinessRuleViolationException.class, () -> rentalUseCase.cancelRental(rentalId, true));
+    }
+
+    @Test
+    @DisplayName("Debe permitir cancelacion de cliente si falta mas de 24h para inicio")
+    void shouldAllowClientCancelWhenMoreThan24hBeforeStart() {
+        Rental futureRental = new Rental(
+                rentalId,
+                "RNT-FUT123",
+                UUID.randomUUID(),
+                DateRange.of(LocalDate.now().plusDays(5), LocalDate.now().plusDays(8)),
+                3,
+                Money.of(60.00),
+                Money.of(18.00),
+                Money.of(78.00),
+                RentalStatus.PENDING,
+                testRental.getItems()
+        );
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(futureRental));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+
+        RentalResponse response = rentalUseCase.cancelRental(rentalId, true);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.CANCELLED.name(), response.status());
+    }
+
+    @Test
+    @DisplayName("Debe sumar recargo por mora si la devolucion se hace despues de la fecha fin")
+    void shouldCalculateLateFeeAndAddToTotalWhenOverdueOnComplete() {
+        Rental inProgressOverdueRental = new Rental(
+                rentalId,
+                "RNT-OVERDUE",
+                UUID.randomUUID(),
+                DateRange.of(LocalDate.now().minusDays(5), LocalDate.now().minusDays(2)),
+                3,
+                Money.of(60.00),
+                Money.of(18.00),
+                Money.of(78.00),
+                RentalStatus.IN_PROGRESS,
+                testRental.getItems()
+        );
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(inProgressOverdueRental));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+        when(toolRepository.findById(any())).thenReturn(Optional.of(testTool));
+
+        RentalResponse response = rentalUseCase.completeRental(rentalId);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.COMPLETED.name(), response.status());
+        // 2 días de mora * $20 * 1.5 = $60 recargo por mora. Total: 78 + 60 = 138
+        assertTrue(response.totalAmount().compareTo(java.math.BigDecimal.valueOf(78.00)) > 0);
+    }
+
+    @Test
+    @DisplayName("Debe retornar resumen de alquileres e ingresos de un proveedor")
+    void shouldReturnProviderRentalSummary() {
+        UUID providerId = UUID.randomUUID();
+        when(toolRepository.findByProviderId(providerId)).thenReturn(List.of(testTool));
+
+        Rental completedRental = new Rental(
+                UUID.randomUUID(),
+                "RNT-COMP1",
+                UUID.randomUUID(),
+                DateRange.of(LocalDate.now().minusDays(10), LocalDate.now().minusDays(7)),
+                3,
+                Money.of(100.00),
+                Money.of(20.00),
+                Money.of(120.00),
+                RentalStatus.COMPLETED,
+                testRental.getItems()
+        );
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental, completedRental));
+
+        var summary = rentalUseCase.getProviderSummary(providerId);
+
+        assertNotNull(summary);
+        assertEquals(2, summary.totalRentals());
+        assertEquals(1, summary.countByStatus().get("PENDING"));
+        assertEquals(1, summary.countByStatus().get("COMPLETED"));
+        assertEquals(0, java.math.BigDecimal.valueOf(100.00).compareTo(summary.totalCompletedIncome()));
     }
 }

@@ -3,6 +3,7 @@ package com.campus.rentaequipos.rental.infrastructure.adapter.in.web;
 import com.campus.rentaequipos.catalog.infrastructure.security.ProviderOwnershipGuard;
 import com.campus.rentaequipos.rental.application.dto.RentalRequest;
 import com.campus.rentaequipos.rental.application.dto.RentalResponse;
+import com.campus.rentaequipos.rental.application.usecase.InspectionUseCase;
 import com.campus.rentaequipos.rental.application.usecase.RentalUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -34,13 +35,15 @@ import java.util.UUID;
 public class RentalController {
 
     private final RentalUseCase rentalUseCase;
+    private final InspectionUseCase inspectionUseCase;
     private final JdbcTemplate jdbcTemplate;
     private final ProviderOwnershipGuard guard;
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    public RentalController(RentalUseCase rentalUseCase, JdbcTemplate jdbcTemplate, ProviderOwnershipGuard guard,
+    public RentalController(RentalUseCase rentalUseCase, InspectionUseCase inspectionUseCase, JdbcTemplate jdbcTemplate, ProviderOwnershipGuard guard,
                             org.springframework.context.ApplicationEventPublisher eventPublisher) {
         this.rentalUseCase = rentalUseCase;
+        this.inspectionUseCase = inspectionUseCase;
         this.jdbcTemplate = jdbcTemplate;
         this.guard = guard;
         this.eventPublisher = eventPublisher;
@@ -48,9 +51,34 @@ public class RentalController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all rentals", description = "Retrieves all rentals in the system (Solo Administradores)")
-    public ResponseEntity<List<RentalResponse>> getAllRentals() {
+    @Operation(summary = "Get all rentals", description = "Lista alquileres (Solo Administradores). Filtros opcionales: status, from, to (yyyy-MM-dd), providerId")
+    public ResponseEntity<List<RentalResponse>> getAllRentals(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            @RequestParam(required = false) UUID providerId) {
+        if (status != null || from != null || to != null || providerId != null) {
+            return ResponseEntity.ok(rentalUseCase.searchRentals(status, from, to, providerId));
+        }
         return ResponseEntity.ok(rentalUseCase.getAllRentals());
+    }
+
+    @PatchMapping("/{id}/extend")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'PROVEEDOR', 'ADMIN')")
+    @Operation(summary = "Extender alquiler", description = "Amplia la fecha fin de una reserva CONFIRMED/IN_PROGRESS si el tramo extra está libre. Body: {\"newEndDate\":\"yyyy-MM-dd\"}")
+    public ResponseEntity<RentalResponse> extendRental(@PathVariable UUID id,
+                                                       @RequestBody com.campus.rentaequipos.rental.application.dto.ExtendRentalRequest request,
+                                                       @AuthenticationPrincipal UserDetails userDetails) {
+        assertCanView(id, userDetails);
+        return ResponseEntity.ok(rentalUseCase.extendRental(id, request.newEndDate()));
+    }
+
+    @GetMapping("/{id}/late-fee")
+    @Operation(summary = "Calcular recargo por mora", description = "Días de retraso × tarifa diaria × 1.5 para alquileres IN_PROGRESS vencidos")
+    public ResponseEntity<com.campus.rentaequipos.rental.application.dto.LateFeeResponse> getLateFee(@PathVariable UUID id,
+                                                                                                  @AuthenticationPrincipal UserDetails userDetails) {
+        assertCanView(id, userDetails);
+        return ResponseEntity.ok(rentalUseCase.calculateLateFee(id));
     }
 
     @PostMapping
@@ -152,8 +180,9 @@ public class RentalController {
 
     @GetMapping("/provider/{providerId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')")
-    @Operation(summary = "Get provider rentals", description = "Solicitudes sobre equipos de un proveedor (acepta provider_profiles.id o users.id). Protegido contra IDOR.")
+    @Operation(summary = "Get provider rentals", description = "Solicitudes sobre equipos de un proveedor (acepta provider_profiles.id o users.id). Filtro opcional ?status=PENDING. Protegido contra IDOR.")
     public ResponseEntity<List<RentalResponse>> getProviderRentals(@PathVariable UUID providerId,
+                                                                   @RequestParam(required = false) String status,
                                                                    @AuthenticationPrincipal UserDetails userDetails) {
         UUID resolved = jdbcTemplate.query(
                 "SELECT id FROM provider_profiles WHERE id = ? OR user_id = ?",
@@ -167,7 +196,52 @@ public class RentalController {
             }
         }
         if (resolved == null) return ResponseEntity.ok(List.of());
-        return ResponseEntity.ok(rentalUseCase.getProviderRentals(resolved));
+        return ResponseEntity.ok(rentalUseCase.getProviderRentals(resolved, status));
+    }
+
+    @GetMapping("/provider/{providerId}/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')")
+    @Operation(summary = "Resumen del proveedor", description = "Cantidad de reservas agrupadas por estado e ingresos totales de reservas COMPLETED.")
+    public ResponseEntity<com.campus.rentaequipos.rental.application.dto.ProviderRentalSummaryResponse> getProviderSummary(
+            @PathVariable UUID providerId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID resolved = jdbcTemplate.query(
+                "SELECT id FROM provider_profiles WHERE id = ? OR user_id = ?",
+                rs -> rs.next() ? (UUID) rs.getObject("id") : null,
+                providerId, providerId);
+
+        if (!guard.isAdmin(userDetails)) {
+            UUID own = guard.findOwnProviderId(userDetails);
+            if (own == null || !own.equals(resolved)) {
+                throw new AccessDeniedException("Acceso denegado: no tiene permisos para consultar el resumen de otro proveedor");
+            }
+        }
+        if (resolved == null) {
+            return ResponseEntity.ok(new com.campus.rentaequipos.rental.application.dto.ProviderRentalSummaryResponse(
+                    providerId, 0, java.util.Map.of(), java.math.BigDecimal.ZERO));
+        }
+        return ResponseEntity.ok(rentalUseCase.getProviderSummary(resolved));
+    }
+
+    @PostMapping(value = {"/{id}/inspection", "/{id}/inspections"})
+    @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
+    @Operation(summary = "Registrar inspección técnica sobre un alquiler", description = "Crea un acta técnica (DELIVERY/RETURN) con estado PASSED, WITH_OBSERVATIONS o DAMAGED. Si es DAMAGED, pasa las herramientas a MAINTENANCE.")
+    public ResponseEntity<com.campus.rentaequipos.rental.application.dto.InspectionResponse> createRentalInspection(
+            @PathVariable UUID id,
+            @RequestBody com.campus.rentaequipos.rental.application.dto.InspectionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (!guard.isAdmin(userDetails)) {
+            guard.assertProviderOwnsRental(id, userDetails);
+        }
+        com.campus.rentaequipos.rental.application.dto.InspectionRequest adjusted =
+                new com.campus.rentaequipos.rental.application.dto.InspectionRequest(
+                        id,
+                        request.inspectionType(),
+                        request.inspectorNotes(),
+                        request.inspectorUserId(),
+                        request.status()
+                );
+        return ResponseEntity.status(HttpStatus.CREATED).body(inspectionUseCase.createInspection(adjusted));
     }
 
     @GetMapping("/{id}")
@@ -180,19 +254,24 @@ public class RentalController {
 
     @PatchMapping("/{id}/confirm")
     @PreAuthorize("hasAnyRole('PROVEEDOR', 'ADMIN')")
-    @Operation(summary = "Confirm a rental", description = "Confirma manualmente una reserva PENDING sin pago registrado (solo proveedor dueño de los equipos)")
+    @Operation(summary = "Confirm a rental", description = "Confirma manualmente una reserva PENDING sin pago registrado (proveedor dueño de los equipos o ADMIN)")
     public ResponseEntity<RentalResponse> confirmRental(@PathVariable UUID id,
                                                         @AuthenticationPrincipal UserDetails userDetails) {
-        guard.assertProviderOwnsRental(id, userDetails);
+        if (!guard.isAdmin(userDetails)) {
+            guard.assertProviderOwnsRental(id, userDetails);
+        }
         return ResponseEntity.ok(rentalUseCase.confirmRental(id));
     }
 
     @PatchMapping("/{id}/cancel")
-    @Operation(summary = "Cancel a rental", description = "Cancela/rechaza la reserva: cliente dueño, proveedor de los equipos o ADMIN")
+    @Operation(summary = "Cancel a rental", description = "Cancela la reserva: cliente dueño (exige > 24h de anticipación), proveedor o ADMIN")
     public ResponseEntity<RentalResponse> cancelRental(@PathVariable UUID id,
                                                        @AuthenticationPrincipal UserDetails userDetails) {
         assertCanView(id, userDetails);
-        RentalResponse response = rentalUseCase.cancelRental(id);
+        boolean isClientCaller = !guard.isAdmin(userDetails) 
+                && guard.isClientOwnerOfRental(id, userDetails) 
+                && !guard.isProviderOfRental(id, userDetails);
+        RentalResponse response = rentalUseCase.cancelRental(id, isClientCaller);
         try {
             UUID targetUserId = jdbcTemplate.query(
                     "SELECT user_id FROM client_profiles WHERE id = ?",

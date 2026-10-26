@@ -496,6 +496,147 @@
               "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "cancel"]
             }
           }
+        },
+        {
+          "name": "Aprobar Reserva (Proveedor - Examen)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/f0000000-0000-0000-0000-000000000001/aprobar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "f0000000-0000-0000-0000-000000000001", "aprobar"]
+            }
+          }
+        },
+        {
+          "name": "Rechazar Reserva (Proveedor - Examen)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/f0000000-0000-0000-0000-000000000001/rechazar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "f0000000-0000-0000-0000-000000000001", "rechazar"]
+            }
+          }
+        },
+        {
+          "name": "Listar Reservas Pendientes (Examen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resumen de Alquileres del Proveedor (Summary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/provider/d0000000-0000-0000-0000-000000000001/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "provider", "d0000000-0000-0000-0000-000000000001", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Inspección Técnica en Alquiler (Inspection)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectionType\": \"RETURN\",\n  \"status\": \"DAMAGED\",\n  \"inspectorNotes\": \"Se evidencia fisura por impacto\",\n  \"inspectorUserId\": \"d0000000-0000-0000-0000-000000000001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/inspection",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "inspection"]
+            }
+          }
+        },
+        {
+          "name": "Extender Alquiler (Extend)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newEndDate\": \"2026-07-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/extend",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "extend"]
+            }
+          }
+        },
+        {
+          "name": "Calcular Recargo por Mora (Late Fee)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/f0000000-0000-0000-0000-000000000001/late-fee",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rentals", "f0000000-0000-0000-0000-000000000001", "late-fee"]
+            }
+          }
         }
       ]
     },

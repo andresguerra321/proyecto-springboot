@@ -27,4 +27,8 @@ public class RentalItem {
     public void updateStatus(RentalItemStatus newStatus) {
         this.status = newStatus;
     }
+
+    public void updateTotalPrice(Money newTotalPrice) {
+        this.totalPrice = newTotalPrice;
+    }
 }
