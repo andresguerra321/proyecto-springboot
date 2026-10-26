@@ -122,6 +122,15 @@ public class BillingUseCase {
                 .collect(java.util.stream.Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<PaymentResponse> getPaymentsByClientId(UUID clientId) {
+        return rentalRepository.findByClientId(clientId).stream()
+                .flatMap(rental -> paymentRepository.findByRentalId(rental.getId()).stream())
+                .sorted(java.util.Comparator.comparing(Payment::getTransactionDate).reversed())
+                .map(this::mapToPaymentResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     private void generateInvoice(Payment payment, Rental rental) {
         String invoiceNum = "INV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Money tax = rental.getSubtotal().multiply(new BigDecimal("0.19")); // IVA 19%

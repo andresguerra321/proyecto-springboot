@@ -21,7 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -130,6 +132,27 @@ class BillingUseCaseTest {
 
         assertNotNull(response);
         assertEquals(new BigDecimal("255000.00"), response.amount());
+    }
+
+    @Test
+    @DisplayName("Debe listar los pagos del cliente ordenados del más reciente al más antiguo")
+    void shouldGetPaymentsByClientIdInDescendingDateOrder() {
+        UUID clientId = pendingRental.getClientId();
+        Payment olderPayment = new Payment(
+                UUID.randomUUID(), "PAY-OLDER", rentalId, Money.of(1000), "CREDIT_CARD",
+                "COMPLETED", LocalDateTime.of(2026, 10, 15, 10, 0));
+        Payment newerPayment = new Payment(
+                UUID.randomUUID(), "PAY-NEWER", rentalId, Money.of(2000), "DEBIT_CARD",
+                "COMPLETED", LocalDateTime.of(2026, 10, 16, 10, 0));
+
+        when(rentalRepository.findByClientId(clientId)).thenReturn(List.of(pendingRental));
+        when(paymentRepository.findByRentalId(rentalId)).thenReturn(List.of(olderPayment, newerPayment));
+
+        List<PaymentResponse> payments = billingUseCase.getPaymentsByClientId(clientId);
+
+        assertEquals(2, payments.size());
+        assertEquals("PAY-NEWER", payments.get(0).paymentReference());
+        assertEquals("PAY-OLDER", payments.get(1).paymentReference());
     }
 
     @Test
