@@ -43,9 +43,11 @@ export async function renderClientDashboard() {
   const clientEmail = verifiedSession?.email || user?.email || 'cliente@toolrent.co';
   const clientId = verifiedSession?.id || user?.profile?.id || user?.id;
 
-  let activeTab = 'all'; // all, in_progress, pending, completed
+  let activeTab = 'all'; // all, in_progress, pending, completed, payments
   let searchQuery = '';
   let rawRentals = [];
+  let rawPayments = [];
+  let paymentLoadError = null;
   let toolsList = [];
   let toolMap = new Map();
   let bulkBarManager = null;
@@ -169,6 +171,10 @@ export async function renderClientDashboard() {
               <span>Completadas</span>
               <span id="badge-completed" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 text-zinc-600 border border-zinc-200">0</span>
             </button>
+            <button data-tab="payments" class="crm-tab-btn flex items-center gap-2 text-xs transition-colors cursor-pointer crm-tab-inactive">
+              <span>Historial de Pagos</span>
+              <span id="badge-payments" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 text-zinc-600 border border-zinc-200">0</span>
+            </button>
           </nav>
         </div>
 
@@ -206,12 +212,20 @@ export async function renderClientDashboard() {
 
   async function loadData() {
     try {
-      const [rentals, tools] = await Promise.all([
+      const [rentals, tools, payments] = await Promise.all([
         api.get(`/rentals/client/${clientId}`).catch(() => []),
-        api.get('/tools').catch(() => [])
+        api.get('/tools').catch(() => []),
+        api.get(`/pagos/cliente/${clientId}`).then(result => {
+          paymentLoadError = null;
+          return result;
+        }).catch(error => {
+          paymentLoadError = error.message || 'No fue posible cargar tu historial de pagos.';
+          return [];
+        })
       ]);
 
       rawRentals = Array.isArray(rentals) ? rentals : [];
+      rawPayments = Array.isArray(payments) ? payments : [];
       toolsList = Array.isArray(tools) ? tools : [];
       toolMap = new Map(toolsList.map(t => [t.id, t]));
 
@@ -263,11 +277,18 @@ export async function renderClientDashboard() {
     if (bPend) bPend.textContent = pending;
     const bComp = container.querySelector('#badge-completed');
     if (bComp) bComp.textContent = completed;
+    const bPayments = container.querySelector('#badge-payments');
+    if (bPayments) bPayments.textContent = rawPayments.length;
   }
 
   function renderTable() {
     const stage = container.querySelector('#client-table-stage');
     if (!stage) return;
+
+    if (activeTab === 'payments') {
+      renderPaymentHistory(stage);
+      return;
+    }
 
     // Filter by tab
     let filtered = rawRentals.filter(r => {
@@ -693,6 +714,92 @@ export async function renderClientDashboard() {
         }
       }
     });
+  }
+
+  function renderPaymentHistory(stage) {
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character]);
+
+    if (paymentLoadError) {
+      stage.innerHTML = `
+        <div class="crm-card p-8 text-center text-rose-500 text-xs" role="alert">
+          ${renderIcon('AlertCircle', 'w-6 h-6 mx-auto mb-2')}
+          ${escapeHtml(paymentLoadError)}
+        </div>
+      `;
+      return;
+    }
+
+    if (rawPayments.length === 0) {
+      stage.innerHTML = `
+        <div class="crm-card p-12 text-center space-y-3">
+          <div class="w-14 h-14 rounded-2xl bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto border border-zinc-200">
+            ${renderIcon('CreditCard', 'w-7 h-7')}
+          </div>
+          <h3 class="text-base font-semibold text-zinc-900">No tienes pagos registrados aún.</h3>
+        </div>
+      `;
+      return;
+    }
+
+    const statusDetails = {
+      COMPLETED: { label: 'Pagado', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      PAID: { label: 'Pagado', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      SUCCESS: { label: 'Pagado', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      SUCCEEDED: { label: 'Pagado', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      PENDING: { label: 'Pendiente', classes: 'bg-amber-50 text-amber-700 border-amber-200' },
+      FAILED: { label: 'Fallido', classes: 'bg-rose-50 text-rose-700 border-rose-200' },
+      REFUNDED: { label: 'Reembolsado', classes: 'bg-zinc-100 text-zinc-700 border-zinc-200' }
+    };
+    const methodLabels = {
+      CREDIT_CARD: 'Tarjeta de crédito',
+      DEBIT_CARD: 'Tarjeta débito',
+      BANK_TRANSFER: 'Transferencia bancaria',
+      CASH: 'Efectivo'
+    };
+
+    stage.innerHTML = `
+      <div class="crm-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="crm-table-header border-b border-zinc-200/70 bg-zinc-50/50">
+              <tr>
+                <th class="py-3 px-4 whitespace-nowrap">Fecha</th>
+                <th class="py-3 px-4 whitespace-nowrap">Monto</th>
+                <th class="py-3 px-4 whitespace-nowrap">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100">
+              ${rawPayments.map(payment => {
+                const paymentStatus = String(payment.paymentStatus || '').toUpperCase();
+                const status = statusDetails[paymentStatus]
+                  || { label: escapeHtml(payment.paymentStatus || 'Sin estado'), classes: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+                const method = payment.paymentMethod
+                  ? methodLabels[payment.paymentMethod] || escapeHtml(payment.paymentMethod)
+                  : 'Método no especificado';
+                return `
+                  <tr>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-zinc-600">${formatDate(payment.transactionDate)}</td>
+                    <td class="py-3.5 px-4 font-semibold text-zinc-900 whitespace-nowrap">
+                      ${formatCurrency(payment.amount)}
+                      <span class="block mt-1 text-[10px] font-normal text-zinc-400">${method}</span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold ${status.classes}">${status.label}</span>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   }
 
   function openClientRentalOverview(rental) {
