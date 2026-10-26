@@ -2,6 +2,8 @@
 
 Documento de referencia inmediata para presentar la prueba técnica de Spring Boot en Campus Lands. Contiene credenciales, endpoints exactos, ejemplos de JSON para Postman, consultas SQL de comprobación y reglas de negocio implementadas.
 
+> 💡 **¿Presentando el examen en Linux?** Consulta la **[Guía Maestra Paso a Paso para Linux y Postman](file:///c:/Users/andre/OneDrive/Escritorio/proyectos/CAMPUS/proyecto%20springboot/docs/GUIA_PASO_A_PASO_EXAMEN_LINUX_POSTMAN.md)** con el procedimiento exacto para tomar las capturas requeridas, comandos de terminal Ubuntu y solución a problemas de entorno.
+
 ---
 
 ## 🔑 1. Credenciales de Prueba
