@@ -109,6 +109,11 @@ public class RentalUseCase {
 
     @Transactional
     public RentalResponse createRental(RentalRequest request) {
+        return createRental(request, "CLIENT");
+    }
+
+    @Transactional
+    public RentalResponse createRental(RentalRequest request, String actor) {
         DateRange dateRange = new DateRange(request.startDate(), request.endDate());
         int totalDays = (int) dateRange.getDays();
 
@@ -192,7 +197,7 @@ public class RentalUseCase {
         );
 
         Rental savedRental = rentalRepository.save(rental);
-        recordHistory(savedRental.getId(), null, "PENDING", "CLIENT", "Creación de reserva");
+        recordHistory(savedRental.getId(), null, "PENDING", (actor != null && !actor.isBlank()) ? actor : "CLIENT", "Creación de reserva");
         return mapToResponse(savedRental);
     }
 

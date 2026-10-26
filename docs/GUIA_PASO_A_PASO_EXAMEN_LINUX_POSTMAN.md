@@ -290,22 +290,26 @@ Vuelve a enviar `POST .../aprobar` sobre la misma reserva que ya aprobaste:
 - **JSON:**
   ```json
   {
+    "path": "/api/reservas/a1b2c3d4-e5f6-7890-abcd-1234567890ab/aprobar",
+    "message": "Solo se pueden aprobar reservas PENDIENTES (estado actual: CONFIRMED).",
+    "statusCode": 400,
     "status": 400,
     "error": "Bad Request",
-    "message": "Solo se pueden aprobar reservas PENDIENTES (estado actual: CONFIRMED).",
     "timestamp": "2026-10-25T21:15:00"
   }
   ```
 
 #### 2. Conflicto de Disponibilidad por Cruce de Fechas (`409 Conflict`)
 Intenta aprobar una reserva con fechas que se solapan con otra reserva confirmada sobre la misma herramienta:
-- **Status:** `409 Conflict` (¡No es 400 genérico, es 409 Conflict!)
+- **Status:** `409 Conflict` (¡Distingue conflicto de disponibilidad de un error de sintaxis!)
 - **JSON:**
   ```json
   {
+    "path": "/api/reservas/a1b2c3d4-e5f6-7890-abcd-1234567890ab/aprobar",
+    "message": "La herramienta 'Martillo Demoledor Hexagonal 30kg' no está disponible: ya tiene otra reserva aprobada en esas fechas",
+    "statusCode": 409,
     "status": 409,
     "error": "Conflict",
-    "message": "La herramienta Martillo Demoledor Hexagonal 30kg ya tiene otra reserva aprobada en esas fechas",
     "timestamp": "2026-10-25T21:16:00"
   }
   ```
@@ -319,13 +323,13 @@ Intenta aprobar una reserva con fechas que se solapan con otra reserva confirmad
     {
       "fromStatus": null,
       "toStatus": "PENDING",
-      "changedBy": "CLIENT",
+      "changedBy": "cliente_demo",
       "notes": "Creación de reserva"
     },
     {
       "fromStatus": "PENDING",
       "toStatus": "CONFIRMED",
-      "changedBy": "SYSTEM",
+      "changedBy": "ferreteria_central",
       "notes": "Reserva aprobada"
     }
   ]

@@ -126,7 +126,8 @@ public class RentalController {
                 deliveryAddress,
                 contactPhone
         );
-        RentalResponse response = rentalUseCase.createRental(adjusted);
+        String actor = userDetails != null ? userDetails.getUsername() : "CLIENT";
+        RentalResponse response = rentalUseCase.createRental(adjusted, actor);
 
         try {
             UUID targetUserId = jdbcTemplate.query(

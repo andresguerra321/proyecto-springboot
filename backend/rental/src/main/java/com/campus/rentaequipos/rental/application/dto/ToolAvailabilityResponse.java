@@ -45,4 +45,9 @@ public record ToolAvailabilityResponse(
     }
 
     public record DateRangeDto(LocalDate startDate, LocalDate endDate) {}
+
+    @com.fasterxml.jackson.annotation.JsonProperty("available")
+    public boolean getAvailable() {
+        return isAvailable;
+    }
 }
