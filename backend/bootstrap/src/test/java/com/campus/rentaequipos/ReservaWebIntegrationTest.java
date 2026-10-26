@@ -75,6 +75,7 @@ class ReservaWebIntegrationTest {
     @DisplayName("POST /api/reservas/{id}/aprobar retorna 200 OK y estado CONFIRMED")
     @WithMockUser(roles = "PROVEEDOR")
     void shouldAprobarReservaReturn200() throws Exception {
+        when(rentalUseCase.aprobarReserva(eq(rentalId), any())).thenReturn(buildMockResponse("CONFIRMED", null));
         when(rentalUseCase.aprobarReserva(rentalId)).thenReturn(buildMockResponse("CONFIRMED", null));
 
         mockMvc.perform(post("/api/reservas/{id}/aprobar", rentalId))
@@ -87,6 +88,8 @@ class ReservaWebIntegrationTest {
     @DisplayName("POST /api/reservas/{id}/aprobar retorna 409 CONFLICT cuando hay conflicto de disponibilidad")
     @WithMockUser(roles = "PROVEEDOR")
     void shouldAprobarReservaReturn409OnConflict() throws Exception {
+        when(rentalUseCase.aprobarReserva(eq(rentalId), any()))
+                .thenThrow(new HerramientaNoDisponibleException("Martillo Demoledor", "ya tiene otra reserva aprobada en esas fechas"));
         when(rentalUseCase.aprobarReserva(rentalId))
                 .thenThrow(new HerramientaNoDisponibleException("Martillo Demoledor", "ya tiene otra reserva aprobada en esas fechas"));
 
@@ -100,6 +103,8 @@ class ReservaWebIntegrationTest {
     @DisplayName("POST /api/reservas/{id}/aprobar retorna 400 BAD REQUEST cuando la reserva ya no está PENDING")
     @WithMockUser(roles = "PROVEEDOR")
     void shouldAprobarReservaReturn400WhenNotPending() throws Exception {
+        when(rentalUseCase.aprobarReserva(eq(rentalId), any()))
+                .thenThrow(new BusinessRuleViolationException("Solo se pueden aprobar reservas PENDIENTES (estado actual: CONFIRMED)."));
         when(rentalUseCase.aprobarReserva(rentalId))
                 .thenThrow(new BusinessRuleViolationException("Solo se pueden aprobar reservas PENDIENTES (estado actual: CONFIRMED)."));
 
@@ -114,6 +119,8 @@ class ReservaWebIntegrationTest {
     @WithMockUser(roles = "PROVEEDOR")
     void shouldRechazarReservaWithReasonReturn200() throws Exception {
         String motivo = "Equipo en mantenimiento preventivo";
+        when(rentalUseCase.rechazarReserva(eq(rentalId), eq(motivo), any()))
+                .thenReturn(buildMockResponse("REJECTED", motivo));
         when(rentalUseCase.rechazarReserva(rentalId, motivo))
                 .thenReturn(buildMockResponse("REJECTED", motivo));
 

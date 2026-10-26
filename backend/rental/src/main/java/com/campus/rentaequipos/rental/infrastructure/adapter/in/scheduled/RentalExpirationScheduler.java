@@ -39,7 +39,7 @@ public class RentalExpirationScheduler {
 
         for (Rental r : pendingRentals) {
             try {
-                rentalUseCase.rechazarReserva(r.getId(), "Expiración automática: la fecha de inicio (" + r.getDateRange().getStartDate() + ") venció sin aprobación.");
+                rentalUseCase.rechazarReserva(r.getId(), "Expiración automática: la fecha de inicio (" + r.getDateRange().getStartDate() + ") venció sin aprobación.", "SYSTEM");
                 log.info("Reserva {} expirada automáticamente por vencimiento de fecha de inicio.", r.getRentalCode());
             } catch (Exception e) {
                 log.warn("No se pudo expirar automáticamente la reserva {}: {}", r.getId(), e.getMessage());

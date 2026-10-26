@@ -50,10 +50,6 @@ public class RentalJpaEntity {
     @Column(name = "rejection_reason", length = 255)
     private String rejectionReason;
 
-    @Version
-    @Column(name = "version")
-    private Long version;
-
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "rental_id", nullable = false)
     private List<RentalItemJpaEntity> items = new ArrayList<>();
@@ -107,5 +103,4 @@ public class RentalJpaEntity {
     public String getDeliveryAddress() { return deliveryAddress; }
     public String getContactPhone() { return contactPhone; }
     public String getRejectionReason() { return rejectionReason; }
-    public Long getVersion() { return version; }
 }

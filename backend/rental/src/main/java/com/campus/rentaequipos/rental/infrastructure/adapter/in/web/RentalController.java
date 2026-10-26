@@ -260,7 +260,8 @@ public class RentalController {
         if (!guard.isAdmin(userDetails)) {
             guard.assertProviderOwnsRental(id, userDetails);
         }
-        RentalResponse response = rentalUseCase.confirmRental(id);
+        String actor = userDetails != null ? userDetails.getUsername() : "PROVEEDOR";
+        RentalResponse response = rentalUseCase.confirmRental(id, actor);
         try {
             UUID targetUserId = jdbcTemplate.query(
                     "SELECT user_id FROM client_profiles WHERE id = ?",
@@ -298,7 +299,8 @@ public class RentalController {
         boolean isClientCaller = !guard.isAdmin(userDetails) 
                 && guard.isClientOwnerOfRental(id, userDetails) 
                 && !guard.isProviderOfRental(id, userDetails);
-        RentalResponse response = rentalUseCase.cancelRental(id, isClientCaller);
+        String actor = userDetails != null ? userDetails.getUsername() : (isClientCaller ? "CLIENT" : "SYSTEM");
+        RentalResponse response = rentalUseCase.cancelRental(id, isClientCaller, actor);
         try {
             UUID targetUserId = jdbcTemplate.query(
                     "SELECT user_id FROM client_profiles WHERE id = ?",
@@ -331,7 +333,8 @@ public class RentalController {
                 throw new AccessDeniedException("Acceso denegado: no tiene permisos para confirmar la entrega o recepción de este alquiler");
             }
         }
-        RentalResponse response = rentalUseCase.startRental(id);
+        String actor = userDetails != null ? userDetails.getUsername() : "SYSTEM";
+        RentalResponse response = rentalUseCase.startRental(id, actor);
         try {
             UUID targetUserId = jdbcTemplate.query(
                     "SELECT user_id FROM client_profiles WHERE id = ?",
@@ -364,7 +367,8 @@ public class RentalController {
                 throw new AccessDeniedException("Acceso denegado: no tiene permisos para devolver o completar este alquiler");
             }
         }
-        RentalResponse response = rentalUseCase.completeRental(id);
+        String actor = userDetails != null ? userDetails.getUsername() : "SYSTEM";
+        RentalResponse response = rentalUseCase.completeRental(id, actor);
         try {
             UUID targetUserId = jdbcTemplate.query(
                     "SELECT user_id FROM client_profiles WHERE id = ?",

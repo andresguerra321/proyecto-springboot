@@ -101,9 +101,12 @@ public class ReservaController {
         if (!guard.isAdmin(userDetails)) {
             guard.assertProviderOwnsRental(id, userDetails);
         }
-        RentalResponse response = rentalUseCase.aprobarReserva(id);
-        notifyClient(response.clientId(), "¡Reserva Aprobada!",
-                "Tu reserva (" + response.rentalCode() + ") ha sido aprobada por el proveedor.", "SUCCESS");
+        String actor = userDetails != null ? userDetails.getUsername() : "PROVEEDOR";
+        RentalResponse response = rentalUseCase.aprobarReserva(id, actor);
+        if (response != null) {
+            notifyClient(response.clientId(), "¡Reserva Aprobada!",
+                    "Tu reserva (" + response.rentalCode() + ") ha sido aprobada por el proveedor.", "SUCCESS");
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -117,11 +120,14 @@ public class ReservaController {
             guard.assertProviderOwnsRental(id, userDetails);
         }
         String reason = request != null ? request.reason() : null;
-        RentalResponse response = rentalUseCase.rechazarReserva(id, reason);
-        String msg = (reason != null && !reason.isBlank())
-                ? "Tu reserva (" + response.rentalCode() + ") ha sido rechazada. Motivo: " + reason
-                : "Tu reserva (" + response.rentalCode() + ") ha sido rechazada.";
-        notifyClient(response.clientId(), "Reserva Rechazada", msg, "WARNING");
+        String actor = userDetails != null ? userDetails.getUsername() : "PROVEEDOR";
+        RentalResponse response = rentalUseCase.rechazarReserva(id, reason, actor);
+        if (response != null) {
+            String msg = (reason != null && !reason.isBlank())
+                    ? "Tu reserva (" + response.rentalCode() + ") ha sido rechazada. Motivo: " + reason
+                    : "Tu reserva (" + response.rentalCode() + ") ha sido rechazada.";
+            notifyClient(response.clientId(), "Reserva Rechazada", msg, "WARNING");
+        }
         return ResponseEntity.ok(response);
     }
 

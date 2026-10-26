@@ -13,6 +13,7 @@ import com.campus.rentaequipos.rental.domain.model.RentalItem;
 import com.campus.rentaequipos.rental.domain.model.RentalItemStatus;
 import com.campus.rentaequipos.rental.domain.model.RentalStatus;
 import com.campus.rentaequipos.rental.domain.repository.RentalRepository;
+import com.campus.rentaequipos.rental.domain.repository.RentalStatusHistoryRepository;
 import com.campus.rentaequipos.shared.domain.valueobject.DateRange;
 import com.campus.rentaequipos.shared.domain.valueobject.Money;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,9 @@ class RentalUseCaseTest {
     @Mock
     private ToolRepository toolRepository;
 
+    @Mock
+    private RentalStatusHistoryRepository statusHistoryRepository;
+
     private RentalUseCase rentalUseCase;
 
     private UUID rentalId;
@@ -51,7 +55,7 @@ class RentalUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        rentalUseCase = new RentalUseCase(rentalRepository, toolRepository);
+        rentalUseCase = new RentalUseCase(rentalRepository, toolRepository, statusHistoryRepository);
         rentalId = UUID.randomUUID();
         toolId = UUID.randomUUID();
 
@@ -426,5 +430,8 @@ class RentalUseCaseTest {
         assertEquals(RentalStatus.REJECTED.name(), response.status());
         assertEquals(motivo, response.rejectionReason());
         verify(rentalRepository).save(any(Rental.class));
+        verify(statusHistoryRepository).save(argThat(h ->
+                "REJECTED".equals(h.getToStatus()) && motivo.equals(h.getNotes())
+        ));
     }
 }

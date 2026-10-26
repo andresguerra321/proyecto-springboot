@@ -21,6 +21,8 @@ import com.campus.rentaequipos.rental.application.dto.RentalStatusHistoryRespons
 import com.campus.rentaequipos.rental.domain.model.RentalStatusHistory;
 import com.campus.rentaequipos.rental.domain.repository.RentalStatusHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +56,12 @@ public class RentalUseCase {
     private final ToolRepository toolRepository;
     private final RentalStatusHistoryRepository statusHistoryRepository;
 
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
+
+    @Autowired(required = false)
+    private JdbcTemplate jdbcTemplate;
+
     @Autowired
     public RentalUseCase(RentalRepository rentalRepository, ToolRepository toolRepository, RentalStatusHistoryRepository statusHistoryRepository) {
         this.rentalRepository = rentalRepository;
@@ -67,19 +75,36 @@ public class RentalUseCase {
 
     private void recordHistory(UUID rentalId, String fromStatus, String toStatus, String changedBy, String notes) {
         if (statusHistoryRepository != null && rentalId != null) {
-            try {
-                RentalStatusHistory history = new RentalStatusHistory(
-                        rentalId,
-                        fromStatus,
-                        toStatus,
-                        changedBy != null ? changedBy : "SYSTEM",
-                        notes
-                );
-                statusHistoryRepository.save(history);
-            } catch (Exception e) {
-                // Ignore history failure to prevent aborting transaction
-            }
+            RentalStatusHistory history = new RentalStatusHistory(
+                    rentalId,
+                    fromStatus,
+                    toStatus,
+                    (changedBy != null && !changedBy.isBlank()) ? changedBy : "SYSTEM",
+                    notes
+            );
+            statusHistoryRepository.save(history);
         }
+    }
+
+    private void notifyClientByProfileId(UUID clientProfileId, String title, String message, String level) {
+        if (clientProfileId == null || eventPublisher == null || jdbcTemplate == null) return;
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    clientProfileId);
+
+            if (targetUserId != null) {
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        title,
+                        message,
+                        level,
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
     }
 
     @Transactional
@@ -458,6 +483,11 @@ public class RentalUseCase {
 
     @Transactional
     public RentalResponse aprobarReserva(UUID idReserva) {
+        return aprobarReserva(idReserva, "PROVEEDOR");
+    }
+
+    @Transactional
+    public RentalResponse aprobarReserva(UUID idReserva, String actor) {
         Rental rental = rentalRepository.findById(idReserva)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", idReserva));
 
@@ -487,7 +517,7 @@ public class RentalUseCase {
 
         rental.confirm();
         Rental saved = rentalRepository.save(rental);
-        recordHistory(saved.getId(), "PENDING", "CONFIRMED", "SYSTEM", "Reserva aprobada");
+        recordHistory(saved.getId(), "PENDING", "CONFIRMED", (actor != null && !actor.isBlank()) ? actor : "PROVEEDOR", "Reserva aprobada");
 
         // Auto-rechazo de otras reservas PENDING que compitan por las mismas herramientas en fechas que se crucen
         List<Rental> pendingConflicts = rentalRepository.findAll().stream()
@@ -503,6 +533,8 @@ public class RentalUseCase {
             conflict.reject(autoRejectReason);
             rentalRepository.save(conflict);
             recordHistory(conflict.getId(), "PENDING", "REJECTED", "SYSTEM", autoRejectReason);
+            notifyClientByProfileId(conflict.getClientId(), "Reserva rechazada automáticamente",
+                    "Tu reserva (" + conflict.getRentalCode() + ") fue rechazada por falta de disponibilidad.", "WARNING");
         }
 
         return mapToResponse(saved);
@@ -510,11 +542,16 @@ public class RentalUseCase {
 
     @Transactional
     public RentalResponse rechazarReserva(UUID idReserva) {
-        return rechazarReserva(idReserva, null);
+        return rechazarReserva(idReserva, null, "PROVEEDOR");
     }
 
     @Transactional
     public RentalResponse rechazarReserva(UUID idReserva, String reason) {
+        return rechazarReserva(idReserva, reason, "PROVEEDOR");
+    }
+
+    @Transactional
+    public RentalResponse rechazarReserva(UUID idReserva, String reason, String actor) {
         Rental rental = rentalRepository.findById(idReserva)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", idReserva));
 
@@ -523,7 +560,12 @@ public class RentalUseCase {
         }
         rental.reject(reason);
         Rental saved = rentalRepository.save(rental);
-        recordHistory(saved.getId(), "PENDING", "REJECTED", "SYSTEM", reason != null && !reason.isBlank() ? reason : "Reserva rechazada");
+        String appliedActor = (actor != null && !actor.isBlank()) ? actor : "PROVEEDOR";
+        recordHistory(saved.getId(), "PENDING", "REJECTED", appliedActor, reason != null && !reason.isBlank() ? reason : "Reserva rechazada");
+        if ("SYSTEM".equalsIgnoreCase(appliedActor)) {
+            notifyClientByProfileId(rental.getClientId(), "Reserva rechazada",
+                    (reason != null && !reason.isBlank()) ? reason : "Tu reserva (" + rental.getRentalCode() + ") ha sido rechazada.", "WARNING");
+        }
         return mapToResponse(saved);
     }
 
@@ -601,16 +643,26 @@ public class RentalUseCase {
 
     @Transactional
     public RentalResponse confirmRental(UUID id) {
-        return aprobarReserva(id);
+        return aprobarReserva(id, "PROVEEDOR");
+    }
+
+    @Transactional
+    public RentalResponse confirmRental(UUID id, String actor) {
+        return aprobarReserva(id, actor);
     }
 
     @Transactional
     public RentalResponse cancelRental(UUID id) {
-        return cancelRental(id, false);
+        return cancelRental(id, false, "CLIENT");
     }
 
     @Transactional
     public RentalResponse cancelRental(UUID id, boolean isClientCaller) {
+        return cancelRental(id, isClientCaller, isClientCaller ? "CLIENT" : "SYSTEM");
+    }
+
+    @Transactional
+    public RentalResponse cancelRental(UUID id, boolean isClientCaller, String actor) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
 
@@ -635,12 +687,18 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
-        recordHistory(saved.getId(), prevStatus.name(), "CANCELLED", isClientCaller ? "CLIENT" : "SYSTEM", "Cancelación de reserva");
+        String appliedActor = (actor != null && !actor.isBlank()) ? actor : (isClientCaller ? "CLIENT" : "SYSTEM");
+        recordHistory(saved.getId(), prevStatus.name(), "CANCELLED", appliedActor, "Cancelación de reserva");
         return mapToResponse(saved);
     }
 
     @Transactional
     public RentalResponse startRental(UUID id) {
+        return startRental(id, "SYSTEM");
+    }
+
+    @Transactional
+    public RentalResponse startRental(UUID id, String actor) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
         rental.start();
@@ -653,12 +711,17 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
-        recordHistory(saved.getId(), "CONFIRMED", "IN_PROGRESS", "SYSTEM", "Entrega de equipos");
+        recordHistory(saved.getId(), "CONFIRMED", "IN_PROGRESS", (actor != null && !actor.isBlank()) ? actor : "SYSTEM", "Entrega de equipos");
         return mapToResponse(saved);
     }
 
     @Transactional
     public RentalResponse completeRental(UUID id) {
+        return completeRental(id, "SYSTEM");
+    }
+
+    @Transactional
+    public RentalResponse completeRental(UUID id, String actor) {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
 
@@ -687,7 +750,7 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
-        recordHistory(saved.getId(), "IN_PROGRESS", "COMPLETED", "SYSTEM", "Devolución de equipos");
+        recordHistory(saved.getId(), "IN_PROGRESS", "COMPLETED", (actor != null && !actor.isBlank()) ? actor : "SYSTEM", "Devolución de equipos");
         return mapToResponse(saved);
     }
 
