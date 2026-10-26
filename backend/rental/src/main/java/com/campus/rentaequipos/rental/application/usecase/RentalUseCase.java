@@ -17,6 +17,10 @@ import com.campus.rentaequipos.shared.domain.exception.EntityNotFoundException;
 import com.campus.rentaequipos.shared.domain.valueobject.DateRange;
 import com.campus.rentaequipos.shared.domain.valueobject.Money;
 import com.campus.rentaequipos.rental.application.dto.ProviderRentalSummaryResponse;
+import com.campus.rentaequipos.rental.application.dto.RentalStatusHistoryResponse;
+import com.campus.rentaequipos.rental.domain.model.RentalStatusHistory;
+import com.campus.rentaequipos.rental.domain.repository.RentalStatusHistoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,10 +52,34 @@ public class RentalUseCase {
 
     private final RentalRepository rentalRepository;
     private final ToolRepository toolRepository;
+    private final RentalStatusHistoryRepository statusHistoryRepository;
 
-    public RentalUseCase(RentalRepository rentalRepository, ToolRepository toolRepository) {
+    @Autowired
+    public RentalUseCase(RentalRepository rentalRepository, ToolRepository toolRepository, RentalStatusHistoryRepository statusHistoryRepository) {
         this.rentalRepository = rentalRepository;
         this.toolRepository = toolRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
+    }
+
+    public RentalUseCase(RentalRepository rentalRepository, ToolRepository toolRepository) {
+        this(rentalRepository, toolRepository, null);
+    }
+
+    private void recordHistory(UUID rentalId, String fromStatus, String toStatus, String changedBy, String notes) {
+        if (statusHistoryRepository != null && rentalId != null) {
+            try {
+                RentalStatusHistory history = new RentalStatusHistory(
+                        rentalId,
+                        fromStatus,
+                        toStatus,
+                        changedBy != null ? changedBy : "SYSTEM",
+                        notes
+                );
+                statusHistoryRepository.save(history);
+            } catch (Exception e) {
+                // Ignore history failure to prevent aborting transaction
+            }
+        }
     }
 
     @Transactional
@@ -139,6 +167,7 @@ public class RentalUseCase {
         );
 
         Rental savedRental = rentalRepository.save(rental);
+        recordHistory(savedRental.getId(), null, "PENDING", "CLIENT", "Creación de reserva");
         return mapToResponse(savedRental);
     }
 
@@ -457,27 +486,45 @@ public class RentalUseCase {
         }
 
         rental.confirm();
-        return mapToResponse(rentalRepository.save(rental));
+        Rental saved = rentalRepository.save(rental);
+        recordHistory(saved.getId(), "PENDING", "CONFIRMED", "SYSTEM", "Reserva aprobada");
+
+        // Auto-rechazo de otras reservas PENDING que compitan por las mismas herramientas en fechas que se crucen
+        List<Rental> pendingConflicts = rentalRepository.findAll().stream()
+                .filter(r -> !r.getId().equals(saved.getId()))
+                .filter(r -> r.getStatus() == RentalStatus.PENDING)
+                .filter(r -> r.getItems().stream().anyMatch(i ->
+                        saved.getItems().stream().anyMatch(si -> si.getToolId().equals(i.getToolId()))))
+                .filter(r -> r.getDateRange().overlaps(saved.getDateRange()))
+                .collect(Collectors.toList());
+
+        for (Rental conflict : pendingConflicts) {
+            String autoRejectReason = "Rechazo automático: conflicto de fechas con reserva aprobada " + saved.getRentalCode();
+            conflict.reject(autoRejectReason);
+            rentalRepository.save(conflict);
+            recordHistory(conflict.getId(), "PENDING", "REJECTED", "SYSTEM", autoRejectReason);
+        }
+
+        return mapToResponse(saved);
     }
 
     @Transactional
     public RentalResponse rechazarReserva(UUID idReserva) {
+        return rechazarReserva(idReserva, null);
+    }
+
+    @Transactional
+    public RentalResponse rechazarReserva(UUID idReserva, String reason) {
         Rental rental = rentalRepository.findById(idReserva)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", idReserva));
 
         if (rental.getStatus() != RentalStatus.PENDING) {
             throw new BusinessRuleViolationException("Solo se pueden rechazar reservas PENDIENTES (estado actual: " + rental.getStatus() + ").");
         }
-        rental.reject();
-        for (RentalItem item : rental.getItems()) {
-            toolRepository.findById(item.getToolId()).ifPresent(tool -> {
-                if (tool.getStatus() == ToolStatus.RENTED) {
-                    tool.updateStatus(ToolStatus.AVAILABLE);
-                    toolRepository.save(tool);
-                }
-            });
-        }
-        return mapToResponse(rentalRepository.save(rental));
+        rental.reject(reason);
+        Rental saved = rentalRepository.save(rental);
+        recordHistory(saved.getId(), "PENDING", "REJECTED", "SYSTEM", reason != null && !reason.isBlank() ? reason : "Reserva rechazada");
+        return mapToResponse(saved);
     }
 
     // ===================== EXTENSIÓN DE ALQUILER =====================
@@ -567,6 +614,7 @@ public class RentalUseCase {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rental", id));
 
+        RentalStatus prevStatus = rental.getStatus();
         try {
             if (isClientCaller) {
                 rental.cancelByClient(java.time.LocalDateTime.now());
@@ -587,6 +635,7 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
+        recordHistory(saved.getId(), prevStatus.name(), "CANCELLED", isClientCaller ? "CLIENT" : "SYSTEM", "Cancelación de reserva");
         return mapToResponse(saved);
     }
 
@@ -604,6 +653,7 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
+        recordHistory(saved.getId(), "CONFIRMED", "IN_PROGRESS", "SYSTEM", "Entrega de equipos");
         return mapToResponse(saved);
     }
 
@@ -637,7 +687,18 @@ public class RentalUseCase {
         }
 
         Rental saved = rentalRepository.save(rental);
+        recordHistory(saved.getId(), "IN_PROGRESS", "COMPLETED", "SYSTEM", "Devolución de equipos");
         return mapToResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RentalStatusHistoryResponse> getRentalHistory(UUID rentalId) {
+        if (statusHistoryRepository == null) {
+            return List.of();
+        }
+        return statusHistoryRepository.findByRentalId(rentalId).stream()
+                .map(RentalStatusHistoryResponse::fromDomain)
+                .collect(Collectors.toList());
     }
 
     private RentalResponse mapToResponse(Rental rental) {
@@ -664,7 +725,8 @@ public class RentalUseCase {
                 rental.getStatus().name(),
                 itemResponses,
                 rental.getDeliveryAddress(),
-                rental.getContactPhone()
+                rental.getContactPhone(),
+                rental.getRejectionReason()
         );
     }
 }

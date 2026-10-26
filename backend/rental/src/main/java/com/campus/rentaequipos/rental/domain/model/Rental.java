@@ -20,15 +20,22 @@ public class Rental {
     private List<RentalItem> items;
     private String deliveryAddress;
     private String contactPhone;
+    private String rejectionReason;
 
     public Rental(UUID id, String rentalCode, UUID clientId, DateRange dateRange, int totalDays, 
                   Money subtotal, Money deposit, Money totalAmount, RentalStatus status, List<RentalItem> items) {
-        this(id, rentalCode, clientId, dateRange, totalDays, subtotal, deposit, totalAmount, status, items, null, null);
+        this(id, rentalCode, clientId, dateRange, totalDays, subtotal, deposit, totalAmount, status, items, null, null, null);
     }
 
     public Rental(UUID id, String rentalCode, UUID clientId, DateRange dateRange, int totalDays, 
                   Money subtotal, Money deposit, Money totalAmount, RentalStatus status, List<RentalItem> items,
                   String deliveryAddress, String contactPhone) {
+        this(id, rentalCode, clientId, dateRange, totalDays, subtotal, deposit, totalAmount, status, items, deliveryAddress, contactPhone, null);
+    }
+
+    public Rental(UUID id, String rentalCode, UUID clientId, DateRange dateRange, int totalDays, 
+                  Money subtotal, Money deposit, Money totalAmount, RentalStatus status, List<RentalItem> items,
+                  String deliveryAddress, String contactPhone, String rejectionReason) {
         this.id = id;
         this.rentalCode = rentalCode;
         this.clientId = clientId;
@@ -41,14 +48,12 @@ public class Rental {
         this.items = items != null ? items : new ArrayList<>();
         this.deliveryAddress = deliveryAddress;
         this.contactPhone = contactPhone;
+        this.rejectionReason = rejectionReason;
     }
 
     public void confirm() {
-        if (this.status == RentalStatus.CONFIRMED) {
-            return;
-        }
         if (this.status != RentalStatus.PENDING) {
-            throw new IllegalStateException("Solo se pueden confirmar reservas en estado PENDING");
+            throw new IllegalStateException("Solo se pueden confirmar reservas en estado PENDING (actual: " + this.status + ")");
         }
         this.status = RentalStatus.CONFIRMED;
     }
@@ -93,12 +98,17 @@ public class Rental {
         }
     }
 
-    /** Rechazo por parte del proveedor: solo válido para reservas PENDIENTES. */
-    public void reject() {
+    /** Rechazo por parte del proveedor: solo válido para reservas PENDIENTES con motivo opcional. */
+    public void reject(String reason) {
         if (this.status != RentalStatus.PENDING) {
             throw new IllegalStateException("Solo se pueden rechazar reservas en estado PENDING (actual: " + this.status + ")");
         }
         this.status = RentalStatus.REJECTED;
+        this.rejectionReason = (reason != null && !reason.isBlank()) ? reason.trim() : "Rechazada por el proveedor";
+    }
+
+    public void reject() {
+        reject(null);
     }
 
     /** Extiende la fecha fin recalculando días, subtotal y total. */
@@ -128,4 +138,5 @@ public class Rental {
     public List<RentalItem> getItems() { return items; }
     public String getDeliveryAddress() { return deliveryAddress; }
     public String getContactPhone() { return contactPhone; }
+    public String getRejectionReason() { return rejectionReason; }
 }

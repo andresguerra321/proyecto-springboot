@@ -47,6 +47,13 @@ public class RentalJpaEntity {
     @Column(name = "contact_phone", length = 30)
     private String contactPhone;
 
+    @Column(name = "rejection_reason", length = 255)
+    private String rejectionReason;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "rental_id", nullable = false)
     private List<RentalItemJpaEntity> items = new ArrayList<>();
@@ -56,13 +63,20 @@ public class RentalJpaEntity {
     public RentalJpaEntity(UUID id, String rentalCode, UUID clientId, LocalDate startDate, LocalDate endDate,
                            int totalDays, BigDecimal subtotal, BigDecimal deposit, BigDecimal totalAmount,
                            String status, List<RentalItemJpaEntity> items) {
-        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, null, null);
+        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, null, null, null);
     }
 
     public RentalJpaEntity(UUID id, String rentalCode, UUID clientId, LocalDate startDate, LocalDate endDate,
                            int totalDays, BigDecimal subtotal, BigDecimal deposit, BigDecimal totalAmount,
                            String status, List<RentalItemJpaEntity> items,
                            String deliveryAddress, String contactPhone) {
+        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, deliveryAddress, contactPhone, null);
+    }
+
+    public RentalJpaEntity(UUID id, String rentalCode, UUID clientId, LocalDate startDate, LocalDate endDate,
+                           int totalDays, BigDecimal subtotal, BigDecimal deposit, BigDecimal totalAmount,
+                           String status, List<RentalItemJpaEntity> items,
+                           String deliveryAddress, String contactPhone, String rejectionReason) {
         this.id = id;
         this.rentalCode = rentalCode;
         this.clientId = clientId;
@@ -76,6 +90,7 @@ public class RentalJpaEntity {
         this.items = items;
         this.deliveryAddress = deliveryAddress;
         this.contactPhone = contactPhone;
+        this.rejectionReason = rejectionReason;
     }
 
     public UUID getId() { return id; }
@@ -91,4 +106,6 @@ public class RentalJpaEntity {
     public List<RentalItemJpaEntity> getItems() { return items; }
     public String getDeliveryAddress() { return deliveryAddress; }
     public String getContactPhone() { return contactPhone; }
+    public String getRejectionReason() { return rejectionReason; }
+    public Long getVersion() { return version; }
 }

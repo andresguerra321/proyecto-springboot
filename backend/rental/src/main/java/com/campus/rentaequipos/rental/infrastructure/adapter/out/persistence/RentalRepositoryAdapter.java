@@ -78,7 +78,8 @@ public class RentalRepositoryAdapter implements RentalRepository {
                 RentalStatus.valueOf(entity.getStatus()),
                 items,
                 entity.getDeliveryAddress(),
-                entity.getContactPhone()
+                entity.getContactPhone(),
+                entity.getRejectionReason()
         );
     }
 
@@ -107,7 +108,8 @@ public class RentalRepositoryAdapter implements RentalRepository {
                 rental.getStatus().name(),
                 items,
                 rental.getDeliveryAddress(),
-                rental.getContactPhone()
+                rental.getContactPhone(),
+                rental.getRejectionReason()
         );
     }
 }

@@ -3,6 +3,7 @@ package com.campus.rentaequipos.shared.infrastructure.exception;
 import com.campus.rentaequipos.shared.domain.exception.BusinessRuleViolationException;
 import com.campus.rentaequipos.shared.domain.exception.DomainException;
 import com.campus.rentaequipos.shared.domain.exception.EntityNotFoundException;
+import com.campus.rentaequipos.shared.domain.exception.HerramientaNoDisponibleException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,20 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(HerramientaNoDisponibleException.class)
+    public ResponseEntity<ErrorResponse> handleHerramientaNoDisponibleException(
+            HerramientaNoDisponibleException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                request.getRequestURI(),
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFoundException(

@@ -1,6 +1,10 @@
 package com.campus.rentaequipos.shared.domain.exception;
 
-public class HerramientaNoDisponibleException extends DomainException {
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.CONFLICT)
+public class HerramientaNoDisponibleException extends BusinessRuleViolationException {
     public HerramientaNoDisponibleException(String message) {
         super(message);
     }

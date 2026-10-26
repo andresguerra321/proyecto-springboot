@@ -515,15 +515,23 @@
           }
         },
         {
-          "name": "Rechazar Reserva (Proveedor - Examen)",
+          "name": "Rechazar Reserva con Motivo (Proveedor - Examen)",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Herramienta comprometida para mantenimiento preventivo en obra central\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/reservas/f0000000-0000-0000-0000-000000000001/rechazar",
               "host": ["{{baseUrl}}"],
@@ -551,6 +559,40 @@
                   "value": "PENDING"
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "Consultar Historial de Estados de Reserva (Examen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/f0000000-0000-0000-0000-000000000001/historial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "f0000000-0000-0000-0000-000000000001", "historial"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Calendario de Ocupación de Herramienta (Examen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/e0000000-0000-0000-0000-000000000001/calendar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tools", "e0000000-0000-0000-0000-000000000001", "calendar"]
             }
           }
         },

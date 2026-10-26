@@ -40,4 +40,13 @@ public class ToolAvailabilityController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return ResponseEntity.ok(rentalUseCase.checkToolAvailability(id, from, to));
     }
+
+    @GetMapping({"/{id}/calendar", "/{id}/calendario"})
+    @Operation(summary = "Consultar calendario de ocupación de una herramienta",
+               description = "Devuelve los rangos de fechas en que la herramienta o modelo está ocupada durante los próximos 365 días")
+    public ResponseEntity<ToolAvailabilityResponse> getToolCalendar(@PathVariable UUID id) {
+        LocalDate today = LocalDate.now();
+        LocalDate nextYear = today.plusDays(365);
+        return ResponseEntity.ok(rentalUseCase.checkToolAvailability(id, today, nextYear));
+    }
 }

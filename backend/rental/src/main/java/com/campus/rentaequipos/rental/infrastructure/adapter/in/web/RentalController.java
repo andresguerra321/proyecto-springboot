@@ -260,7 +260,34 @@ public class RentalController {
         if (!guard.isAdmin(userDetails)) {
             guard.assertProviderOwnsRental(id, userDetails);
         }
-        return ResponseEntity.ok(rentalUseCase.confirmRental(id));
+        RentalResponse response = rentalUseCase.confirmRental(id);
+        try {
+            UUID targetUserId = jdbcTemplate.query(
+                    "SELECT user_id FROM client_profiles WHERE id = ?",
+                    rs -> rs.next() ? (UUID) rs.getObject("user_id") : null,
+                    response.clientId());
+
+            if (targetUserId != null) {
+                eventPublisher.publishEvent(new com.campus.rentaequipos.shared.domain.event.NotificationEvent(
+                        targetUserId,
+                        "¡Reserva Aprobada!",
+                        "Tu reserva (" + response.rentalCode() + ") ha sido aprobada por el proveedor.",
+                        "SUCCESS",
+                        "RENTAL",
+                        "#/client"
+                ));
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/history")
+    @Operation(summary = "Get rental status history", description = "Historial completo de estados y trazabilidad de una reserva")
+    public ResponseEntity<java.util.List<com.campus.rentaequipos.rental.application.dto.RentalStatusHistoryResponse>> getRentalHistory(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertCanView(id, userDetails);
+        return ResponseEntity.ok(rentalUseCase.getRentalHistory(id));
     }
 
     @PatchMapping("/{id}/cancel")

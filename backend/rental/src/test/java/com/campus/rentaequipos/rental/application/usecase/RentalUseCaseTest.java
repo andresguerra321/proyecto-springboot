@@ -341,4 +341,90 @@ class RentalUseCaseTest {
         assertEquals(1, summary.countByStatus().get("COMPLETED"));
         assertEquals(0, java.math.BigDecimal.valueOf(100.00).compareTo(summary.totalCompletedIncome()));
     }
+
+    @Test
+    @DisplayName("Debe lanzar excepción si se intenta aprobar una reserva que ya no está PENDING")
+    void shouldThrowWhenAprobarReservaAlreadyConfirmed() {
+        testRental.confirm();
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+
+        assertThrows(BusinessRuleViolationException.class, () -> rentalUseCase.aprobarReserva(rentalId));
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepción si se intenta rechazar una reserva que no está PENDING")
+    void shouldThrowWhenRechazarReservaNotPending() {
+        testRental.confirm();
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+
+        assertThrows(BusinessRuleViolationException.class, () -> rentalUseCase.rechazarReserva(rentalId));
+    }
+
+    @Test
+    @DisplayName("Debe lanzar HerramientaNoDisponibleException al aprobar si hay cruce con otra reserva CONFIRMED")
+    void shouldThrowWhenAprobarReservaHasDateOverlapWithConfirmedRental() {
+        Rental confirmedOverlap = new Rental(
+                UUID.randomUUID(),
+                "RNT-CONF1",
+                UUID.randomUUID(),
+                testRental.getDateRange(),
+                testRental.getTotalDays(),
+                testRental.getSubtotal(),
+                testRental.getDeposit(),
+                testRental.getTotalAmount(),
+                RentalStatus.CONFIRMED,
+                testRental.getItems()
+        );
+
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental, confirmedOverlap));
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
+
+        assertThrows(HerramientaNoDisponibleException.class, () -> rentalUseCase.aprobarReserva(rentalId));
+    }
+
+    @Test
+    @DisplayName("Debe auto-rechazar reservas PENDING en conflicto cuando se aprueba una reserva")
+    void shouldAutoRejectConflictingPendingRentalsWhenApproved() {
+        UUID otherRentalId = UUID.randomUUID();
+        Rental competingPending = new Rental(
+                otherRentalId,
+                "RNT-COMPETE",
+                UUID.randomUUID(),
+                testRental.getDateRange(),
+                testRental.getTotalDays(),
+                testRental.getSubtotal(),
+                testRental.getDeposit(),
+                testRental.getTotalAmount(),
+                RentalStatus.PENDING,
+                testRental.getItems()
+        );
+
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.findAll()).thenReturn(List.of(testRental, competingPending));
+        when(toolRepository.findById(toolId)).thenReturn(Optional.of(testTool));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+
+        RentalResponse response = rentalUseCase.aprobarReserva(rentalId);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.CONFIRMED.name(), response.status());
+        assertEquals(RentalStatus.REJECTED, competingPending.getStatus());
+        assertTrue(competingPending.getRejectionReason().contains("conflicto de fechas"));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar reserva guardando el motivo de rechazo")
+    void shouldRechazarReservaWithReason() {
+        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(testRental));
+        when(rentalRepository.save(any(Rental.class))).thenAnswer(i -> i.getArgument(0));
+
+        String motivo = "Equipo no disponible para la zona solicitada";
+        RentalResponse response = rentalUseCase.rechazarReserva(rentalId, motivo);
+
+        assertNotNull(response);
+        assertEquals(RentalStatus.REJECTED.name(), response.status());
+        assertEquals(motivo, response.rejectionReason());
+        verify(rentalRepository).save(any(Rental.class));
+    }
 }

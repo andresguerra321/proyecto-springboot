@@ -18,12 +18,20 @@ public record RentalResponse(
         String status,
         List<RentalItemResponse> items,
         String deliveryAddress,
-        String contactPhone
+        String contactPhone,
+        String rejectionReason
 ) {
     public RentalResponse(UUID id, String rentalCode, UUID clientId, LocalDate startDate, LocalDate endDate,
                           int totalDays, BigDecimal subtotal, BigDecimal deposit, BigDecimal totalAmount,
                           String status, List<RentalItemResponse> items) {
-        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, null, null);
+        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, null, null, null);
+    }
+
+    public RentalResponse(UUID id, String rentalCode, UUID clientId, LocalDate startDate, LocalDate endDate,
+                          int totalDays, BigDecimal subtotal, BigDecimal deposit, BigDecimal totalAmount,
+                          String status, List<RentalItemResponse> items,
+                          String deliveryAddress, String contactPhone) {
+        this(id, rentalCode, clientId, startDate, endDate, totalDays, subtotal, deposit, totalAmount, status, items, deliveryAddress, contactPhone, null);
     }
 
     public record RentalItemResponse(
